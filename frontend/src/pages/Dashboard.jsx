@@ -83,6 +83,11 @@ export default function Dashboard() {
   return (
     <DashboardLayout title="Dashboard" campusLabel={campusLabel} status={status}>
       <div className="flex flex-wrap items-center gap-4">
+        <img
+          src="/image/unitau-logo.png"
+          alt="Unitau logo"
+          className="h-12 w-12 rounded-2xl bg-white/5 p-2 object-contain"
+        />
         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate/70">
           <span className="mr-2 text-xs uppercase tracking-[0.2em] text-slate/50">Mês</span>
           <input

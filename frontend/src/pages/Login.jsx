@@ -34,6 +34,11 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-10 shadow-card animate-rise">
+        <img
+          src="/image/unitau-logo.png"
+          alt="Unitau logo"
+          className="mx-auto mb-6 h-20 w-20 rounded-2xl bg-white/5 p-3 object-contain"
+        />
         <p className="text-xs uppercase tracking-[0.2em] text-cyan/70">ECOCAMPUS</p>
         <h1 className="mt-3 font-display text-3xl text-pearl">Entrar no painel</h1>
         <p className="mt-2 text-sm text-slate/70">
