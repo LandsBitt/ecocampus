@@ -1,11 +1,18 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import os
 import sys
+from pathlib import Path
 
 import firebase_admin
 from firebase_admin import auth, credentials
+from dotenv import load_dotenv
+
+
+ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(ROOT / "backend" / ".env")
+load_dotenv(ROOT / ".env")
 
 
 def init_firebase() -> None:
