@@ -16,6 +16,10 @@ class Settings(BaseSettings):
         default="http://localhost:5173",
         description="Comma separated list of allowed CORS origins",
     )
+    CAMPUS_NAMES: str | None = Field(
+        default=None,
+        description="Optional comma separated campus names for seeding",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

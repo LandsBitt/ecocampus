@@ -28,13 +28,13 @@ CREATE INDEX IF NOT EXISTS ix_lancamentos_tipo ON lancamentos (tipo);
 CREATE INDEX IF NOT EXISTS ix_lancamentos_campus_mes ON lancamentos (campus_id, mes_referencia);
 
 -- Optional seed (edit names as needed)
--- INSERT INTO campus (id, nome) VALUES
---   (1, 'Campus 1'),
---   (2, 'Campus 2'),
---   (3, 'Campus 3'),
---   (4, 'Campus 4'),
---   (5, 'Campus 5'),
---   (6, 'Campus 6'),
---   (7, 'Campus 7'),
---   (8, 'Campus 8')
--- ON CONFLICT (id) DO NOTHING;
+INSERT INTO campus (id, nome) VALUES
+  (1, 'Campus Bom Conselho'),
+  (2, 'EaD UNITAU'),
+  (3, 'Campus Comunicação e Negócios'),
+  (4, 'Campus de Odontologia'),
+  (5, 'Campus de Direito'),
+  (6, 'Campus JUTA'),
+  (7, 'Campus 7'),
+  (8, 'Campus 8')
+ON CONFLICT (id) DO NOTHING;

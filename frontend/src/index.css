@@ -39,6 +39,22 @@ textarea {
   font-family: 'IBM Plex Sans', sans-serif;
 }
 
+@layer base {
+  input,
+  select,
+  textarea {
+    background-color: rgba(11, 21, 43, 0.85);
+    color: var(--pearl);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    outline: none;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: rgba(226, 232, 240, 0.6);
+  }
+}
+
 ::selection {
   background: rgba(61, 214, 208, 0.4);
 }
