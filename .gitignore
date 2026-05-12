@@ -19,3 +19,9 @@ scripts/firebase_admin_to_env.txt
 # OS
 .DS_Store
 Thumbs.db
+
+# Notas pessoais (não versionar)
+*.local.md
+
+# TypeScript incremental build cache
+*.tsbuildinfo

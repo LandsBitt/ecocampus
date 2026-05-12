@@ -1,7 +1,14 @@
-﻿from logging.config import fileConfig
+from logging.config import fileConfig
+
+from pathlib import Path
+import sys
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+BACKEND_DIR = Path(__file__).resolve().parents[3]
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.config import settings
 from app.db.models import Base

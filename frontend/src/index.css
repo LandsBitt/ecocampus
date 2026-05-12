@@ -1,60 +1,118 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --navy: #0b152b;
-  --navy-light: #142349;
-  --aqua: #3dd6d0;
-  --cyan: #67c3ff;
-  --slate: #e2e8f0;
-  --pearl: #f8fafc;
-  --sand: #f0f4f8;
-  --ember: #ff8a5c;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: 'IBM Plex Sans', sans-serif;
-  background: radial-gradient(circle at top, rgba(61, 214, 208, 0.15), transparent 45%),
-    radial-gradient(circle at 20% 20%, rgba(103, 195, 255, 0.12), transparent 40%),
-    var(--navy);
-  color: var(--slate);
-  min-height: 100vh;
-}
-
-#root {
-  min-height: 100vh;
-}
-
-input,
-select,
-textarea {
-  font-family: 'IBM Plex Sans', sans-serif;
-}
-
+/* ============================================================
+   Design Tokens — ECOCAMPUS dark theme
+   Paleta: deep navy + aqua/eco-teal + warm accent
+   HSL values used by shadcn/ui CSS-variable system.
+   ============================================================ */
 @layer base {
-  input,
-  select,
-  textarea {
-    background-color: rgba(11, 21, 43, 0.85);
-    color: var(--pearl);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    outline: none;
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 96%;
+
+    --card: 222 38% 9%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 222 47% 7%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 175 65% 53%;
+    --primary-foreground: 222 47% 8%;
+
+    --secondary: 217 32% 16%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 217 25% 14%;
+    --muted-foreground: 215 16% 65%;
+
+    --accent: 195 80% 65%;
+    --accent-foreground: 222 47% 8%;
+
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 158 64% 52%;
+    --success-foreground: 222 47% 8%;
+
+    --warning: 38 92% 60%;
+    --warning-foreground: 222 47% 8%;
+
+    --border: 217 25% 20%;
+    --input: 217 25% 18%;
+    --ring: 175 65% 53%;
+
+    --radius: 0.75rem;
+
+    /* Domain colors */
+    --agua: 195 80% 65%;
+    --luz: 38 92% 60%;
+    --eco: 158 64% 52%;
+    --ember: 18 88% 65%;
   }
 
-  input::placeholder,
-  textarea::placeholder {
-    color: rgba(226, 232, 240, 0.6);
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 100% 0%, hsl(195 80% 65% / 0.08), transparent 40%),
+      radial-gradient(circle at 0% 100%, hsl(175 65% 53% / 0.07), transparent 40%),
+      hsl(var(--background));
+    min-height: 100vh;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  /* Better focus rings */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Selection */
+  ::selection {
+    background: hsl(var(--primary) / 0.35);
+    color: hsl(var(--foreground));
+  }
+
+  /* Scrollbar — subtle */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
   }
 }
 
-::selection {
-  background: rgba(61, 214, 208, 0.4);
+@layer components {
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted) / 0.5) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 800px 100%;
+    @apply animate-shimmer;
+  }
 }

@@ -10,8 +10,14 @@ END $$;
 
 CREATE TABLE IF NOT EXISTS campus (
   id integer PRIMARY KEY,
-  nome text NOT NULL UNIQUE
+  nome text NOT NULL UNIQUE,
+  populacao integer NOT NULL DEFAULT 0,
+  area_construida_m2 integer NOT NULL DEFAULT 0
 );
+
+-- Backfill columns when table already exists (idempotent)
+ALTER TABLE campus ADD COLUMN IF NOT EXISTS populacao integer NOT NULL DEFAULT 0;
+ALTER TABLE campus ADD COLUMN IF NOT EXISTS area_construida_m2 integer NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS lancamentos (
   id serial PRIMARY KEY,
@@ -27,14 +33,13 @@ CREATE INDEX IF NOT EXISTS ix_lancamentos_mes_referencia ON lancamentos (mes_ref
 CREATE INDEX IF NOT EXISTS ix_lancamentos_tipo ON lancamentos (tipo);
 CREATE INDEX IF NOT EXISTS ix_lancamentos_campus_mes ON lancamentos (campus_id, mes_referencia);
 
--- Optional seed (edit names as needed)
+-- Seed canônico UNITAU (espelha app/data/campus_mapping.py e migrations 0003/0004).
 INSERT INTO campus (id, nome) VALUES
-  (1, 'Campus Bom Conselho'),
-  (2, 'EaD UNITAU'),
-  (3, 'Campus Comunicação e Negócios'),
-  (4, 'Campus de Odontologia'),
-  (5, 'Campus de Direito'),
-  (6, 'Campus JUTA'),
-  (7, 'Campus 7'),
-  (8, 'Campus 8')
+  (1, 'Campus da Juta'),
+  (2, 'Campus do Itaim'),
+  (3, 'Campus do Bom Conselho'),
+  (4, 'Polo da Saúde'),
+  (5, 'Direito'),
+  (6, 'Reitoria'),
+  (7, 'Colégio UNITAU')
 ON CONFLICT (id) DO NOTHING;

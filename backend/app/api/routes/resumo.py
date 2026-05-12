@@ -22,6 +22,8 @@ def _campus_totals(db: Session, mes: str | None = None, campus_id: int | None = 
         select(
             Campus.id,
             Campus.nome,
+            Campus.populacao,
+            Campus.area_construida_m2,
             func.coalesce(
                 func.sum(case((Lancamento.tipo == LancamentoTipo.agua, Lancamento.valor_numeric), else_=0)),
                 0,

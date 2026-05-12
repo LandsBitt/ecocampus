@@ -16,12 +16,8 @@ class Settings(BaseSettings):
         default="http://localhost:5173",
         description="Comma separated list of allowed CORS origins",
     )
-    CAMPUS_NAMES: str | None = Field(
-        default=None,
-        description="Optional comma separated campus names for seeding",
-    )
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     def cors_origins(self) -> List[str]:
         return [origin.strip() for origin in self.FRONTEND_ORIGINS.split(",") if origin.strip()]

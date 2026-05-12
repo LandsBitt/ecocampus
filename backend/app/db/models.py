@@ -22,6 +22,8 @@ class Campus(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     nome: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    populacao: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0", default=0)
+    area_construida_m2: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0", default=0)
 
     lancamentos: Mapped[list["Lancamento"]] = relationship(back_populates="campus")
 
