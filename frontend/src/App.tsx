@@ -10,6 +10,7 @@ import Profile from '@/pages/Profile'
 import Login from '@/pages/Login'
 import ResetPassword from '@/pages/ResetPassword'
 import NotFound from '@/pages/NotFound'
+import RankingPublico from '@/pages/public/RankingPublico'
 import { useAuth } from '@/providers/AuthProvider'
 
 function DashboardEntry() {
@@ -23,6 +24,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/recuperar-senha" element={<ResetPassword />} />
+      <Route path="/ranking" element={<RankingPublico />} />
 
       <Route element={<PrivateRoute />}>
         <Route element={<AppShell />}>

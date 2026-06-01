@@ -1,9 +1,10 @@
 ﻿from fastapi import APIRouter
 
-from app.api.routes import campus, grafico, health, indicadores, lancamentos, me, resumo
+from app.api.routes import campus, grafico, health, indicadores, lancamentos, me, public, resumo
 
 api_router = APIRouter()
 
+api_router.include_router(public.router)
 api_router.include_router(me.router)
 api_router.include_router(campus.router)
 api_router.include_router(lancamentos.router)

@@ -15,7 +15,7 @@ router = APIRouter()
 
 def _avg(values: list[float]) -> float:
     return sum(values) / len(values) if values else 0.0
-
+ 
 
 @router.get("/indicadores", response_model=list[IndicadorCampus])
 def indicadores(
