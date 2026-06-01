@@ -5,7 +5,8 @@ import {
   BarChart3,
   Building2,
   UserCircle2,
-  Sparkles
+  Sparkles,
+  FileUp
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -23,6 +24,7 @@ const navItems: NavItem[] = [
   { to: '/lancamentos', label: 'Lançamentos', icon: ClipboardList },
   { to: '/relatorios', label: 'Relatórios', icon: BarChart3, roles: ['super'] },
   { to: '/campi', label: 'Gestão de campi', icon: Building2, roles: ['super'] },
+  { to: '/importar', label: 'Importar CSV', icon: FileUp, roles: ['super'] },
   { to: '/perfil', label: 'Perfil', icon: UserCircle2 }
 ]
 

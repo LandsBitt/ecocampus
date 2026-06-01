@@ -71,3 +71,34 @@ export interface PizzaItem {
   nome: string
   total: number
 }
+
+export interface PontoPreview {
+  pontoMedicaoId: number
+  nome: string
+  campusId: number
+  campusNome: string
+  identificador: string | null
+  consumoFisico: number | null
+  valorFatura: number
+}
+
+export interface LinhaIgnorada {
+  local: string
+  identificador: string | null
+  consumoFisico: number | null
+  valorFatura: number | null
+  motivo: string
+}
+
+export interface ImportPreview {
+  mesReferencia: string
+  tipo: string
+  matched: PontoPreview[]
+  unmatched: LinhaIgnorada[]
+  totalValor: number
+}
+
+export interface ConfirmarOut {
+  imported: number
+  updated: number
+}

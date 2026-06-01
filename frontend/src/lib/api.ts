@@ -37,6 +37,24 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return (await response.json()) as T
 }
 
+async function uploadForm<T>(path: string, formData: FormData, token?: string | null): Promise<T> {
+  const headers: Record<string, string> = {}
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new ApiError(response.status, text || response.statusText || 'Erro na API')
+  }
+
+  return (await response.json()) as T
+}
+
 export const api = {
   request,
   get: <T>(path: string, token?: string | null, signal?: AbortSignal) =>
@@ -47,5 +65,6 @@ export const api = {
     request<T>(path, { method: 'PUT', body, token }),
   patch: <T>(path: string, body: unknown, token?: string | null) =>
     request<T>(path, { method: 'PATCH', body, token }),
-  del: <T>(path: string, token?: string | null) => request<T>(path, { method: 'DELETE', token })
+  del: <T>(path: string, token?: string | null) => request<T>(path, { method: 'DELETE', token }),
+  uploadForm,
 }

@@ -1,15 +1,28 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 
 from app.api.routes.indicadores import _avg
 from app.api.routes.resumo import _campus_totals
 from app.core.eco_score import classify_score, compute_eco_score
+from app.db.models import Campus
 from app.db.session import get_db
+from app.schemas.campus import CampusComUnidades
 from app.schemas.indicadores import IndicadorCampus, PizzaItem
 
 router = APIRouter()
+
+
+@router.get("/public/campus", response_model=list[CampusComUnidades])
+def public_campus(db: Session = Depends(get_db)):
+    stmt = (
+        select(Campus)
+        .options(selectinload(Campus.pontos_medicao))
+        .order_by(Campus.id)
+    )
+    return db.scalars(stmt).all()
 
 
 @router.get("/public/ranking", response_model=list[IndicadorCampus])

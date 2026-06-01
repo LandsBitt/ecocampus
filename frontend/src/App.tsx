@@ -6,6 +6,7 @@ import Dashboard from '@/pages/Dashboard'
 import Lancamentos from '@/pages/Lancamentos'
 import Reports from '@/pages/Reports'
 import Campi from '@/pages/Campi'
+import Importar from '@/pages/Importar'
 import Profile from '@/pages/Profile'
 import Login from '@/pages/Login'
 import ResetPassword from '@/pages/ResetPassword'
@@ -38,6 +39,7 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route path="/relatorios" element={<Reports />} />
           <Route path="/campi" element={<Campi />} />
+          <Route path="/importar" element={<Importar />} />
         </Route>
       </Route>
 
