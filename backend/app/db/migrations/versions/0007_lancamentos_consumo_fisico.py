@@ -1,6 +1,6 @@
 """adiciona ponto_medicao_id e consumo_fisico em lancamentos
 
-Revision ID: 0007_add_consumo_fisico_to_lancamentos
+Revision ID: 0007_lancamentos_consumo_fisico
 Revises: 0006_create_pontos_medicao
 Create Date: 2026-06-01 00:00:00.000000
 
@@ -11,7 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "0007_add_consumo_fisico_to_lancamentos"
+# NB: ids de revision devem ter <=32 chars (limite do VARCHAR da alembic_version).
+revision = "0007_lancamentos_consumo_fisico"
 down_revision = "0006_create_pontos_medicao"
 branch_labels = None
 depends_on = None

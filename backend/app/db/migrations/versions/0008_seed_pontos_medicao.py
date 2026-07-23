@@ -1,7 +1,7 @@
 """seed pontos_medicao - todos os medidores de agua e luz da UNITAU
 
 Revision ID: 0008_seed_pontos_medicao
-Revises: 0007_add_consumo_fisico_to_lancamentos
+Revises: 0007_lancamentos_consumo_fisico
 Create Date: 2026-06-01 00:00:00.000000
 
 """
@@ -9,10 +9,11 @@ from __future__ import annotations
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 revision = "0008_seed_pontos_medicao"
-down_revision = "0007_add_consumo_fisico_to_lancamentos"
+down_revision = "0007_lancamentos_consumo_fisico"
 branch_labels = None
 depends_on = None
 
@@ -104,7 +105,9 @@ def upgrade() -> None:
         sa.column("campus_id", sa.Integer()),
         sa.column("nome", sa.String()),
         sa.column("endereco", sa.String()),
-        sa.column("tipo", sa.String()),
+        # Precisa do tipo enum do dialeto para o INSERT castar corretamente
+        # (com sa.String o Postgres rejeita: coluna é lancamento_tipo).
+        sa.column("tipo", postgresql.ENUM("agua", "luz", name="lancamento_tipo", create_type=False)),
         sa.column("identificador", sa.String()),
         sa.column("codigo_instalacao", sa.BigInteger()),
         sa.column("ativo", sa.Boolean()),

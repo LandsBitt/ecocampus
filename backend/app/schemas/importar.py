@@ -1,43 +1,53 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LancamentoImportItem(BaseModel):
-    ponto_medicao_id: int
-    valor_fatura: float
-    consumo_fisico: float | None = None
+    ponto_medicao_id: int = Field(..., alias="pontoMedicaoId")
+    valor_fatura: float = Field(..., alias="valorFatura")
+    consumo_fisico: float | None = Field(default=None, alias="consumoFisico")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ConfirmarPayload(BaseModel):
-    mes_referencia: str
+    mes_referencia: str = Field(..., alias="mesReferencia", pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
     lancamentos: list[LancamentoImportItem]
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class PontoPreview(BaseModel):
-    ponto_medicao_id: int
+    ponto_medicao_id: int = Field(..., alias="pontoMedicaoId")
     nome: str
-    campus_id: int
-    campus_nome: str
+    campus_id: int = Field(..., alias="campusId")
+    campus_nome: str = Field(..., alias="campusNome")
     identificador: str | None
-    consumo_fisico: float | None
-    valor_fatura: float
+    consumo_fisico: float | None = Field(default=None, alias="consumoFisico")
+    valor_fatura: float = Field(..., alias="valorFatura")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class LinhaIgnorada(BaseModel):
     local: str
     identificador: str | None
-    consumo_fisico: float | None
-    valor_fatura: float | None
+    consumo_fisico: float | None = Field(default=None, alias="consumoFisico")
+    valor_fatura: float | None = Field(default=None, alias="valorFatura")
     motivo: str
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class PreviewOut(BaseModel):
-    mes_referencia: str
+    mes_referencia: str = Field(..., alias="mesReferencia")
     tipo: str
     matched: list[PontoPreview]
     unmatched: list[LinhaIgnorada]
-    total_valor: float
+    total_valor: float = Field(..., alias="totalValor")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ConfirmarOut(BaseModel):

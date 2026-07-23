@@ -4,7 +4,8 @@ import csv
 import io
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.core.security import require_super
@@ -134,29 +135,33 @@ def confirmar_importacao(
         if ponto is None:
             continue
 
-        existing = db.scalars(
-            select(Lancamento).where(
-                Lancamento.ponto_medicao_id == item.ponto_medicao_id,
-                Lancamento.mes_referencia == payload.mes_referencia,
+        # Upsert atômico protegido pelo índice único uq_lancamentos_ponto_mes:
+        # importar o mesmo mês duas vezes (ou duplo clique) atualiza em vez de duplicar.
+        stmt = (
+            pg_insert(Lancamento)
+            .values(
+                campus_id=ponto.campus_id,
+                tipo=ponto.tipo,
+                valor_numeric=item.valor_fatura,
+                mes_referencia=payload.mes_referencia,
+                ponto_medicao_id=item.ponto_medicao_id,
+                consumo_fisico=item.consumo_fisico,
             )
-        ).first()
-
-        if existing:
-            existing.valor_numeric = item.valor_fatura
-            existing.consumo_fisico = item.consumo_fisico
-            updated += 1
-        else:
-            db.add(
-                Lancamento(
-                    campus_id=ponto.campus_id,
-                    tipo=ponto.tipo,
-                    valor_numeric=item.valor_fatura,
-                    mes_referencia=payload.mes_referencia,
-                    ponto_medicao_id=item.ponto_medicao_id,
-                    consumo_fisico=item.consumo_fisico,
-                )
+            .on_conflict_do_update(
+                index_elements=[Lancamento.ponto_medicao_id, Lancamento.mes_referencia],
+                index_where=Lancamento.ponto_medicao_id.isnot(None),
+                set_={
+                    "valor_numeric": item.valor_fatura,
+                    "consumo_fisico": item.consumo_fisico,
+                },
             )
+            # xmax = 0 indica linha recém-inserida (PostgreSQL); senão foi update.
+            .returning(text("xmax = 0"))
+        )
+        if db.execute(stmt).scalar_one():
             inserted += 1
+        else:
+            updated += 1
 
     db.commit()
     return ConfirmarOut(imported=inserted, updated=updated)

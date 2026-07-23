@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user, require_super
-from app.db.models import Lancamento, LancamentoTipo
+from app.db.models import Campus, Lancamento, LancamentoTipo
 from app.db.session import get_db
 from app.schemas.auth import UserClaims
 from app.schemas.lancamento import LancamentoCreate, LancamentoOut, LancamentoUpdate
@@ -13,15 +13,13 @@ from app.schemas.lancamento import LancamentoCreate, LancamentoOut, LancamentoUp
 router = APIRouter()
 
 ALLOWED_TIPOS = {LancamentoTipo.agua, LancamentoTipo.luz}
-MIN_CAMPUS_ID = 1
-MAX_CAMPUS_ID = 8
 
 
-def _validate_campus_id(value: int) -> None:
-    if value < MIN_CAMPUS_ID or value > MAX_CAMPUS_ID:
+def _validate_campus_id(db: Session, value: int | None) -> None:
+    if value is None or db.get(Campus, value) is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="campusId fora do intervalo permitido",
+            detail="campusId inexistente",
         )
 
 
@@ -64,7 +62,7 @@ def create_lancamento(
     if user.role == "campus":
         campus_id = user.campusId
 
-    _validate_campus_id(campus_id)
+    _validate_campus_id(db, campus_id)
 
     item = Lancamento(
         campus_id=campus_id,
@@ -90,7 +88,7 @@ def update_lancamento(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lançamento não encontrado")
 
     if payload.campus_id is not None:
-        _validate_campus_id(payload.campus_id)
+        _validate_campus_id(db, payload.campus_id)
         item.campus_id = payload.campus_id
     if payload.tipo is not None:
         if payload.tipo not in ALLOWED_TIPOS:

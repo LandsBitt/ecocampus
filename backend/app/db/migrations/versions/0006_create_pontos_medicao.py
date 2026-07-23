@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 revision = "0006_create_pontos_medicao"
@@ -26,7 +27,10 @@ def upgrade() -> None:
         sa.Column("endereco", sa.String(300), nullable=True),
         sa.Column(
             "tipo",
-            sa.Enum("agua", "luz", name="lancamento_tipo", create_type=False),
+            # create_type=False só funciona no ENUM do dialeto postgresql;
+            # no sa.Enum genérico o flag é ignorado e a migration quebra
+            # tentando recriar o tipo que a 0001 já criou.
+            postgresql.ENUM("agua", "luz", name="lancamento_tipo", create_type=False),
             nullable=False,
         ),
         sa.Column("identificador", sa.String(60), nullable=True),

@@ -39,7 +39,9 @@ def _extract_claims(decoded: dict) -> UserClaims:
             detail="Missing or invalid role claim",
         )
     if role == "campus":
-        if not isinstance(campus_id, int) or not (1 <= campus_id <= 8):
+        # Sanidade estrutural apenas; a existência do campus é validada
+        # contra o banco nas rotas que usam o id (evita range hardcoded).
+        if not isinstance(campus_id, int) or campus_id < 1:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Missing or invalid campusId claim",
