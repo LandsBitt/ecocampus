@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Upload, FileText, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react'
+import { Upload, FileText, CheckCircle2, AlertCircle, RotateCcw, Download } from 'lucide-react'
 
 import { PageLayout } from '@/components/layout/PageLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -90,10 +90,27 @@ export default function Importar() {
               Selecionar arquivo
             </CardTitle>
             <CardDescription>
-              Use a planilha padrão exportada como CSV (separador vírgula, UTF-8).
+              Use a planilha padrão salva como CSV (UTF-8). Não tem o modelo? Baixe abaixo.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="rounded-lg border border-dashed bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Planilhas modelo + passo a passo</p>
+                  <p className="text-xs text-muted-foreground">
+                    Modelos de água e eletricidade e um guia para preencher.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <a href="/modelo-planilhas-ecocampus.zip" download>
+                    <Download className="mr-2 h-3.5 w-3.5" />
+                    Baixar modelo (.zip)
+                  </a>
+                </Button>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>Tipo</Label>
               <Select value={tipo} onValueChange={(v: LancamentoTipo) => setTipo(v)}>

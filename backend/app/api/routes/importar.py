@@ -31,6 +31,13 @@ def _parse_float(value: str) -> float | None:
         return None
 
 
+def _sniff_delimiter(raw: str) -> str:
+    # As planilhas padrão da UNITAU usam ";" (separador brasileiro do Excel),
+    # mas aceitamos "," para não quebrar exports em formato internacional.
+    header = raw.splitlines()[0] if raw else ""
+    return ";" if header.count(";") >= header.count(",") else ","
+
+
 def _find_ponto(db: Session, tipo: str, ident: str | None, inst: int | None) -> PontoMedicao | None:
     if ident:
         ponto = db.scalars(
@@ -60,7 +67,7 @@ def preview_csv(
     _user=Depends(require_super),
 ):
     raw = file.file.read().decode("utf-8-sig", errors="replace")
-    reader = csv.DictReader(io.StringIO(raw))
+    reader = csv.DictReader(io.StringIO(raw), delimiter=_sniff_delimiter(raw))
 
     matched: list[PontoPreview] = []
     unmatched: list[LinhaIgnorada] = []
