@@ -4,28 +4,45 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
-  'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors',
+  'inline-flex items-center gap-1.5 rounded-md border font-medium leading-none [&_svg]:size-3 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        default: 'bg-primary/15 text-primary ring-1 ring-inset ring-primary/30',
-        secondary: 'bg-secondary text-secondary-foreground',
-        outline: 'border border-border text-foreground',
-        success: 'bg-success/15 text-success ring-1 ring-inset ring-success/30',
-        warning: 'bg-warning/15 text-warning ring-1 ring-inset ring-warning/30',
-        destructive: 'bg-destructive/15 text-destructive ring-1 ring-inset ring-destructive/30'
+        default: 'border-border bg-muted text-muted-foreground',
+        brand: 'border-brand/25 bg-brand-soft text-brand',
+        outline: 'border-border bg-transparent text-muted-foreground',
+        success: 'border-success/25 bg-success-soft text-success',
+        warning: 'border-warning/25 bg-warning-soft text-warning',
+        destructive: 'border-destructive/25 bg-destructive-soft text-destructive',
+        water: 'border-water/25 bg-water-soft text-water',
+        energy: 'border-energy/25 bg-energy-soft text-energy',
+        eco: 'border-eco/25 bg-eco-soft text-eco',
+        secondary: 'border-border bg-secondary text-secondary-foreground'
+      },
+      size: {
+        sm: 'px-1.5 py-0.5 text-2xs',
+        md: 'px-2 py-1 text-xs'
       }
     },
-    defaultVariants: { variant: 'default' }
+    defaultVariants: { variant: 'default', size: 'md' }
   }
 )
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />
+/** Encaminha a ref porque é usado como gatilho de tooltip (Radix `asChild`). */
+const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
+  ({ className, variant, size, ...props }, ref) => (
+    <span ref={ref} className={cn(badgeVariants({ variant, size }), className)} {...props} />
+  )
+)
+Badge.displayName = 'Badge'
+
+/** Ponto de status colorido — herda a cor do texto do elemento pai. */
+function Dot({ className }: { className?: string }) {
+  return <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full bg-current', className)} />
 }
 
-export { Badge, badgeVariants }
+export { Badge, badgeVariants, Dot }

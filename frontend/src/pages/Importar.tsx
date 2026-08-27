@@ -1,300 +1,408 @@
-import { useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Upload, FileText, CheckCircle2, AlertCircle, RotateCcw, Download } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  Download,
+  Droplet,
+  FileUp,
+  RotateCcw,
+  Zap
+} from 'lucide-react'
 
-import { PageLayout } from '@/components/layout/PageLayout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { FileDropzone } from '@/components/FileDropzone'
+import { Stepper } from '@/components/Stepper'
+import { Page } from '@/components/layout/PageHeader'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardToolbar } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Field } from '@/components/ui/label'
+import { Segmented } from '@/components/ui/segmented'
 import { toast } from '@/components/ui/sonner'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table'
 import { api } from '@/lib/api'
-import { getCurrentMonth } from '@/lib/date'
+import { formatMonthLong, getCurrentMonth } from '@/lib/date'
+import { formatCurrency, formatNumber } from '@/lib/formatters'
 import { useAuth } from '@/providers/AuthProvider'
+import { usePeriod } from '@/providers/PeriodProvider'
 import type { ConfirmarOut, ImportPreview, LancamentoTipo, PontoPreview } from '@/lib/types'
 
-type Step = 'upload' | 'preview' | 'done'
+const STEPS = [
+  { id: 'arquivo', label: 'Escolher arquivo', description: 'Tipo, mês e planilha' },
+  { id: 'conferir', label: 'Conferir', description: 'Ver o que será importado' },
+  { id: 'pronto', label: 'Concluído', description: 'Dados no sistema' }
+]
 
 export default function Importar() {
   const { getToken } = useAuth()
+  const { mes: mesGlobal } = usePeriod()
   const queryClient = useQueryClient()
-  const fileRef = useRef<HTMLInputElement>(null)
 
-  const [step, setStep] = useState<Step>('upload')
+  const [etapa, setEtapa] = useState(0)
   const [tipo, setTipo] = useState<LancamentoTipo>('agua')
-  const [mes, setMes] = useState(getCurrentMonth())
-  const [file, setFile] = useState<File | null>(null)
+  const [mes, setMes] = useState(mesGlobal || getCurrentMonth())
+  const [arquivo, setArquivo] = useState<File | null>(null)
   const [preview, setPreview] = useState<ImportPreview | null>(null)
-  const [result, setResult] = useState<ConfirmarOut | null>(null)
+  const [resultado, setResultado] = useState<ConfirmarOut | null>(null)
 
-  const previewMutation = useMutation({
+  const analisar = useMutation({
     mutationFn: async () => {
-      if (!file) throw new Error('Nenhum arquivo selecionado')
-      const token = await getToken()
+      if (!arquivo) throw new Error('Nenhum arquivo selecionado')
       const form = new FormData()
-      form.append('file', file)
+      form.append('file', arquivo)
       form.append('tipo', tipo)
       form.append('mes_referencia', mes)
-      return api.uploadForm<ImportPreview>('/importar/preview', form, token)
+      return api.uploadForm<ImportPreview>('/importar/preview', form, await getToken())
     },
     onSuccess: (data) => {
       setPreview(data)
-      setStep('preview')
+      setEtapa(1)
+      if (data.matched.length === 0) {
+        toast.warning('Nenhum ponto de medição foi reconhecido', {
+          description: 'Confira se o arquivo é do tipo selecionado e segue o modelo.'
+        })
+      }
     },
-    onError: () => toast.error('Erro ao analisar o CSV.'),
+    onError: () =>
+      toast.error('Não foi possível ler o arquivo', {
+        description: 'Confirme que é um CSV salvo a partir da planilha modelo.'
+      })
   })
 
-  const confirmarMutation = useMutation({
+  const confirmar = useMutation({
     mutationFn: async () => {
-      if (!preview) throw new Error('Sem preview')
-      const token = await getToken()
-      return api.post<ConfirmarOut>('/importar/confirmar', {
-        mes_referencia: preview.mesReferencia,
-        lancamentos: preview.matched.map((m: PontoPreview) => ({
-          ponto_medicao_id: m.pontoMedicaoId,
-          valor_fatura: m.valorFatura,
-          consumo_fisico: m.consumoFisico,
-        })),
-      }, token)
+      if (!preview) throw new Error('Sem prévia')
+      return api.post<ConfirmarOut>(
+        '/importar/confirmar',
+        {
+          mes_referencia: preview.mesReferencia,
+          lancamentos: preview.matched.map((ponto: PontoPreview) => ({
+            ponto_medicao_id: ponto.pontoMedicaoId,
+            valor_fatura: ponto.valorFatura,
+            consumo_fisico: ponto.consumoFisico
+          }))
+        },
+        await getToken()
+      )
     },
     onSuccess: (data) => {
-      setResult(data)
-      setStep('done')
+      setResultado(data)
+      setEtapa(2)
       queryClient.invalidateQueries({ queryKey: ['lancamentos'] })
       queryClient.invalidateQueries({ queryKey: ['resumo'] })
       queryClient.invalidateQueries({ queryKey: ['indicadores'] })
+      queryClient.invalidateQueries({ queryKey: ['pizza'] })
     },
-    onError: () => toast.error('Erro ao confirmar importação.'),
+    onError: () => toast.error('Erro ao gravar os lançamentos. Nada foi importado.')
   })
 
-  function reset() {
-    setStep('upload')
-    setFile(null)
+  const recomecar = () => {
+    setEtapa(0)
+    setArquivo(null)
     setPreview(null)
-    setResult(null)
-    if (fileRef.current) fileRef.current.value = ''
+    setResultado(null)
   }
 
+  const unidade = tipo === 'agua' ? 'm³' : 'kWh'
+
+  const totalConsumo = useMemo(
+    () =>
+      (preview?.matched ?? []).reduce((soma, ponto) => soma + (ponto.consumoFisico ?? 0), 0),
+    [preview]
+  )
+
   return (
-    <PageLayout
-      title="Importar CSV"
-      description="Importe os dados mensais de consumo de água ou energia a partir da planilha padrão."
+    <Page
+      title="Importar planilha"
+      description="Carregue de uma vez as contas de água ou energia do mês. O sistema identifica o campus de cada ponto de medição pelo endereço da fatura."
+      actions={
+        etapa > 0 && (
+          <Button variant="secondary" onClick={recomecar}>
+            <RotateCcw />
+            Recomeçar
+          </Button>
+        )
+      }
     >
-      {step === 'upload' && (
-        <Card className="max-w-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Upload className="h-4 w-4" />
-              Selecionar arquivo
-            </CardTitle>
-            <CardDescription>
-              Use a planilha padrão salva como CSV (UTF-8). Não tem o modelo? Baixe abaixo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border border-dashed bg-muted/30 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">Planilhas modelo + passo a passo</p>
-                  <p className="text-xs text-muted-foreground">
-                    Modelos de água e eletricidade e um guia para preencher.
-                  </p>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href="/modelo-planilhas-ecocampus.zip" download>
-                    <Download className="mr-2 h-3.5 w-3.5" />
-                    Baixar modelo (.zip)
-                  </a>
-                </Button>
-              </div>
-            </div>
+      <Card variant="flat">
+        <CardContent className="p-5">
+          <Stepper steps={STEPS} current={etapa} />
+        </CardContent>
+      </Card>
 
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={tipo} onValueChange={(v: LancamentoTipo) => setTipo(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="agua">Água</SelectItem>
-                  <SelectItem value="luz">Eletricidade</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Mês de referência</Label>
-              <Input
-                type="month"
-                value={mes}
-                onChange={(e) => setMes(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Arquivo CSV</Label>
-              <Input
-                ref={fileRef}
-                type="file"
-                accept=".csv"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              />
-            </div>
-
-            <Button
-              className="w-full"
-              disabled={!file || !mes || previewMutation.isPending}
-              onClick={() => previewMutation.mutate()}
-            >
-              {previewMutation.isPending ? 'Analisando…' : 'Analisar CSV'}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {step === 'preview' && preview && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                Referência: <strong>{preview.mesReferencia}</strong> — Tipo:{' '}
-                <strong>{preview.tipo === 'agua' ? 'Água' : 'Eletricidade'}</strong>
-              </p>
-            </div>
-            <Button variant="ghost" size="sm" onClick={reset}>
-              <RotateCcw className="mr-2 h-3.5 w-3.5" />
-              Recomeçar
-            </Button>
-          </div>
-
-          {/* Matched */}
+      {etapa === 0 && (
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] lg:items-start">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                Pontos identificados
-                <Badge variant="secondary">{preview.matched.length}</Badge>
-              </CardTitle>
-              <CardDescription>
-                Total: R$ {preview.totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
-                      <th className="px-4 py-2">Ponto</th>
-                      <th className="px-4 py-2">Campus</th>
-                      <th className="px-4 py-2 text-right">
-                        {preview.tipo === 'agua' ? 'Consumo (m³)' : 'Consumo (kWh)'}
-                      </th>
-                      <th className="px-4 py-2 text-right">Valor (R$)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.matched.map((m) => (
-                      <tr key={m.pontoMedicaoId} className="border-b last:border-0">
-                        <td className="px-4 py-2 font-medium">{m.nome}</td>
-                        <td className="px-4 py-2 text-muted-foreground">{m.campusNome}</td>
-                        <td className="px-4 py-2 text-right">
-                          {m.consumoFisico != null
-                            ? m.consumoFisico.toLocaleString('pt-BR', { maximumFractionDigits: 3 })
-                            : '—'}
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          {m.valorFatura.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <CardToolbar
+              bordered
+              title="Dados da importação"
+              description="Diga o que está sendo importado e de qual mês, depois envie o arquivo."
+            />
+            <CardContent className="space-y-5 pt-5">
+              <Field label="O que você vai importar">
+                <Segmented
+                  aria-label="Tipo de consumo"
+                  value={tipo}
+                  onChange={setTipo}
+                  options={[
+                    { value: 'agua', label: 'Contas de água', icon: Droplet },
+                    { value: 'luz', label: 'Contas de energia', icon: Zap }
+                  ]}
+                  className="w-full [&>button]:flex-1"
+                />
+              </Field>
+
+              <Field
+                label="Mês de referência"
+                htmlFor="imp-mes"
+                help="O mês a que as contas se referem — não a data de vencimento."
+              >
+                <Input
+                  id="imp-mes"
+                  type="month"
+                  value={mes}
+                  max={getCurrentMonth()}
+                  onChange={(event) => setMes(event.target.value)}
+                  className="sm:max-w-52"
+                />
+              </Field>
+
+              <Field label="Arquivo da planilha">
+                <FileDropzone file={arquivo} onFileChange={setArquivo} />
+              </Field>
+
+              <Button
+                className="w-full sm:w-auto"
+                disabled={!arquivo || !mes}
+                loading={analisar.isPending}
+                onClick={() => analisar.mutate()}
+              >
+                <FileUp />
+                Analisar arquivo
+                <ArrowRight />
+              </Button>
             </CardContent>
           </Card>
 
-          {/* Unmatched */}
+          <Card variant="flat">
+            <CardToolbar
+              title="Não tem o modelo?"
+              description="Baixe as planilhas de água e energia com o passo a passo de preenchimento."
+            />
+            <CardContent>
+              <Button variant="secondary" asChild className="w-full">
+                <a href="/modelo-planilhas-ecocampus.zip" download>
+                  <Download />
+                  Baixar modelos (.zip)
+                </a>
+              </Button>
+              <ul className="mt-4 space-y-2 text-2xs leading-relaxed text-muted-foreground">
+                <li>1. Preencha a planilha do tipo correspondente.</li>
+                <li>2. Salve como CSV (separado por ponto e vírgula).</li>
+                <li>3. Envie aqui e confira antes de confirmar.</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {etapa === 1 && preview && (
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <ResumoBox
+              titulo="Pontos reconhecidos"
+              valor={String(preview.matched.length)}
+              descricao="Serão importados"
+              tone="success"
+            />
+            <ResumoBox
+              titulo={`Consumo total (${unidade})`}
+              valor={formatNumber(totalConsumo, 0)}
+              descricao={formatMonthLong(preview.mesReferencia)}
+              tone="neutral"
+            />
+            <ResumoBox
+              titulo="Linhas ignoradas"
+              valor={String(preview.unmatched.length)}
+              descricao="Não serão importadas"
+              tone={preview.unmatched.length > 0 ? 'warning' : 'neutral'}
+            />
+          </div>
+
+          <Card>
+            <CardToolbar
+              bordered
+              title="O que será importado"
+              description="Confira antes de confirmar. Valores já existentes para o mesmo ponto e mês serão atualizados."
+            >
+              <Badge variant="brand" size="sm">
+                Valor total {formatCurrency(preview.totalValor)}
+              </Badge>
+            </CardToolbar>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Ponto de medição</TableHead>
+                    <TableHead>Campus</TableHead>
+                    <TableHead className="text-right">Consumo ({unidade})</TableHead>
+                    <TableHead className="text-right">Valor da fatura</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {preview.matched.map((ponto) => (
+                    <TableRow key={ponto.pontoMedicaoId}>
+                      <TableCell className="font-medium">{ponto.nome}</TableCell>
+                      <TableCell className="text-muted-foreground">{ponto.campusNome}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatNumber(ponto.consumoFisico)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatCurrency(ponto.valorFatura)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
           {preview.unmatched.length > 0 && (
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  Linhas não identificadas
-                  <Badge variant="outline">{preview.unmatched.length}</Badge>
-                </CardTitle>
-                <CardDescription>
-                  Estes registros não serão importados.
-                </CardDescription>
-              </CardHeader>
+              <CardToolbar
+                bordered
+                title={
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle className="size-4 text-warning" />
+                    Linhas que ficaram de fora
+                  </span>
+                }
+                description="O endereço não corresponde a nenhum ponto cadastrado. Estes registros não entram no sistema."
+              />
               <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
-                        <th className="px-4 py-2">Local</th>
-                        <th className="px-4 py-2">Identificador</th>
-                        <th className="px-4 py-2">Motivo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {preview.unmatched.map((u, i) => (
-                        <tr key={i} className="border-b last:border-0">
-                          <td className="px-4 py-2">{u.local || '—'}</td>
-                          <td className="px-4 py-2 font-mono text-xs">{u.identificador || '—'}</td>
-                          <td className="px-4 py-2 text-amber-600 text-xs">{u.motivo}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Local na planilha</TableHead>
+                      <TableHead>Identificador</TableHead>
+                      <TableHead>Motivo</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {preview.unmatched.map((linha, index) => (
+                      <TableRow key={`${linha.local}-${index}`}>
+                        <TableCell>{linha.local || '—'}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {linha.identificador || '—'}
+                        </TableCell>
+                        <TableCell className="text-xs text-warning">{linha.motivo}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button
-              disabled={preview.matched.length === 0 || confirmarMutation.isPending}
-              onClick={() => confirmarMutation.mutate()}
+              disabled={preview.matched.length === 0}
+              loading={confirmar.isPending}
+              onClick={() => confirmar.mutate()}
             >
-              {confirmarMutation.isPending
-                ? 'Importando…'
-                : `Confirmar importação (${preview.matched.length} registros)`}
+              <CheckCircle2 />
+              Confirmar importação de {preview.matched.length}{' '}
+              {preview.matched.length === 1 ? 'registro' : 'registros'}
             </Button>
-            <Button variant="outline" onClick={reset}>
+            <Button variant="secondary" onClick={recomecar}>
               Cancelar
             </Button>
           </div>
         </div>
       )}
 
-      {step === 'done' && result && (
-        <Card className="max-w-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              Importação concluída
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border bg-muted/30 p-4 text-center">
-                <p className="text-2xl font-bold">{result.imported}</p>
-                <p className="text-sm text-muted-foreground">Novos registros</p>
+      {etapa === 2 && resultado && (
+        <Card className="mx-auto max-w-xl">
+          <CardContent className="flex flex-col items-center gap-5 p-8 text-center">
+            <span className="flex size-12 items-center justify-center rounded-full bg-success-soft text-success">
+              <CheckCircle2 className="size-6" />
+            </span>
+            <div className="space-y-1">
+              <h2 className="font-display text-lg font-semibold">Importação concluída</h2>
+              <p className="text-[0.8125rem] text-muted-foreground">
+                Os indicadores de {formatMonthLong(preview?.mesReferencia ?? mes)} já foram
+                recalculados.
+              </p>
+            </div>
+
+            <div className="grid w-full grid-cols-2 gap-3">
+              <div className="rounded-lg border border-border bg-surface-sunken px-4 py-3">
+                <p className="font-display text-2xl font-semibold tabular-nums">
+                  {resultado.imported}
+                </p>
+                <p className="mt-0.5 text-2xs text-muted-foreground">Novos registros</p>
               </div>
-              <div className="rounded-lg border bg-muted/30 p-4 text-center">
-                <p className="text-2xl font-bold">{result.updated}</p>
-                <p className="text-sm text-muted-foreground">Atualizados</p>
+              <div className="rounded-lg border border-border bg-surface-sunken px-4 py-3">
+                <p className="font-display text-2xl font-semibold tabular-nums">
+                  {resultado.updated}
+                </p>
+                <p className="mt-0.5 text-2xs text-muted-foreground">Registros atualizados</p>
               </div>
             </div>
-            <Button className="w-full" onClick={reset}>
-              <FileText className="mr-2 h-4 w-4" />
-              Importar outro arquivo
-            </Button>
+
+            <div className="flex w-full flex-col gap-2 sm:flex-row">
+              <Button asChild className="flex-1">
+                <Link to="/dashboard">
+                  Ver na visão geral
+                  <ArrowRight />
+                </Link>
+              </Button>
+              <Button variant="secondary" className="flex-1" onClick={recomecar}>
+                <FileUp />
+                Importar outro
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
-    </PageLayout>
+    </Page>
+  )
+}
+
+function ResumoBox({
+  titulo,
+  valor,
+  descricao,
+  tone
+}: {
+  titulo: string
+  valor: string
+  descricao: string
+  tone: 'success' | 'warning' | 'neutral'
+}) {
+  const classes = {
+    success: 'border-success/25 bg-success-soft',
+    warning: 'border-warning/25 bg-warning-soft',
+    neutral: 'border-border bg-surface-sunken'
+  }[tone]
+
+  return (
+    <div className={`rounded-lg border px-4 py-3.5 ${classes}`}>
+      <p className="eyebrow">{titulo}</p>
+      <p className="mt-1.5 font-display text-2xl font-semibold leading-none tabular-nums text-foreground">
+        {valor}
+      </p>
+      <p className="mt-1.5 text-2xs text-muted-foreground">{descricao}</p>
+    </div>
   )
 }

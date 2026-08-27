@@ -1,6 +1,11 @@
-import { Pencil, Trash2, Droplet, Zap } from 'lucide-react'
+import { useMemo } from 'react'
+import { ClipboardList, Droplet, Pencil, Trash2, Zap } from 'lucide-react'
 
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
+  SortableHead,
   Table,
   TableBody,
   TableCell,
@@ -8,10 +13,13 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { formatMonth, formatNumber } from '@/lib/formatters'
+import { Hint } from '@/components/ui/tooltip'
+import { useSort } from '@/hooks/useSort'
+import { formatMonthLabel } from '@/lib/date'
+import { formatNumber, UNIDADES } from '@/lib/formatters'
 import type { Campus, Lancamento } from '@/lib/types'
+
+type SortKey = 'mes' | 'campus' | 'tipo' | 'valor'
 
 interface LancamentosTableProps {
   items: Lancamento[]
@@ -20,6 +28,7 @@ interface LancamentosTableProps {
   showActions?: boolean
   onEdit?: (item: Lancamento) => void
   onDelete?: (item: Lancamento) => void
+  emptyAction?: React.ReactNode
 }
 
 export function LancamentosTable({
@@ -28,77 +37,144 @@ export function LancamentosTable({
   isSuper,
   showActions = true,
   onEdit,
-  onDelete
+  onDelete,
+  emptyAction
 }: LancamentosTableProps) {
-  const campusName = (id: number) =>
-    campi.find((c) => c.id === id)?.nome ?? `Campus ${id}`
+  const nomePorId = useMemo(
+    () => new Map(campi.map((campus) => [campus.id, campus.nome])),
+    [campi]
+  )
+  const campusName = (id: number) => nomePorId.get(id) ?? `Campus ${id}`
+
+  const accessors = useMemo(
+    () => ({
+      mes: (item: Lancamento) => item.mesReferencia,
+      campus: (item: Lancamento) => campusName(item.campusId),
+      tipo: (item: Lancamento) => item.tipo,
+      valor: (item: Lancamento) => item.valor
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nomePorId]
+  )
+
+  const { sorted, sort, toggle } = useSort<Lancamento, SortKey>(
+    items,
+    accessors,
+    { key: 'mes', direction: 'desc' },
+    { mes: 'desc', valor: 'desc' }
+  )
 
   if (items.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-        Nenhum lançamento encontrado para os filtros selecionados.
-      </div>
+      <EmptyState
+        icon={ClipboardList}
+        title="Nenhum lançamento encontrado"
+        description="Não há registros para os filtros selecionados. Tente outro mês ou remova algum filtro."
+        action={emptyAction}
+      />
     )
   }
 
+  const comAcoes = showActions && (!!onEdit || !!onDelete)
+
   return (
-    <div className="overflow-hidden rounded-lg border border-border/60">
+    <div className="overflow-hidden rounded-lg border border-border">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Mês</TableHead>
-            {isSuper && <TableHead>Campus</TableHead>}
-            <TableHead>Tipo</TableHead>
-            <TableHead className="text-right">Valor</TableHead>
-            {isSuper && showActions && <TableHead className="text-right">Ações</TableHead>}
+          <TableRow className="hover:bg-transparent">
+            <SortableHead
+              active={sort.key === 'mes'}
+              direction={sort.direction}
+              onSort={() => toggle('mes')}
+            >
+              Mês
+            </SortableHead>
+            {isSuper && (
+              <SortableHead
+                active={sort.key === 'campus'}
+                direction={sort.direction}
+                onSort={() => toggle('campus')}
+              >
+                Campus
+              </SortableHead>
+            )}
+            <SortableHead
+              active={sort.key === 'tipo'}
+              direction={sort.direction}
+              onSort={() => toggle('tipo')}
+            >
+              Tipo
+            </SortableHead>
+            <SortableHead
+              align="right"
+              active={sort.key === 'valor'}
+              direction={sort.direction}
+              onSort={() => toggle('valor')}
+            >
+              Consumo
+            </SortableHead>
+            {comAcoes && <TableHead className="w-24 text-right">Ações</TableHead>}
           </TableRow>
         </TableHeader>
+
         <TableBody>
-          {items.map((item) => (
+          {sorted.map((item) => (
             <TableRow key={item.id}>
-              <TableCell className="font-medium">{formatMonth(item.mesReferencia)}</TableCell>
+              <TableCell className="whitespace-nowrap font-medium tabular-nums">
+                {formatMonthLabel(item.mesReferencia)}
+              </TableCell>
+
               {isSuper && (
-                <TableCell className="text-muted-foreground">
+                <TableCell className="max-w-[14rem] truncate text-muted-foreground">
                   {campusName(item.campusId)}
                 </TableCell>
               )}
+
               <TableCell>
                 {item.tipo === 'agua' ? (
-                  <Badge className="gap-1.5 normal-case tracking-normal" variant="default">
-                    <Droplet className="h-3 w-3" />
+                  <Badge variant="water" size="sm">
+                    <Droplet />
                     Água
                   </Badge>
                 ) : (
-                  <Badge className="gap-1.5 normal-case tracking-normal" variant="warning">
-                    <Zap className="h-3 w-3" />
-                    Luz
+                  <Badge variant="energy" size="sm">
+                    <Zap />
+                    Energia
                   </Badge>
                 )}
               </TableCell>
-              <TableCell className="text-right font-mono tabular-nums">
-                {formatNumber(item.valor)}{' '}
-                <span className="text-xs text-muted-foreground">
-                  {item.tipo === 'agua' ? 'm³' : 'kWh'}
-                </span>
+
+              <TableCell className="whitespace-nowrap text-right tabular-nums">
+                <span className="font-medium text-foreground">{formatNumber(item.valor)}</span>{' '}
+                <span className="text-xs text-subtle">{UNIDADES[item.tipo].curta}</span>
               </TableCell>
-              {isSuper && showActions && (
+
+              {comAcoes && (
                 <TableCell className="text-right">
-                  <div className="inline-flex gap-2">
+                  <div className="inline-flex gap-0.5">
                     {onEdit && (
-                      <Button variant="ghost" size="icon" onClick={() => onEdit(item)} aria-label="Editar">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <Hint content="Editar lançamento">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => onEdit(item)}
+                          aria-label={`Editar lançamento de ${formatMonthLabel(item.mesReferencia)}`}
+                        >
+                          <Pencil />
+                        </Button>
+                      </Hint>
                     )}
                     {onDelete && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onDelete(item)}
-                        className="text-destructive hover:text-destructive"
-                        aria-label="Excluir"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Hint content="Excluir lançamento">
+                        <Button
+                          variant="destructive-ghost"
+                          size="icon-sm"
+                          onClick={() => onDelete(item)}
+                          aria-label={`Excluir lançamento de ${formatMonthLabel(item.mesReferencia)}`}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </Hint>
                     )}
                   </div>
                 </TableCell>

@@ -1,168 +1,222 @@
 import { useState, type FormEvent } from 'react'
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword
-} from 'firebase/auth'
-import { Loader2, ShieldCheck, UserCircle2 } from 'lucide-react'
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth'
+import { Check, KeyRound, Mail, ShieldCheck, UserCircle2, X } from 'lucide-react'
 
-import { PageLayout } from '@/components/layout/PageLayout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Page } from '@/components/layout/PageHeader'
+import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardToolbar } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Field } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { toast } from '@/components/ui/sonner'
+import { useCampusList } from '@/hooks/queries'
 import { auth } from '@/lib/firebase'
+import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/AuthProvider'
+
+const MIN_SENHA = 6
 
 export default function Profile() {
   const { user, claims } = useAuth()
-  const [currentPwd, setCurrentPwd] = useState('')
-  const [newPwd, setNewPwd] = useState('')
-  const [confirmPwd, setConfirmPwd] = useState('')
-  const [loading, setLoading] = useState(false)
+  const campi = useCampusList()
 
-  const submitPasswordChange = async (event: FormEvent<HTMLFormElement>) => {
+  const [atual, setAtual] = useState('')
+  const [nova, setNova] = useState('')
+  const [confirmacao, setConfirmacao] = useState('')
+  const [salvando, setSalvando] = useState(false)
+
+  const campusNome = campi.data?.find((campus) => campus.id === claims?.campusId)?.nome
+
+  const regras = [
+    { ok: nova.length >= MIN_SENHA, texto: `Pelo menos ${MIN_SENHA} caracteres` },
+    { ok: nova.length > 0 && nova === confirmacao, texto: 'As duas senhas são iguais' },
+    { ok: nova.length > 0 && nova !== atual, texto: 'Diferente da senha atual' }
+  ]
+  const podeSalvar = regras.every((regra) => regra.ok) && atual.length > 0
+
+  const alterarSenha = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (newPwd !== confirmPwd) {
-      toast.error('A confirmação não bate com a nova senha.')
-      return
-    }
-    if (newPwd.length < 6) {
-      toast.error('A nova senha deve ter pelo menos 6 caracteres.')
-      return
-    }
-    if (!auth.currentUser?.email) return
+    if (!auth.currentUser?.email || !podeSalvar) return
 
-    setLoading(true)
+    setSalvando(true)
     try {
-      const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPwd)
-      await reauthenticateWithCredential(auth.currentUser, credential)
-      await updatePassword(auth.currentUser, newPwd)
+      const credencial = EmailAuthProvider.credential(auth.currentUser.email, atual)
+      await reauthenticateWithCredential(auth.currentUser, credencial)
+      await updatePassword(auth.currentUser, nova)
       toast.success('Senha atualizada com sucesso.')
-      setCurrentPwd('')
-      setNewPwd('')
-      setConfirmPwd('')
-    } catch {
-      toast.error('Não foi possível alterar a senha. Verifique a senha atual.')
+      setAtual('')
+      setNova('')
+      setConfirmacao('')
+    } catch (error) {
+      const code = (error as { code?: string }).code
+      toast.error(
+        code === 'auth/wrong-password' || code === 'auth/invalid-credential'
+          ? 'A senha atual está incorreta.'
+          : 'Não foi possível alterar a senha. Tente novamente.'
+      )
     } finally {
-      setLoading(false)
+      setSalvando(false)
     }
   }
 
   return (
-    <PageLayout
+    <Page
       title="Perfil"
-      description="Dados da conta e configurações de segurança."
+      description="Dados da sua conta e alteração de senha."
     >
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
         <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="rounded-md bg-primary/10 p-2 text-primary">
-                <UserCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <CardTitle>Informações da conta</CardTitle>
-                <CardDescription>Dados sincronizados com o Firebase Auth.</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Email</p>
-              <p className="text-sm">{user?.email ?? '—'}</p>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Cargo</p>
-                <p className="mt-1 text-sm">
-                  {claims?.role === 'super' ? 'Administração central' : 'Administrador de campus'}
+          <CardToolbar bordered title="Sua conta" description="Informações vinculadas ao acesso." />
+          <CardContent className="pt-5">
+            <div className="flex items-center gap-4">
+              <Avatar name={user?.email} size="lg" />
+              <div className="min-w-0">
+                <p className="truncate font-medium text-foreground">
+                  {user?.email?.split('@')[0] ?? 'Usuário'}
                 </p>
+                <p className="truncate text-[0.8125rem] text-muted-foreground">{user?.email}</p>
               </div>
-              <Badge variant={claims?.role === 'super' ? 'default' : 'outline'}>
-                {claims?.role === 'super' ? 'super' : 'campus'}
-              </Badge>
             </div>
-            {claims?.role === 'campus' && (
-              <>
-                <Separator />
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Campus</p>
-                  <p className="text-sm">#{claims?.campusId}</p>
-                </div>
-              </>
-            )}
-            <Separator />
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">UID</p>
-              <p className="text-xs font-mono text-muted-foreground">{user?.uid}</p>
-            </div>
+
+            <Separator className="my-5" />
+
+            <dl className="space-y-4">
+              <Linha
+                icone={ShieldCheck}
+                rotulo="Nível de acesso"
+                valor={
+                  <Badge variant={claims?.role === 'super' ? 'brand' : 'default'} size="sm">
+                    {claims?.role === 'super'
+                      ? 'Administração central'
+                      : 'Administrador de campus'}
+                  </Badge>
+                }
+                ajuda={
+                  claims?.role === 'super'
+                    ? 'Você enxerga e edita os dados de todos os campi.'
+                    : 'Você enxerga e edita apenas os dados do seu campus.'
+                }
+              />
+              <Linha
+                icone={UserCircle2}
+                rotulo="Escopo"
+                valor={
+                  <span className="text-[0.8125rem] text-foreground">
+                    {claims?.role === 'super'
+                      ? 'Todos os campi da universidade'
+                      : campusNome ?? `Campus #${claims?.campusId ?? '—'}`}
+                  </span>
+                }
+              />
+              <Linha
+                icone={Mail}
+                rotulo="Identificador"
+                valor={
+                  <span className="break-all font-mono text-2xs text-muted-foreground">
+                    {user?.uid}
+                  </span>
+                }
+                ajuda="Código interno da conta. Pode ser pedido pelo suporte."
+              />
+            </dl>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="rounded-md bg-warning/10 p-2 text-warning">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div>
-                <CardTitle>Alterar senha</CardTitle>
-                <CardDescription>
-                  Você precisará da sua senha atual para confirmar.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={submitPasswordChange} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="current">Senha atual</Label>
+          <CardToolbar
+            bordered
+            title="Alterar senha"
+            description="Por segurança, confirme a senha atual antes de definir a nova."
+          />
+          <CardContent className="pt-5">
+            <form onSubmit={alterarSenha} className="space-y-4">
+              <Field label="Senha atual" htmlFor="atual">
                 <Input
-                  id="current"
+                  id="atual"
                   type="password"
                   autoComplete="current-password"
-                  value={currentPwd}
-                  onChange={(e) => setCurrentPwd(e.target.value)}
                   required
+                  icon={<KeyRound />}
+                  value={atual}
+                  onChange={(event) => setAtual(event.target.value)}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new">Nova senha</Label>
+              </Field>
+
+              <Field label="Nova senha" htmlFor="nova">
                 <Input
-                  id="new"
+                  id="nova"
                   type="password"
                   autoComplete="new-password"
-                  value={newPwd}
-                  onChange={(e) => setNewPwd(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={MIN_SENHA}
+                  value={nova}
+                  onChange={(event) => setNova(event.target.value)}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm">Confirmar nova senha</Label>
+              </Field>
+
+              <Field label="Repita a nova senha" htmlFor="confirmacao">
                 <Input
-                  id="confirm"
+                  id="confirmacao"
                   type="password"
                   autoComplete="new-password"
-                  value={confirmPwd}
-                  onChange={(e) => setConfirmPwd(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={MIN_SENHA}
+                  value={confirmacao}
+                  onChange={(event) => setConfirmacao(event.target.value)}
+                  invalid={confirmacao.length > 0 && confirmacao !== nova}
                 />
-              </div>
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {loading ? 'Salvando…' : 'Atualizar senha'}
+              </Field>
+
+              {/* Validação visível enquanto digita, em vez de erro só ao enviar. */}
+              <ul className="space-y-1.5 rounded-lg border border-border bg-surface-sunken px-4 py-3">
+                {regras.map((regra) => (
+                  <li
+                    key={regra.texto}
+                    className={cn(
+                      'flex items-center gap-2 text-xs',
+                      regra.ok ? 'text-success' : 'text-muted-foreground'
+                    )}
+                  >
+                    {regra.ok ? <Check className="size-3.5" /> : <X className="size-3.5 opacity-40" />}
+                    {regra.texto}
+                  </li>
+                ))}
+              </ul>
+
+              <Button type="submit" disabled={!podeSalvar} loading={salvando}>
+                Atualizar senha
               </Button>
             </form>
           </CardContent>
         </Card>
       </div>
-    </PageLayout>
+    </Page>
+  )
+}
+
+function Linha({
+  icone: Icone,
+  rotulo,
+  valor,
+  ajuda
+}: {
+  icone: typeof Mail
+  rotulo: string
+  valor: React.ReactNode
+  ajuda?: string
+}) {
+  return (
+    <div className="flex gap-3">
+      <Icone className="mt-0.5 size-4 shrink-0 text-subtle" />
+      <div className="min-w-0 flex-1">
+        <dt className="text-2xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          {rotulo}
+        </dt>
+        <dd className="mt-1">{valor}</dd>
+        {ajuda && <p className="mt-1 text-2xs leading-relaxed text-subtle">{ajuda}</p>}
+      </div>
+    </div>
   )
 }

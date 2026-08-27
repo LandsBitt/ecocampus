@@ -1,16 +1,29 @@
 import * as React from 'react'
+import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
+/** Envelope com scroll horizontal próprio — a página nunca rola na horizontal. */
+const TableWrap = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn('w-full overflow-x-auto overscroll-x-contain', className)}
+      {...props}
+    />
+  )
+)
+TableWrap.displayName = 'TableWrap'
+
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
+    <TableWrap>
       <table
         ref={ref}
-        className={cn('w-full caption-bottom text-sm', className)}
+        className={cn('w-full caption-bottom border-collapse text-sm', className)}
         {...props}
       />
-    </div>
+    </TableWrap>
   )
 )
 Table.displayName = 'Table'
@@ -19,11 +32,7 @@ const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <thead
-    ref={ref}
-    className={cn('[&_tr]:border-b [&_tr]:border-border', className)}
-    {...props}
-  />
+  <thead ref={ref} className={cn('bg-surface-sunken', className)} {...props} />
 ))
 TableHeader.displayName = 'TableHeader'
 
@@ -41,7 +50,7 @@ const TableFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <tfoot
     ref={ref}
-    className={cn('border-t border-border bg-muted/40 font-medium', className)}
+    className={cn('border-t border-border bg-surface-sunken font-medium', className)}
     {...props}
   />
 ))
@@ -52,7 +61,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
     <tr
       ref={ref}
       className={cn(
-        'border-b border-border/60 transition-colors hover:bg-muted/30 data-[state=selected]:bg-muted',
+        'border-b border-border transition-colors last:border-0 hover:bg-muted/50 data-[state=selected]:bg-accent',
         className
       )}
       {...props}
@@ -68,7 +77,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      'h-11 px-4 text-left align-middle text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground [&:has([role=checkbox])]:pr-0',
+      'h-10 whitespace-nowrap border-b border-border px-4 text-left align-middle text-2xs font-semibold uppercase tracking-[0.08em] text-muted-foreground',
       className
     )}
     {...props}
@@ -76,15 +85,47 @@ const TableHead = React.forwardRef<
 ))
 TableHead.displayName = 'TableHead'
 
+/** Cabeçalho clicável para ordenação, com indicador de direção. */
+interface SortableHeadProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
+  active?: boolean
+  direction?: 'asc' | 'desc'
+  onSort?: () => void
+  align?: 'left' | 'right'
+}
+
+const SortableHead = React.forwardRef<HTMLTableCellElement, SortableHeadProps>(
+  ({ className, children, active, direction = 'asc', onSort, align = 'left', ...props }, ref) => {
+    const Icon = !active ? ChevronsUpDown : direction === 'asc' ? ArrowUp : ArrowDown
+    return (
+      <TableHead ref={ref} className={cn('p-0', className)} aria-sort={active ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'} {...props}>
+        <button
+          type="button"
+          onClick={onSort}
+          className={cn(
+            'group flex h-10 w-full items-center gap-1.5 px-4 text-2xs font-semibold uppercase tracking-[0.08em] transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+            align === 'right' && 'justify-end',
+            active ? 'text-foreground' : 'text-muted-foreground'
+          )}
+        >
+          {children}
+          <Icon
+            className={cn(
+              'size-3 transition-opacity',
+              active ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'
+            )}
+          />
+        </button>
+      </TableHead>
+    )
+  }
+)
+SortableHead.displayName = 'SortableHead'
+
 const TableCell = React.forwardRef<
   HTMLTableCellElement,
   React.TdHTMLAttributes<HTMLTableCellElement>
 >(({ className, ...props }, ref) => (
-  <td
-    ref={ref}
-    className={cn('p-4 align-middle [&:has([role=checkbox])]:pr-0', className)}
-    {...props}
-  />
+  <td ref={ref} className={cn('px-4 py-3 align-middle', className)} {...props} />
 ))
 TableCell.displayName = 'TableCell'
 
@@ -92,21 +133,19 @@ const TableCaption = React.forwardRef<
   HTMLTableCaptionElement,
   React.HTMLAttributes<HTMLTableCaptionElement>
 >(({ className, ...props }, ref) => (
-  <caption
-    ref={ref}
-    className={cn('mt-4 text-sm text-muted-foreground', className)}
-    {...props}
-  />
+  <caption ref={ref} className={cn('mt-3 text-xs text-muted-foreground', className)} {...props} />
 ))
 TableCaption.displayName = 'TableCaption'
 
 export {
   Table,
+  TableWrap,
   TableHeader,
   TableBody,
   TableFooter,
   TableRow,
   TableHead,
+  SortableHead,
   TableCell,
   TableCaption
 }

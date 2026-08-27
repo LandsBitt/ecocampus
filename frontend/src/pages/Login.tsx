@@ -1,114 +1,138 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, Link, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { signInWithEmailAndPassword } from 'firebase/auth'
-import { Loader2, LogIn } from 'lucide-react'
+import { AlertCircle, ArrowRight, Eye, EyeOff, Mail } from 'lucide-react'
 
-import { auth } from '@/lib/firebase'
-import { useAuth } from '@/providers/AuthProvider'
+import { AuthLayout } from '@/components/layout/AuthLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
+import { Field } from '@/components/ui/label'
+import { auth } from '@/lib/firebase'
+import { useAuth } from '@/providers/AuthProvider'
+
+/** Traduz os códigos do Firebase para mensagens que orientam o que fazer. */
+function mensagemDeErro(code: string): string {
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'Esse e-mail não parece válido. Confira se digitou corretamente.'
+    case 'auth/user-disabled':
+      return 'Esta conta está desativada. Procure a administração do sistema.'
+    case 'auth/too-many-requests':
+      return 'Muitas tentativas seguidas. Aguarde alguns minutos antes de tentar de novo.'
+    case 'auth/network-request-failed':
+      return 'Sem conexão com o servidor. Verifique sua internet e tente novamente.'
+    default:
+      return 'E-mail ou senha incorretos. Verifique os dados e tente novamente.'
+  }
+}
 
 export default function Login() {
   const { user } = useAuth()
   const location = useLocation()
+
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [senha, setSenha] = useState('')
+  const [mostrarSenha, setMostrarSenha] = useState(false)
+  const [erro, setErro] = useState('')
+  const [carregando, setCarregando] = useState(false)
 
   if (user) {
-    const fromPath = (location.state as { from?: { pathname: string } } | null)?.from?.pathname
-    return <Navigate to={fromPath || '/dashboard'} replace />
+    const destino = (location.state as { from?: { pathname: string } } | null)?.from?.pathname
+    return <Navigate to={destino || '/dashboard'} replace />
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const enviar = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setError('')
-    setLoading(true)
+    setErro('')
+    setCarregando(true)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
-    } catch {
-      setError('Credenciais inválidas ou usuário não encontrado.')
+      await signInWithEmailAndPassword(auth, email, senha)
+    } catch (error) {
+      setErro(mensagemDeErro((error as { code?: string }).code ?? ''))
     } finally {
-      setLoading(false)
+      setCarregando(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6">
-      <div className="w-full max-w-md space-y-6 animate-rise">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <img
-            src="/image/unitau-logo.png"
-            alt="Unitau"
-            className="h-16 w-16 rounded-2xl bg-card/40 p-2 ring-1 ring-border"
-          />
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-primary">
-              ECOCAMPUS
-            </p>
-            <h1 className="mt-1 font-display text-3xl font-semibold">Painel de gestão</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Sustentabilidade e consumo dos 8 campi UNITAU.
-            </p>
-          </div>
-        </div>
-
-        <Card>
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email institucional</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="seu.nome@unitau.br"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Senha</Label>
-                  <Link
-                    to="/recuperar-senha"
-                    className="text-xs text-primary underline-offset-4 hover:underline"
-                  >
-                    Esqueci a senha
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-
-              {error && (
-                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  {error}
-                </p>
-              )}
-
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-                {loading ? 'Entrando…' : 'Entrar'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-xs text-muted-foreground">
-          Acesso restrito a administradores institucionais cadastrados no Firebase Auth.
+    <AuthLayout
+      title="Entrar no ECOCAMPUS"
+      description="Use o e-mail institucional cadastrado pela administração do sistema."
+      footer={
+        <p className="text-center text-2xs leading-relaxed text-subtle">
+          Acesso restrito a servidores autorizados da UNITAU. O ranking dos campi também está{' '}
+          <Link to="/ranking" className="text-brand underline-offset-4 hover:underline">
+            disponível publicamente
+          </Link>
+          .
         </p>
-      </div>
-    </div>
+      }
+    >
+      <form onSubmit={enviar} className="space-y-4">
+        <Field label="E-mail institucional" htmlFor="email">
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            autoFocus
+            required
+            icon={<Mail />}
+            placeholder="seu.nome@unitau.br"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            invalid={!!erro}
+          />
+        </Field>
+
+        <Field
+          label="Senha"
+          htmlFor="senha"
+          hint={
+            <Link
+              to="/recuperar-senha"
+              className="ml-auto text-xs font-normal text-brand underline-offset-4 hover:underline"
+            >
+              Esqueci minha senha
+            </Link>
+          }
+        >
+          <div className="relative">
+            <Input
+              id="senha"
+              type={mostrarSenha ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              value={senha}
+              onChange={(event) => setSenha(event.target.value)}
+              invalid={!!erro}
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setMostrarSenha((valor) => !valor)}
+              aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-subtle transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {mostrarSenha ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
+        </Field>
+
+        {erro && (
+          <p
+            role="alert"
+            className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive-soft px-3 py-2.5 text-xs leading-relaxed text-destructive"
+          >
+            <AlertCircle className="mt-px size-4 shrink-0" />
+            {erro}
+          </p>
+        )}
+
+        <Button type="submit" size="lg" className="w-full" loading={carregando}>
+          Entrar
+          <ArrowRight />
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }

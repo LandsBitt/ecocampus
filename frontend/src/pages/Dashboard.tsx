@@ -1,177 +1,420 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { ArrowRight, Building2, Droplet, Gauge, Plus, Users, Zap } from 'lucide-react'
 
-import { PageLayout } from '@/components/layout/PageLayout'
-import { SummaryCards } from '@/components/SummaryCards'
+import { Explain } from '@/components/Explain'
+import { InsightPanel } from '@/components/InsightPanel'
+import { KpiCard } from '@/components/KpiCard'
 import { LancamentosTable } from '@/components/LancamentosTable'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { api } from '@/lib/api'
-import { getCurrentMonth, previousMonth } from '@/lib/date'
-import { classifyScore } from '@/lib/ecoScore'
+import { CampusDistribution } from '@/components/charts/CampusDistribution'
+import { ConsumoTrendChart } from '@/components/charts/ConsumoTrendChart'
+import { EcoScoreGauge } from '@/components/charts/EcoScoreGauge'
+import { Page, SectionHeader } from '@/components/layout/PageHeader'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardToolbar } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Segmented } from '@/components/ui/segmented'
+import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
+import {
+  useCampusList,
+  useHistoricoResumo,
+  useIndicadores,
+  useLancamentos,
+  usePizza,
+  useResumo
+} from '@/hooks/queries'
+import { formatMonthLabel, formatMonthLong, previousMonth } from '@/lib/date'
+import { classifyScore, styleForScore } from '@/lib/ecoScore'
+import { formatMedida, litrosPorDiaPorPessoa, variacao, type Medida } from '@/lib/formatters'
+import { buildInsights } from '@/lib/insights'
 import { useAuth } from '@/providers/AuthProvider'
-import type {
-  Campus,
-  IndicadorCampus,
-  Lancamento,
-  ResumoResponse
-} from '@/lib/types'
+import { usePeriod } from '@/providers/PeriodProvider'
 
 export default function Dashboard() {
-  const { claims, getToken } = useAuth()
-  const [mes, setMes] = useState(getCurrentMonth())
+  const { claims } = useAuth()
+  const { mes } = usePeriod()
+  const isSuper = claims?.role === 'super'
+
+  const [medida, setMedida] = useState<Medida>('agua')
+
   const mesAnterior = useMemo(() => previousMonth(mes), [mes])
+  const resumo = useResumo(mes)
+  const resumoAnterior = useResumo(mesAnterior)
+  const indicadores = useIndicadores(mes)
+  const historico = useHistoricoResumo(mes, 12)
+  const lancamentos = useLancamentos({ mes })
+  const campi = useCampusList()
+  const pizza = usePizza(mes, isSuper)
 
-  const resumoQuery = useQuery<ResumoResponse>({
-    queryKey: ['resumo', mes],
-    queryFn: async () => {
-      const token = await getToken()
-      return api.get<ResumoResponse>(`/resumo?mes=${mes}`, token)
-    },
-    enabled: !!claims
-  })
+  // O bloco relevante do /resumo muda conforme o papel: a reitoria vê o
+  // consolidado, o campus vê apenas o próprio.
+  const atual = useMemo(() => {
+    if (!resumo.data) return null
+    const bloco = isSuper ? resumo.data.totalGeral : resumo.data.campus
+    return bloco ? { agua: bloco.agua, luz: bloco.luz, total: bloco.total } : null
+  }, [resumo.data, isSuper])
 
-  const resumoAnteriorQuery = useQuery<ResumoResponse>({
-    queryKey: ['resumo', mesAnterior],
-    queryFn: async () => {
-      const token = await getToken()
-      return api.get<ResumoResponse>(`/resumo?mes=${mesAnterior}`, token)
-    },
-    enabled: !!claims
-  })
+  const anterior = useMemo(() => {
+    if (!resumoAnterior.data) return null
+    const bloco = isSuper ? resumoAnterior.data.totalGeral : resumoAnterior.data.campus
+    return bloco ? { agua: bloco.agua, luz: bloco.luz, total: bloco.total } : null
+  }, [resumoAnterior.data, isSuper])
 
-  const indicadoresQuery = useQuery<IndicadorCampus[]>({
-    queryKey: ['indicadores', mes],
-    queryFn: async () => {
-      const token = await getToken()
-      return api.get<IndicadorCampus[]>(`/indicadores?mes=${mes}`, token)
-    },
-    enabled: !!claims
-  })
-
-  const lancamentosQuery = useQuery<Lancamento[]>({
-    queryKey: ['lancamentos', mes],
-    queryFn: async () => {
-      const token = await getToken()
-      return api.get<Lancamento[]>(`/lancamentos?mes=${mes}`, token)
-    },
-    enabled: !!claims
-  })
-
-  const campusListQuery = useQuery<Campus[]>({
-    queryKey: ['campus-list'],
-    queryFn: async () => {
-      const token = await getToken()
-      return api.get<Campus[]>('/campus', token)
-    },
-    enabled: !!claims
-  })
-
-  const summary = useMemo(() => {
-    if (!resumoQuery.data) return null
-    if (claims?.role === 'super') {
-      const t = resumoQuery.data.totalGeral
-      return { agua: t.agua, luz: t.luz, total: t.total, totalGeral: t.total }
-    }
-    const c = resumoQuery.data.campus
-    return {
-      agua: c?.agua ?? 0,
-      luz: c?.luz ?? 0,
-      total: c?.total ?? 0,
-      totalGeral: resumoQuery.data.totalGeral?.total ?? 0
-    }
-  }, [resumoQuery.data, claims?.role])
-
-  const previous = useMemo(() => {
-    if (!resumoAnteriorQuery.data) return undefined
-    if (claims?.role === 'super') {
-      const t = resumoAnteriorQuery.data.totalGeral
-      return { agua: t.agua, luz: t.luz, total: t.total }
-    }
-    const c = resumoAnteriorQuery.data.campus
-    return { agua: c?.agua ?? 0, luz: c?.luz ?? 0, total: c?.total ?? 0 }
-  }, [resumoAnteriorQuery.data, claims?.role])
-
-  const status = useMemo(() => {
-    if (!indicadoresQuery.data || indicadoresQuery.data.length === 0) return null
-    if (claims?.role === 'campus') return indicadoresQuery.data[0]?.classificacao ?? null
-    const avg =
-      indicadoresQuery.data.reduce((sum, i) => sum + i.ecoScore, 0) / indicadoresQuery.data.length
-    return classifyScore(avg)
-  }, [indicadoresQuery.data, claims?.role])
-
-  const recent = (lancamentosQuery.data ?? []).slice(0, 6)
-
-  const description =
-    claims?.role === 'super'
-      ? 'Visão geral consolidada de todos os campi.'
-      : `Campus ${claims?.campusId ?? '—'}: visão do consumo do mês.`
-
-  const rightSlot = (
-    <div className="flex items-center gap-3">
-      {status && (
-        <Badge
-          variant={
-            status === 'Ecológico' ? 'success' : status === 'Atenção' ? 'warning' : 'destructive'
-          }
-        >
-          {status}
-        </Badge>
-      )}
-      <div className="flex items-center gap-2">
-        <Label htmlFor="mes" className="text-[10px]">
-          Mês
-        </Label>
-        <Input
-          id="mes"
-          type="month"
-          value={mes}
-          onChange={(e) => setMes(e.target.value)}
-          className="h-9 w-[160px]"
-        />
-      </div>
-    </div>
+  const meuCampus = useMemo(
+    () => (isSuper ? null : indicadores.data?.[0] ?? null),
+    [indicadores.data, isSuper]
   )
 
-  return (
-    <PageLayout title="Dashboard" description={description} rightSlot={rightSlot}>
-      {resumoQuery.isLoading || !summary ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
-      ) : (
-        <SummaryCards {...summary} previous={previous} />
-      )}
+  const scoreMedio = useMemo(() => {
+    const lista = indicadores.data ?? []
+    if (lista.length === 0) return null
+    return lista.reduce((sum, item) => sum + item.ecoScore, 0) / lista.length
+  }, [indicadores.data])
 
+  const score = isSuper ? scoreMedio : meuCampus?.ecoScore ?? null
+
+  const insights = useMemo(
+    () =>
+      buildInsights({
+        mes,
+        atual,
+        anterior,
+        indicadores: indicadores.data ?? [],
+        escopo: isSuper ? 'universidade' : 'campus'
+      }),
+    [mes, atual, anterior, indicadores.data, isSuper]
+  )
+
+  const serieAgua = historico.data.map((ponto) => ponto.agua)
+  const serieLuz = historico.data.map((ponto) => ponto.luz)
+
+  const carregando = resumo.isLoading || !atual
+  const agua = formatMedida(atual?.agua ?? 0, 'agua')
+  const luz = formatMedida(atual?.luz ?? 0, 'luz')
+
+  const nomeCampus = campi.data?.find((c) => c.id === claims?.campusId)?.nome
+  const escopoLabel = isSuper ? 'Todos os campi' : nomeCampus ?? 'Meu campus'
+
+  return (
+    <Page
+      eyebrow={`${escopoLabel} · ${formatMonthLabel(mes)}`}
+      title="Visão geral"
+      description={
+        isSuper
+          ? 'Como a universidade consumiu água e energia no mês selecionado, e como isso se compara com o mês anterior.'
+          : 'Como o seu campus consumiu água e energia no mês selecionado.'
+      }
+      showPeriod
+      actions={
+        <Button asChild variant="secondary">
+          <Link to="/lancamentos">
+            <Plus />
+            Novo lançamento
+          </Link>
+        </Button>
+      }
+    >
+      <InsightPanel insights={insights} loading={carregando} />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          label="Água no mês"
+          value={agua.value}
+          unit={agua.unit}
+          icon={Droplet}
+          accent="water"
+          delta={variacao(atual?.agua ?? 0, anterior?.agua)}
+          series={serieAgua}
+          term="metroCubico"
+          loading={carregando}
+          footnote={
+            isSuper
+              ? `Somatório de ${indicadores.data?.length ?? 0} campi no mês`
+              : 'Consumo total do campus no mês'
+          }
+        />
+        <KpiCard
+          label="Energia no mês"
+          value={luz.value}
+          unit={luz.unit}
+          icon={Zap}
+          accent="energy"
+          delta={variacao(atual?.luz ?? 0, anterior?.luz)}
+          series={serieLuz}
+          term="kwh"
+          loading={carregando}
+        />
+        <KpiCard
+          label={isSuper ? 'Eco Score médio' : 'Eco Score do campus'}
+          value={score !== null ? score.toFixed(1) : '—'}
+          unit="/ 100"
+          icon={Gauge}
+          accent="eco"
+          term="ecoScore"
+          loading={indicadores.isLoading}
+          footnote={score !== null ? styleForScore(score).meaning : 'Sem dados suficientes no mês'}
+        />
+        {isSuper ? (
+          <KpiCard
+            label="Campi com registro"
+            value={String((indicadores.data ?? []).filter((i) => i.total > 0).length)}
+            unit={`de ${indicadores.data?.length ?? 0}`}
+            icon={Building2}
+            accent="brand"
+            loading={indicadores.isLoading}
+            footnote="Campi que já têm lançamento neste mês"
+          />
+        ) : (
+          // Para o campus, a leitura mais útil não é um total absoluto e sim o
+          // consumo por pessoa — é o número que ele consegue comparar e influenciar.
+          <KpiCard
+            label="Água por pessoa"
+            value={meuCampus?.consumoAguaPerCapita?.toFixed(2) ?? '—'}
+            unit="m³/pessoa"
+            icon={Users}
+            accent="brand"
+            term="aguaPorPessoa"
+            loading={indicadores.isLoading}
+            footnote={
+              meuCampus?.consumoAguaPerCapita
+                ? `Equivale a cerca de ${litrosPorDiaPorPessoa(meuCampus.consumoAguaPerCapita)} por pessoa`
+                : 'Cadastre a população do campus para calcular'
+            }
+          />
+        )}
+      </div>
+
+      {/* Série histórica: o painel mais importante depois dos KPIs. */}
       <Card>
-        <CardHeader>
-          <CardTitle>Últimos lançamentos</CardTitle>
-          <CardDescription>
-            6 lançamentos mais recentes do período selecionado.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {lancamentosQuery.isLoading ? (
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : (
-            <LancamentosTable
-              items={recent}
-              campi={campusListQuery.data}
-              isSuper={claims?.role === 'super'}
-              showActions={false}
+        <CardToolbar
+          bordered
+          title="Consumo ao longo do tempo"
+          description="Últimos 12 meses. A linha tracejada é a média do período — acima dela, o mês foi atípico."
+        >
+          <Segmented
+            aria-label="Medida do gráfico"
+            value={medida}
+            onChange={setMedida}
+            options={[
+              { value: 'agua', label: 'Água', icon: Droplet },
+              { value: 'luz', label: 'Energia', icon: Zap }
+            ]}
+          />
+        </CardToolbar>
+        <CardContent className="pt-5">
+          {historico.isLoading ? (
+            <Skeleton className="h-[260px] w-full" />
+          ) : historico.data.every((ponto) => ponto.total === 0) ? (
+            <EmptyState
+              title="Ainda não há histórico"
+              description="Assim que existirem lançamentos em meses anteriores, a evolução do consumo aparece aqui."
             />
+          ) : (
+            <ConsumoTrendChart data={historico.data} tipo={medida} highlight={mes} />
           )}
         </CardContent>
       </Card>
-    </PageLayout>
+
+      {isSuper ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardToolbar
+              bordered
+              title="Divisão entre os campi"
+              description="Quanto cada campus representa do consumo total do mês."
+            />
+            <CardContent className="pt-5">
+              {pizza.isLoading ? (
+                <Skeleton className="h-[260px] w-full" />
+              ) : (
+                <CampusDistribution data={pizza.data ?? []} height={220} />
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardToolbar
+              bordered
+              title="Destaques do ranking"
+              description={<>Ordenado pelo <Explain term="ecoScore">Eco Score</Explain> do mês.</>}
+            >
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/relatorios">
+                  Ver ranking completo
+                  <ArrowRight />
+                </Link>
+              </Button>
+            </CardToolbar>
+            <CardContent className="pt-5">
+              {indicadores.isLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <RankingDestaques itens={indicadores.data ?? []} />
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        meuCampus && (
+          <Card>
+            <CardToolbar
+              bordered
+              title="Como o seu campus está"
+              description={
+                <>
+                  A nota compara o consumo do campus com a média da universidade, já ajustada por{' '}
+                  <Explain term="normalizacao">tamanho do campus</Explain>.
+                </>
+              }
+            />
+            <CardContent className="flex flex-col items-center gap-6 pt-6 sm:flex-row sm:items-center sm:gap-8">
+              <EcoScoreGauge score={meuCampus.ecoScore} />
+              <div className="min-w-0 flex-1 space-y-3">
+                <p className="text-sm leading-relaxed text-foreground">
+                  Em {formatMonthLong(mes)}, {meuCampus.nome} está classificado como{' '}
+                  <strong className={styleForScore(meuCampus.ecoScore).text}>
+                    {classifyScore(meuCampus.ecoScore)}
+                  </strong>
+                  . {styleForScore(meuCampus.ecoScore).meaning}
+                </p>
+                <dl className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-border bg-surface-sunken px-3 py-2.5">
+                    <dt className="text-2xs text-muted-foreground">
+                      <Explain term="aguaPorPessoa">Água por pessoa</Explain>
+                    </dt>
+                    <dd className="mt-1 font-display text-lg font-semibold tabular-nums">
+                      {meuCampus.consumoAguaPerCapita?.toFixed(2) ?? '—'}
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">m³</span>
+                    </dd>
+                  </div>
+                  <div className="rounded-lg border border-border bg-surface-sunken px-3 py-2.5">
+                    <dt className="text-2xs text-muted-foreground">
+                      <Explain term="energiaPorM2">Energia por m²</Explain>
+                    </dt>
+                    <dd className="mt-1 font-display text-lg font-semibold tabular-nums">
+                      {meuCampus.consumoLuzPorM2?.toFixed(2) ?? '—'}
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">kWh</span>
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      )}
+
+      <section className="space-y-3">
+        <SectionHeader
+          title="Últimos lançamentos"
+          description={`Registros de ${formatMonthLong(mes)}.`}
+        >
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/lancamentos">
+              Ver todos
+              <ArrowRight />
+            </Link>
+          </Button>
+        </SectionHeader>
+
+        {lancamentos.isLoading ? (
+          <SkeletonTable rows={4} cols={isSuper ? 4 : 3} />
+        ) : (
+          <LancamentosTable
+            items={(lancamentos.data ?? []).slice(0, 6)}
+            campi={campi.data}
+            isSuper={isSuper}
+            showActions={false}
+            emptyAction={
+              <Button asChild size="sm">
+                <Link to="/lancamentos">
+                  <Plus />
+                  Registrar consumo
+                </Link>
+              </Button>
+            }
+          />
+        )}
+      </section>
+    </Page>
+  )
+}
+
+/** Lista compacta: os dois melhores e os dois que mais precisam de atenção. */
+function RankingDestaques({ itens }: { itens: { campusId: number; nome: string; ecoScore: number }[] }) {
+  if (itens.length === 0) {
+    return (
+      <EmptyState
+        size="sm"
+        title="Sem indicadores neste mês"
+        description="Registre lançamentos para que o ranking seja calculado."
+      />
+    )
+  }
+
+  const ordenado = [...itens].sort((a, b) => b.ecoScore - a.ecoScore)
+  const melhores = ordenado.slice(0, 3)
+  const piores = ordenado.slice(-2).filter((item) => !melhores.includes(item))
+
+  return (
+    <div className="space-y-4">
+      <Grupo titulo="Melhor desempenho" itens={melhores} inicio={1} />
+      {piores.length > 0 && (
+        <Grupo
+          titulo="Precisam de atenção"
+          itens={piores}
+          inicio={ordenado.length - piores.length + 1}
+        />
+      )}
+    </div>
+  )
+}
+
+function Grupo({
+  titulo,
+  itens,
+  inicio
+}: {
+  titulo: string
+  itens: { campusId: number; nome: string; ecoScore: number }[]
+  inicio: number
+}) {
+  return (
+    <div>
+      <p className="mb-2 eyebrow">{titulo}</p>
+      <ul className="space-y-1.5">
+        {itens.map((item, index) => {
+          const style = styleForScore(item.ecoScore)
+          return (
+            <li key={item.campusId} className="flex items-center gap-3">
+              <span className="w-5 shrink-0 text-right text-2xs tabular-nums text-subtle">
+                {inicio + index}º
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-foreground">
+                {item.nome}
+              </span>
+              <div className="h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={
+                    style.tone === 'success'
+                      ? 'h-full bg-success'
+                      : style.tone === 'warning'
+                        ? 'h-full bg-warning'
+                        : 'h-full bg-destructive'
+                  }
+                  style={{ width: `${Math.max(0, Math.min(100, item.ecoScore))}%` }}
+                />
+              </div>
+              <span className="w-9 shrink-0 text-right text-[0.8125rem] font-semibold tabular-nums">
+                {item.ecoScore.toFixed(1)}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }

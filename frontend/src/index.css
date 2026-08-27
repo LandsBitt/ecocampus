@@ -1,93 +1,193 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ============================================================
-   Design Tokens — ECOCAMPUS dark theme
-   Paleta: deep navy + aqua/eco-teal + warm accent
-   HSL values used by shadcn/ui CSS-variable system.
-   ============================================================ */
+/* ==========================================================================
+   ECOCAMPUS — Design tokens
+   Identidade: azul institucional UNITAU (brasão) como cor de marca.
+   Cor de dado (água / energia / eco) só é usada quando carrega significado.
+   Dois temas completos: claro (padrão) e escuro.
+   ========================================================================== */
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 96%;
+    /* Superfícies */
+    --background: 210 24% 97%;
+    --surface: 0 0% 100%;
+    --surface-raised: 0 0% 100%;
+    --surface-sunken: 210 24% 95%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 32% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 32% 14%;
 
-    --card: 222 38% 9%;
-    --card-foreground: 210 40% 96%;
+    /* Texto */
+    --foreground: 215 32% 14%;
+    --muted: 210 22% 94%;
+    --muted-foreground: 215 14% 42%;
+    --subtle-foreground: 215 12% 55%;
 
-    --popover: 222 47% 7%;
-    --popover-foreground: 210 40% 96%;
+    /* Marca UNITAU */
+    --brand: 206 86% 27%;
+    --brand-strong: 206 90% 20%;
+    --brand-foreground: 0 0% 100%;
+    --brand-soft: 206 80% 95%;
 
-    --primary: 175 65% 53%;
-    --primary-foreground: 222 47% 8%;
+    --primary: 206 86% 27%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 22% 94%;
+    --secondary-foreground: 215 32% 20%;
+    --accent: 206 80% 95%;
+    --accent-foreground: 206 86% 27%;
 
-    --secondary: 217 32% 16%;
-    --secondary-foreground: 210 40% 96%;
+    /* Bordas e foco */
+    --border: 214 20% 89%;
+    --border-strong: 214 18% 80%;
+    --input: 214 20% 89%;
+    --ring: 206 86% 42%;
 
-    --muted: 217 25% 14%;
-    --muted-foreground: 215 16% 65%;
+    /* Semânticas */
+    --success: 158 68% 28%;
+    --success-foreground: 0 0% 100%;
+    --success-soft: 158 55% 94%;
+    --warning: 32 90% 38%;
+    --warning-foreground: 0 0% 100%;
+    --warning-soft: 38 92% 93%;
+    --destructive: 0 68% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-soft: 0 80% 96%;
 
-    --accent: 195 80% 65%;
-    --accent-foreground: 222 47% 8%;
+    /* Cores de dado */
+    --water: 199 88% 38%;
+    --water-soft: 199 85% 94%;
+    --energy: 32 92% 42%;
+    --energy-soft: 36 92% 93%;
+    --eco: 160 76% 29%;
+    --eco-soft: 160 60% 94%;
 
-    --destructive: 0 75% 60%;
-    --destructive-foreground: 210 40% 98%;
+    /* Paleta categórica para gráficos (8 campi) */
+    --chart-1: 206 86% 38%;
+    --chart-2: 172 62% 36%;
+    --chart-3: 32 88% 48%;
+    --chart-4: 265 55% 55%;
+    --chart-5: 199 84% 52%;
+    --chart-6: 148 52% 40%;
+    --chart-7: 350 62% 52%;
+    --chart-8: 42 72% 45%;
 
-    --success: 158 64% 52%;
-    --success-foreground: 222 47% 8%;
+    --radius: 0.625rem;
 
-    --warning: 38 92% 60%;
-    --warning-foreground: 222 47% 8%;
+    --shadow-xs: 0 1px 2px 0 hsl(215 30% 20% / 0.05);
+    --shadow-sm: 0 1px 3px 0 hsl(215 30% 20% / 0.07), 0 1px 2px -1px hsl(215 30% 20% / 0.05);
+    --shadow-md: 0 4px 12px -2px hsl(215 30% 20% / 0.08), 0 2px 4px -2px hsl(215 30% 20% / 0.05);
+    --shadow-lg: 0 12px 28px -8px hsl(215 30% 20% / 0.12), 0 4px 8px -4px hsl(215 30% 20% / 0.06);
+    --shadow-xl: 0 24px 56px -16px hsl(215 30% 20% / 0.18), 0 8px 16px -8px hsl(215 30% 20% / 0.08);
+  }
 
-    --border: 217 25% 20%;
-    --input: 217 25% 18%;
-    --ring: 175 65% 53%;
+  .dark {
+    --background: 216 34% 7%;
+    --surface: 216 28% 10%;
+    --surface-raised: 216 26% 13%;
+    --surface-sunken: 216 36% 5%;
+    --card: 216 28% 10%;
+    --card-foreground: 210 28% 95%;
+    --popover: 216 28% 11%;
+    --popover-foreground: 210 28% 95%;
 
-    --radius: 0.75rem;
+    --foreground: 210 28% 95%;
+    --muted: 216 22% 16%;
+    --muted-foreground: 214 14% 66%;
+    --subtle-foreground: 214 12% 55%;
 
-    /* Domain colors */
-    --agua: 195 80% 65%;
-    --luz: 38 92% 60%;
-    --eco: 158 64% 52%;
-    --ember: 18 88% 65%;
+    --brand: 205 88% 60%;
+    --brand-strong: 205 92% 70%;
+    --brand-foreground: 216 40% 8%;
+    --brand-soft: 206 60% 16%;
+
+    --primary: 205 88% 60%;
+    --primary-foreground: 216 40% 8%;
+    --secondary: 216 22% 17%;
+    --secondary-foreground: 210 28% 92%;
+    --accent: 206 55% 17%;
+    --accent-foreground: 205 88% 72%;
+
+    --border: 216 20% 20%;
+    --border-strong: 216 18% 28%;
+    --input: 216 20% 22%;
+    --ring: 205 88% 58%;
+
+    --success: 158 58% 48%;
+    --success-foreground: 216 40% 8%;
+    --success-soft: 158 45% 15%;
+    --warning: 38 88% 58%;
+    --warning-foreground: 216 40% 8%;
+    --warning-soft: 38 60% 15%;
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 216 40% 8%;
+    --destructive-soft: 0 50% 16%;
+
+    --water: 199 86% 58%;
+    --water-soft: 199 60% 16%;
+    --energy: 36 92% 58%;
+    --energy-soft: 36 60% 15%;
+    --eco: 160 62% 48%;
+    --eco-soft: 160 45% 14%;
+
+    --chart-1: 205 86% 60%;
+    --chart-2: 172 62% 50%;
+    --chart-3: 36 90% 60%;
+    --chart-4: 265 70% 70%;
+    --chart-5: 195 80% 68%;
+    --chart-6: 148 52% 55%;
+    --chart-7: 350 72% 66%;
+    --chart-8: 45 78% 60%;
+
+    --shadow-xs: 0 1px 2px 0 hsl(216 60% 2% / 0.4);
+    --shadow-sm: 0 1px 3px 0 hsl(216 60% 2% / 0.5), 0 1px 2px -1px hsl(216 60% 2% / 0.4);
+    --shadow-md: 0 4px 12px -2px hsl(216 60% 2% / 0.55), 0 2px 4px -2px hsl(216 60% 2% / 0.4);
+    --shadow-lg: 0 12px 28px -8px hsl(216 60% 2% / 0.65), 0 4px 8px -4px hsl(216 60% 2% / 0.45);
+    --shadow-xl: 0 24px 56px -16px hsl(216 60% 2% / 0.75), 0 8px 16px -8px hsl(216 60% 2% / 0.5);
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   html,
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
+    font-feature-settings: 'cv05' 1, 'ss01' 1, 'calt' 1;
   }
 
-  body {
-    background:
-      radial-gradient(circle at 100% 0%, hsl(195 80% 65% / 0.08), transparent 40%),
-      radial-gradient(circle at 0% 100%, hsl(175 65% 53% / 0.07), transparent 40%),
-      hsl(var(--background));
-    min-height: 100vh;
-  }
-
+  body,
   #root {
     min-height: 100vh;
   }
 
-  /* Better focus rings */
+  h1, h2, h3, h4 {
+    @apply font-display tracking-[-0.011em];
+  }
+
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
-  /* Selection */
   ::selection {
-    background: hsl(var(--primary) / 0.35);
-    color: hsl(var(--foreground));
+    background: hsl(var(--brand) / 0.22);
   }
 
-  /* Scrollbar — subtle */
+  /* Números tabulares em qualquer lugar que mostre medida */
+  .tabular,
+  table td,
+  table th {
+    font-variant-numeric: tabular-nums;
+  }
+
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -96,23 +196,83 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 8px;
+    background: hsl(var(--border-strong));
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.4);
+    background: hsl(var(--muted-foreground) / 0.5);
+    background-clip: content-box;
+  }
+
+  /* Normaliza o ícone nativo do input[type=month] nos dois temas */
+  .dark input[type='month']::-webkit-calendar-picker-indicator,
+  .dark input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.6);
+  }
+  input[type='month']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.55;
   }
 }
 
 @layer components {
+  /* Superfície de vidro usada só na topbar (profundidade sem enfeite) */
+  .glass {
+    background: hsl(var(--surface) / 0.82);
+    backdrop-filter: saturate(180%) blur(12px);
+  }
+
+  /* Fundo sutil de grade — dá textura sem competir com os dados */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.55) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.55) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
   .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+    background: hsl(var(--muted));
+  }
+  .skeleton-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
     background: linear-gradient(
       90deg,
-      hsl(var(--muted)) 0%,
-      hsl(var(--muted) / 0.5) 50%,
-      hsl(var(--muted)) 100%
+      transparent,
+      hsl(var(--foreground) / 0.06),
+      transparent
     );
-    background-size: 800px 100%;
-    @apply animate-shimmer;
+    animation: shimmer 1.6s infinite;
+  }
+
+  /* Rótulo de seção — usado em cabeçalhos de card e legendas */
+  .eyebrow {
+    @apply text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

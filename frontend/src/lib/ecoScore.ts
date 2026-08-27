@@ -11,26 +11,70 @@ export function classifyScore(score: number): Classificacao {
   return 'Crítico'
 }
 
-export const classificacaoStyles: Record<
-  Classificacao,
-  { label: string; bg: string; text: string; ring: string }
-> = {
+type BadgeVariant = 'success' | 'warning' | 'destructive'
+type ProgressTone = 'success' | 'warning' | 'destructive'
+
+interface ClassificacaoStyle {
+  label: string
+  /** Frase curta que traduz a faixa para quem não conhece o indicador. */
+  meaning: string
+  badge: BadgeVariant
+  tone: ProgressTone
+  text: string
+  bg: string
+  border: string
+}
+
+export const classificacaoStyles: Record<Classificacao, ClassificacaoStyle> = {
   Ecológico: {
     label: 'Ecológico',
-    bg: 'bg-success/15',
+    meaning: 'Consome menos que a média da universidade.',
+    badge: 'success',
+    tone: 'success',
     text: 'text-success',
-    ring: 'ring-success/30'
+    bg: 'bg-success-soft',
+    border: 'border-success/25'
   },
   Atenção: {
     label: 'Atenção',
-    bg: 'bg-warning/15',
+    meaning: 'Está próximo da média — dá para melhorar.',
+    badge: 'warning',
+    tone: 'warning',
     text: 'text-warning',
-    ring: 'ring-warning/30'
+    bg: 'bg-warning-soft',
+    border: 'border-warning/25'
   },
   Crítico: {
     label: 'Crítico',
-    bg: 'bg-destructive/15',
+    meaning: 'Consome bem acima da média da universidade.',
+    badge: 'destructive',
+    tone: 'destructive',
     text: 'text-destructive',
-    ring: 'ring-destructive/30'
+    bg: 'bg-destructive-soft',
+    border: 'border-destructive/25'
   }
+}
+
+export function styleForScore(score: number): ClassificacaoStyle {
+  return classificacaoStyles[classifyScore(score)]
+}
+
+/**
+ * Sinal de tendência para consumo: cair é bom.
+ * `null` quando não há mês anterior para comparar.
+ */
+export function consumoTrend(deltaPercent: number | null): {
+  direction: 'up' | 'down' | 'flat'
+  tone: 'success' | 'destructive' | 'muted'
+  /** Frase pronta para leitura, sem jargão. */
+  reading: string
+} | null {
+  if (deltaPercent === null) return null
+  if (Math.abs(deltaPercent) < 0.5) {
+    return { direction: 'flat', tone: 'muted', reading: 'praticamente estável' }
+  }
+  if (deltaPercent < 0) {
+    return { direction: 'down', tone: 'success', reading: 'consumiu menos' }
+  }
+  return { direction: 'up', tone: 'destructive', reading: 'consumiu mais' }
 }

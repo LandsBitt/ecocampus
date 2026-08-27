@@ -1,11 +1,36 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ECOCAMPUS</title>
+    <title>ECOCAMPUS · UNITAU</title>
+    <meta
+      name="description"
+      content="Painel de gestão de consumo de água e energia dos campi da Universidade de Taubaté."
+    />
+    <meta name="theme-color" content="#0b4c7d" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0c121b" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/png" href="/image/unitau-logo.png" />
     <link rel="apple-touch-icon" href="/image/unitau-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <script>
+      // Aplica o tema antes da primeira pintura. Sem isto, quem usa o tema
+      // escuro vê um flash branco a cada carregamento.
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('ecocampus:theme')
+          var dark =
+            stored === 'dark' ||
+            ((!stored || stored === 'system') &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) document.documentElement.classList.add('dark')
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+        } catch (e) {
+          /* localStorage bloqueado: segue no tema claro */
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

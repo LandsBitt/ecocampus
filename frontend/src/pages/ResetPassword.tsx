@@ -1,99 +1,104 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { sendPasswordResetEmail } from 'firebase/auth'
-import { ArrowLeft, Mail, Loader2 } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Mail, MailCheck } from 'lucide-react'
 
-import { auth } from '@/lib/firebase'
+import { AuthLayout } from '@/components/layout/AuthLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
+import { Field } from '@/components/ui/label'
+import { auth } from '@/lib/firebase'
 
 export default function ResetPassword() {
   const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
-  const [error, setError] = useState('')
+  const [carregando, setCarregando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
+  const [erro, setErro] = useState('')
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const enviar = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setError('')
-    setLoading(true)
+    setErro('')
+    setCarregando(true)
     try {
       await sendPasswordResetEmail(auth, email)
-      setSent(true)
+      setEnviado(true)
     } catch {
-      setError('Não foi possível enviar o email. Verifique se ele está cadastrado.')
+      setErro('Não foi possível enviar o e-mail. Verifique se ele está cadastrado no sistema.')
     } finally {
-      setLoading(false)
+      setCarregando(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6">
-      <div className="w-full max-w-md space-y-6 animate-rise">
+    <AuthLayout
+      title={enviado ? 'Verifique seu e-mail' : 'Recuperar acesso'}
+      description={
+        enviado
+          ? 'Enviamos um link para você criar uma nova senha.'
+          : 'Informe o e-mail institucional e enviaremos um link para redefinir a senha.'
+      }
+      footer={
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Voltar para login
+          <ArrowLeft className="size-3.5" />
+          Voltar para o login
         </Link>
+      }
+    >
+      {enviado ? (
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-lg border border-success/25 bg-success-soft px-4 py-3.5">
+            <MailCheck className="mt-0.5 size-4 shrink-0 text-success" />
+            <div className="min-w-0 space-y-1">
+              <p className="text-[0.8125rem] font-medium text-foreground">
+                Link enviado para <span className="break-all">{email}</span>
+              </p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                O link vale por tempo limitado. Se não aparecer em alguns minutos, confira a caixa
+                de spam.
+              </p>
+            </div>
+          </div>
 
-        <div className="text-center">
-          <h1 className="font-display text-2xl font-semibold">Recuperar acesso</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Enviaremos um link de redefinição para o email institucional.
-          </p>
+          <Button variant="secondary" className="w-full" onClick={() => setEnviado(false)}>
+            Enviar para outro e-mail
+          </Button>
         </div>
+      ) : (
+        <form onSubmit={enviar} className="space-y-4">
+          <Field label="E-mail institucional" htmlFor="email">
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              autoFocus
+              required
+              icon={<Mail />}
+              placeholder="seu.nome@unitau.br"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              invalid={!!erro}
+            />
+          </Field>
 
-        <Card>
-          <CardContent className="p-6">
-            {sent ? (
-              <div className="space-y-4 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/15 text-success">
-                  <Mail className="h-5 w-5" />
-                </div>
-                <p className="text-sm">
-                  Enviamos um email para <strong className="text-foreground">{email}</strong>.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Não recebeu? Confira a caixa de spam ou tente novamente.
-                </p>
-                <Button variant="outline" onClick={() => setSent(false)} className="w-full">
-                  Enviar novamente
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email institucional</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="seu.nome@unitau.br"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
+          {erro && (
+            <p
+              role="alert"
+              className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive-soft px-3 py-2.5 text-xs leading-relaxed text-destructive"
+            >
+              <AlertCircle className="mt-px size-4 shrink-0" />
+              {erro}
+            </p>
+          )}
 
-                {error && (
-                  <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                    {error}
-                  </p>
-                )}
-
-                <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                  {loading ? 'Enviando…' : 'Enviar link de recuperação'}
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+          <Button type="submit" size="lg" className="w-full" loading={carregando}>
+            <Mail />
+            Enviar link de recuperação
+          </Button>
+        </form>
+      )}
+    </AuthLayout>
   )
 }

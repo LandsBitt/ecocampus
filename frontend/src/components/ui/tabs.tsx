@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 
 const Tabs = TabsPrimitive.Root
 
+/** Abas em pílula sobre superfície rebaixada (padrão do sistema). */
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
@@ -12,7 +13,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'inline-flex h-10 items-center justify-center rounded-md border border-border bg-card/40 p-1 text-muted-foreground',
+      'inline-flex h-9 items-center gap-0.5 rounded-lg border border-border bg-surface-sunken p-0.5 text-muted-foreground',
       className
     )}
     {...props}
@@ -27,8 +28,11 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
-      'data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-sm',
+      'inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[0.8125rem] font-medium transition-colors',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+      'hover:text-foreground',
+      'data-[state=active]:bg-surface data-[state=active]:text-foreground data-[state=active]:shadow-xs',
+      '[&_svg]:size-3.5',
       className
     )}
     {...props}
@@ -43,7 +47,7 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'mt-4 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+      'mt-4 animate-fade-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
       className
     )}
     {...props}
