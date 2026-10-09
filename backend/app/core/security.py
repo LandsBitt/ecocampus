@@ -27,9 +27,6 @@ def init_firebase() -> None:
         firebase_admin.initialize_app(options={"projectId": settings.FIREBASE_PROJECT_ID})
 
 
-init_firebase()
-
-
 def _extract_claims(decoded: dict) -> UserClaims:
     role = decoded.get("role")
     campus_id = decoded.get("campusId")
@@ -62,6 +59,9 @@ def get_current_user(
     if not credentials or not credentials.credentials:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
     token = credentials.credentials
+    # Inicialização sob demanda: importar este módulo não exige credenciais
+    # do Firebase (os testes trocam esta dependência por um usuário fixo).
+    init_firebase()
     try:
         decoded = auth.verify_id_token(token, check_revoked=True)
     except Exception as exc:  # pragma: no cover - firebase errors vary

@@ -70,6 +70,19 @@ uvicorn app.main:app --reload
 
 API em `http://localhost:8000`. Teste o health: `curl http://localhost:8000/health`.
 
+#### Testes do backend
+
+Com o Postgres do Docker no ar e o venv ativo:
+
+```powershell
+pip install -r requirements-dev.txt
+pytest
+```
+
+Os testes usam um banco separado, `ecocampus_test`, criado e migrado automaticamente
+no mesmo Postgres; o banco de desenvolvimento não é tocado. Para apontar para outro
+servidor, defina `TEST_DATABASE_URL` (o nome do banco precisa terminar em `_test`).
+
 ### 3. Frontend
 
 > ⚠️ O frontend foi migrado para **TypeScript + shadcn/ui**. Após o `git pull`,
