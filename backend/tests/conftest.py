@@ -24,12 +24,12 @@ import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine, text  # noqa: E402
+from sqlalchemy import create_engine, select, text  # noqa: E402
 from sqlalchemy.engine import make_url  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from app.core.security import get_current_user  # noqa: E402
-from app.db.models import Campus, Lancamento, LancamentoTipo  # noqa: E402
+from app.db.models import Campus, Lancamento, LancamentoTipo, PontoMedicao  # noqa: E402
 from app.db.session import engine, get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.schemas.auth import UserClaims  # noqa: E402
@@ -54,12 +54,17 @@ def _garante_banco_de_teste() -> None:
     admin.dispose()
 
 
-@pytest.fixture(scope="session", autouse=True)
-def _banco_migrado():
-    _garante_banco_de_teste()
+@pytest.fixture(scope="session")
+def alembic_cfg() -> Config:
     config = Config(str(BACKEND_DIR / "alembic.ini"))
     config.set_main_option("script_location", str(BACKEND_DIR / "app" / "db" / "migrations"))
-    command.upgrade(config, "head")
+    return config
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _banco_migrado(alembic_cfg):
+    _garante_banco_de_teste()
+    command.upgrade(alembic_cfg, "head")
     yield
     engine.dispose()
 
@@ -118,17 +123,44 @@ def cadastrar(db):
 
 @pytest.fixture()
 def lancar(db):
-    """Cria um lançamento manual direto no banco."""
+    """Cria um lançamento direto no banco. `consumo` é físico: m³ ou kWh."""
 
-    def _lancar(campus_id: int, tipo: str, valor: float, mes: str = "2026-01") -> Lancamento:
+    def _lancar(
+        campus_id: int,
+        tipo: str,
+        consumo: float | None,
+        mes: str = "2026-01",
+        *,
+        origem: str = "manual",
+        valor_rs: float | None = None,
+        ponto_medicao_id: int | None = None,
+    ) -> Lancamento:
         item = Lancamento(
             campus_id=campus_id,
             tipo=LancamentoTipo(tipo),
-            valor_numeric=valor,
+            consumo=consumo,
+            valor_rs=valor_rs,
+            origem=origem,
             mes_referencia=mes,
+            ponto_medicao_id=ponto_medicao_id,
         )
         db.add(item)
         db.flush()
         return item
 
     return _lancar
+
+
+@pytest.fixture()
+def ponto_de(db):
+    """Um ponto de medição do seed: `ponto_de(1, "agua")`."""
+
+    def _ponto_de(campus_id: int, tipo: str, posicao: int = 0) -> PontoMedicao:
+        pontos = db.scalars(
+            select(PontoMedicao)
+            .where(PontoMedicao.campus_id == campus_id, PontoMedicao.tipo == LancamentoTipo(tipo))
+            .order_by(PontoMedicao.id)
+        ).all()
+        return pontos[posicao]
+
+    return _ponto_de

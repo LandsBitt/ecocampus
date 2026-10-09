@@ -287,7 +287,7 @@ export default function Importar() {
                     Linhas que ficaram de fora
                   </span>
                 }
-                description="O endereço não corresponde a nenhum ponto cadastrado. Estes registros não entram no sistema."
+                description="O identificador não corresponde a nenhum ponto cadastrado, ou a linha veio sem consumo. Estes registros não entram no sistema."
               />
               <CardContent className="p-0">
                 <Table>

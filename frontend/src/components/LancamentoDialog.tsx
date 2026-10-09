@@ -31,7 +31,12 @@ import type { Campus, Lancamento, LancamentoInput, LancamentoTipo } from '@/lib/
 const schema = z.object({
   campusId: z.coerce.number().int().min(1, 'Escolha um campus'),
   tipo: z.enum(['agua', 'luz']),
-  valor: z.coerce.number({ invalid_type_error: 'Informe um número' }).positive('O valor deve ser maior que zero'),
+  consumo: z.coerce.number({ invalid_type_error: 'Informe um número' }).positive('O consumo deve ser maior que zero'),
+  // Opcional: campo vazio vira null, não zero.
+  valorRs: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? null : v),
+    z.coerce.number({ invalid_type_error: 'Informe um número' }).min(0, 'O valor não pode ser negativo').nullable()
+  ),
   mesReferencia: z
     .string()
     .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Escolha um mês válido')
@@ -81,7 +86,8 @@ export function LancamentoDialog({
     defaultValues: {
       campusId: campusId ?? campusOptions[0]?.id ?? 1,
       tipo: 'agua',
-      valor: undefined as unknown as number,
+      consumo: undefined as unknown as number,
+      valorRs: null,
       mesReferencia: defaultMes ?? getCurrentMonth()
     }
   })
@@ -95,13 +101,15 @@ export function LancamentoDialog({
         ? {
             campusId: editing.campusId,
             tipo: editing.tipo,
-            valor: editing.valor,
+            consumo: editing.consumo ?? (undefined as unknown as number),
+            valorRs: editing.valorRs,
             mesReferencia: editing.mesReferencia
           }
         : {
             campusId: campusId ?? campusOptions[0]?.id ?? 1,
             tipo: 'agua',
-            valor: undefined as unknown as number,
+            consumo: undefined as unknown as number,
+            valorRs: null,
             mesReferencia: defaultMes ?? getCurrentMonth()
           }
     )
@@ -165,9 +173,9 @@ export function LancamentoDialog({
 
           <Field
             label={`Consumo em ${UNIDADES[tipo].curta}`}
-            htmlFor="lanc-valor"
+            htmlFor="lanc-consumo"
             hint={<Explain term={tipo === 'agua' ? 'metroCubico' : 'kwh'} className="text-2xs font-normal text-subtle" />}
-            error={errors.valor?.message}
+            error={errors.consumo?.message}
             help={
               tipo === 'agua'
                 ? 'O número que aparece como consumo na conta de água do mês.'
@@ -175,15 +183,34 @@ export function LancamentoDialog({
             }
           >
             <Input
-              id="lanc-valor"
+              id="lanc-consumo"
               type="number"
               step="0.01"
               min="0"
               inputMode="decimal"
               placeholder={tipo === 'agua' ? '1240,50' : '18500'}
               suffix={UNIDADES[tipo].curta}
-              invalid={!!errors.valor}
-              {...register('valor')}
+              invalid={!!errors.consumo}
+              {...register('consumo')}
+            />
+          </Field>
+
+          <Field
+            label="Valor da fatura em R$ (opcional)"
+            htmlFor="lanc-valor-rs"
+            error={errors.valorRs?.message}
+            help="Só para registro. A nota e o ranking usam apenas o consumo."
+          >
+            <Input
+              id="lanc-valor-rs"
+              type="number"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              placeholder="0,00"
+              suffix="R$"
+              invalid={!!errors.valorRs}
+              {...register('valorRs')}
             />
           </Field>
 

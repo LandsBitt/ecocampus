@@ -5,8 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class LancamentoImportItem(BaseModel):
     ponto_medicao_id: int = Field(..., alias="pontoMedicaoId")
-    valor_fatura: float = Field(..., alias="valorFatura")
-    consumo_fisico: float | None = Field(default=None, alias="consumoFisico")
+    # O consumo físico é obrigatório; o valor da fatura é complementar.
+    consumo_fisico: float = Field(..., alias="consumoFisico")
+    valor_fatura: float | None = Field(default=None, alias="valorFatura")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -24,8 +25,8 @@ class PontoPreview(BaseModel):
     campus_id: int = Field(..., alias="campusId")
     campus_nome: str = Field(..., alias="campusNome")
     identificador: str | None
-    consumo_fisico: float | None = Field(default=None, alias="consumoFisico")
-    valor_fatura: float = Field(..., alias="valorFatura")
+    consumo_fisico: float = Field(..., alias="consumoFisico")
+    valor_fatura: float | None = Field(default=None, alias="valorFatura")
 
     model_config = ConfigDict(populate_by_name=True)
 

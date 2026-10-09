@@ -29,11 +29,26 @@ export function buildInsights(params: {
   anterior?: ResumoValores | null
   indicadores?: IndicadorCampus[]
   escopo: 'universidade' | 'campus'
+  /** Contas importadas só com R$, sem consumo físico: ficam fora dos números. */
+  pontosSemConsumo?: number
 }): Insight[] {
-  const { mes, atual, anterior, indicadores = [], escopo } = params
+  const { mes, atual, anterior, indicadores = [], escopo, pontosSemConsumo = 0 } = params
   if (!atual) return []
 
   const insights: Insight[] = []
+  const avisoSemConsumo: Insight[] =
+    pontosSemConsumo > 0
+      ? [
+          {
+            id: 'sem-consumo',
+            tone: 'warning',
+            text:
+              pontosSemConsumo === 1
+                ? '1 ponto de medição foi importado sem consumo neste mês e não entra nos números abaixo.'
+                : `${pontosSemConsumo} pontos de medição foram importados sem consumo neste mês e não entram nos números abaixo.`
+          }
+        ]
+      : []
   const sujeito = escopo === 'universidade' ? 'A universidade' : 'O campus'
 
   const semDados = atual.total === 0
@@ -43,7 +58,8 @@ export function buildInsights(params: {
         id: 'sem-dados',
         tone: 'neutral',
         text: `Ainda não há consumo registrado para ${formatMonthLong(mes)}. Registre em Lançamentos ou importe a planilha da concessionária.`
-      }
+      },
+      ...avisoSemConsumo
     ]
   }
 
@@ -126,5 +142,5 @@ export function buildInsights(params: {
     }
   }
 
-  return insights
+  return [...insights, ...avisoSemConsumo]
 }

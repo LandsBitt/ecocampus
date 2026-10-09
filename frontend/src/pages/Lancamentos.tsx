@@ -120,13 +120,15 @@ export default function Lancamentos() {
   const exportar = () => {
     downloadCsv(
       `lancamentos-${periodo === 'mes' ? mes : 'todos'}`,
-      ['Mês', 'Campus', 'Tipo', 'Consumo', 'Unidade'],
+      ['Mês', 'Campus', 'Tipo', 'Consumo', 'Unidade', 'Fatura (R$)', 'Origem'],
       visiveis.map((item) => [
         formatMonthLabel(item.mesReferencia),
         nomePorId.get(item.campusId) ?? `Campus ${item.campusId}`,
         item.tipo === 'agua' ? 'Água' : 'Energia',
-        item.valor,
-        UNIDADES[item.tipo].curta
+        item.consumo,
+        UNIDADES[item.tipo].curta,
+        item.valorRs,
+        item.origem
       ])
     )
     toast.success('Arquivo CSV gerado.')

@@ -1,11 +1,11 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user, require_super
-from app.db.models import Campus, Lancamento, LancamentoTipo
+from app.db.models import Campus, Lancamento, LancamentoOrigem, LancamentoTipo
 from app.db.session import get_db
 from app.schemas.auth import UserClaims
 from app.schemas.lancamento import LancamentoCreate, LancamentoOut, LancamentoUpdate
@@ -67,7 +67,9 @@ def create_lancamento(
     item = Lancamento(
         campus_id=campus_id,
         tipo=payload.tipo,
-        valor_numeric=payload.valor,
+        consumo=payload.consumo,
+        valor_rs=payload.valor_rs,
+        origem=LancamentoOrigem.manual.value,
         mes_referencia=payload.mes_referencia,
     )
     db.add(item)
@@ -94,8 +96,11 @@ def update_lancamento(
         if payload.tipo not in ALLOWED_TIPOS:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Tipo inválido")
         item.tipo = payload.tipo
-    if payload.valor is not None:
-        item.valor_numeric = payload.valor
+    if payload.consumo is not None:
+        item.consumo = payload.consumo
+    # O valor em R$ é opcional: enviar `null` apaga, omitir o campo mantém.
+    if "valor_rs" in payload.model_fields_set:
+        item.valor_rs = payload.valor_rs
     if payload.mes_referencia is not None:
         item.mes_referencia = payload.mes_referencia
 

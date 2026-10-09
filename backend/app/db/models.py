@@ -17,6 +17,14 @@ class LancamentoTipo(str, Enum):
     luz = "luz"
 
 
+class LancamentoOrigem(str, Enum):
+    manual = "manual"
+    importado = "importado"
+    # Carga antiga do script CPFL (total anual ÷ 12). Fica no banco, mas fora
+    # de todos os indicadores, até ser excluída por scripts/excluir_cpfl_legado.py.
+    cpfl_legado = "cpfl_legado"
+
+
 class Campus(Base):
     __tablename__ = "campus"
 
@@ -24,6 +32,9 @@ class Campus(Base):
     nome: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     populacao: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0", default=0)
     area_construida_m2: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0", default=0)
+    # Quem forneceu população/área ("FICTÍCIO" para dados de desenvolvimento) e a que data se referem.
+    demografia_fonte: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    demografia_referencia: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     lancamentos: Mapped[list["Lancamento"]] = relationship(back_populates="campus")
     pontos_medicao: Mapped[list["PontoMedicao"]] = relationship(back_populates="campus")
@@ -53,15 +64,15 @@ class Lancamento(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     campus_id: Mapped[int] = mapped_column(ForeignKey("campus.id"), index=True, nullable=False)
     tipo: Mapped[LancamentoTipo] = mapped_column(SQLEnum(LancamentoTipo, name="lancamento_tipo"), nullable=False)
-    valor_numeric: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    # Consumo físico: m³ para água, kWh para luz. Nulo só em importado antigo que
+    # veio sem consumo; esses ficam fora dos indicadores físicos.
+    consumo: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
+    # Valor da fatura em R$. Informação complementar, nunca entra em nota ou ranking.
+    valor_rs: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    origem: Mapped[str] = mapped_column(String(20), index=True, nullable=False)
     mes_referencia: Mapped[str] = mapped_column(String(7), index=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     ponto_medicao_id: Mapped[int | None] = mapped_column(ForeignKey("pontos_medicao.id"), index=True, nullable=True)
-    consumo_fisico: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
 
     campus: Mapped[Campus] = relationship(back_populates="lancamentos")
     ponto_medicao: Mapped[PontoMedicao | None] = relationship(back_populates="lancamentos")
-
-    @property
-    def valor(self) -> Decimal:
-        return self.valor_numeric

@@ -12,15 +12,28 @@ export interface Campus {
   nome: string
   populacao: number
   areaConstruidaM2: number
+  /** Quem forneceu população/área. "FICTÍCIO" marca dado de desenvolvimento. */
+  demografiaFonte?: string | null
+  demografiaReferencia?: string | null
 }
 
+export const FONTE_FICTICIA = 'FICTÍCIO'
+
 export type LancamentoTipo = 'agua' | 'luz'
+
+/** `cpfl_legado`: carga antiga (total anual ÷ 12), fora de todos os indicadores. */
+export type LancamentoOrigem = 'manual' | 'importado' | 'cpfl_legado'
 
 export interface Lancamento {
   id: number
   campusId: number
   tipo: LancamentoTipo
-  valor: number
+  /** Consumo físico: m³ para água, kWh para energia. Nulo em importado antigo sem consumo. */
+  consumo: number | null
+  /** Valor da fatura em R$ — complementar, nunca entra em nota ou ranking. */
+  valorRs: number | null
+  origem: LancamentoOrigem
+  pontoMedicaoId: number | null
   mesReferencia: string
   createdAt?: string
 }
@@ -28,7 +41,8 @@ export interface Lancamento {
 export type LancamentoInput = {
   campusId: number
   tipo: LancamentoTipo
-  valor: number
+  consumo: number
+  valorRs: number | null
   mesReferencia: string
 }
 
@@ -45,6 +59,8 @@ export interface ResumoResponse {
   campus?: ResumoCampus | null
   campi?: ResumoCampus[] | null
   totalGeral: ResumoCampus
+  /** Importados do período que têm fatura em R$ mas não têm consumo físico. */
+  pontosSemConsumo?: number
 }
 
 export type Classificacao = 'Ecológico' | 'Atenção' | 'Crítico'
@@ -78,8 +94,8 @@ export interface PontoPreview {
   campusId: number
   campusNome: string
   identificador: string | null
-  consumoFisico: number | null
-  valorFatura: number
+  consumoFisico: number
+  valorFatura: number | null
 }
 
 export interface LinhaIgnorada {

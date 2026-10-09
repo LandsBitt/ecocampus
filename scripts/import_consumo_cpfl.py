@@ -133,6 +133,13 @@ def _processa_arquivo(path: Path) -> list[dict]:
 
 
 def main() -> None:
+    # Aposentado (SPEC, decisão D2): gravava o total anual ÷ 12 como se fosse
+    # dado mensal, sem ponto de medição. O que ele já gravou está marcado como
+    # `cpfl_legado` e fora dos indicadores. Use a importação de planilha do sistema.
+    raise SystemExit(
+        "Script aposentado: os dados anuais ÷ 12 não podem entrar como consumo mensal. "
+        "Use a tela Importar planilha. Para remover a carga antiga: scripts/excluir_cpfl_legado.py"
+    )
     parser = argparse.ArgumentParser(description="Importa planilhas CPFL para lançamentos de luz.")
     parser.add_argument("arquivos", nargs="+", help="Caminho(s) de XLSX")
     parser.add_argument("--dry-run", action="store_true", help="Não grava — só mostra o que faria.")

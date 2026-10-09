@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.core.security import require_super
-from app.db.models import Lancamento, PontoMedicao
+from app.db.models import Lancamento, LancamentoOrigem, PontoMedicao
 from app.db.session import get_db
 from app.schemas.importar import (
     ConfirmarOut,
@@ -95,7 +95,8 @@ def preview_csv(
 
         ponto = _find_ponto(db, tipo, ident, inst)
 
-        if ponto and valor is not None:
+        # O consumo físico é o que alimenta os indicadores; a fatura em R$ é opcional.
+        if ponto and consumo is not None:
             matched.append(
                 PontoPreview(
                     ponto_medicao_id=ponto.id,
@@ -114,11 +115,11 @@ def preview_csv(
                     identificador=ident,
                     consumo_fisico=consumo,
                     valor_fatura=valor,
-                    motivo="Ponto de medição não encontrado" if ponto is None else "Valor da fatura ausente",
+                    motivo="Ponto de medição não encontrado" if ponto is None else "Consumo ausente",
                 )
             )
 
-    total_valor = sum(m.valor_fatura for m in matched)
+    total_valor = sum(m.valor_fatura or 0 for m in matched)
     return PreviewOut(
         mes_referencia=mes_referencia,
         tipo=tipo,
@@ -149,17 +150,18 @@ def confirmar_importacao(
             .values(
                 campus_id=ponto.campus_id,
                 tipo=ponto.tipo,
-                valor_numeric=item.valor_fatura,
+                consumo=item.consumo_fisico,
+                valor_rs=item.valor_fatura,
+                origem=LancamentoOrigem.importado.value,
                 mes_referencia=payload.mes_referencia,
                 ponto_medicao_id=item.ponto_medicao_id,
-                consumo_fisico=item.consumo_fisico,
             )
             .on_conflict_do_update(
                 index_elements=[Lancamento.ponto_medicao_id, Lancamento.mes_referencia],
                 index_where=Lancamento.ponto_medicao_id.isnot(None),
                 set_={
-                    "valor_numeric": item.valor_fatura,
-                    "consumo_fisico": item.consumo_fisico,
+                    "consumo": item.consumo_fisico,
+                    "valor_rs": item.valor_fatura,
                 },
             )
             # xmax = 0 indica linha recém-inserida (PostgreSQL); senão foi update.

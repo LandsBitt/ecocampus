@@ -80,9 +80,10 @@ export default function Dashboard() {
         atual,
         anterior,
         indicadores: indicadores.data ?? [],
-        escopo: isSuper ? 'universidade' : 'campus'
+        escopo: isSuper ? 'universidade' : 'campus',
+        pontosSemConsumo: resumo.data?.pontosSemConsumo ?? 0
       }),
-    [mes, atual, anterior, indicadores.data, isSuper]
+    [mes, atual, anterior, indicadores.data, isSuper, resumo.data?.pontosSemConsumo]
   )
 
   const serieAgua = historico.data.map((ponto) => ponto.agua)
