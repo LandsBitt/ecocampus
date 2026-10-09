@@ -20,9 +20,9 @@ export const glossary = {
   ecoScore: {
     label: 'Eco Score',
     short:
-      'Nota de 0 a 100 que compara o consumo do campus com a média da universidade.',
+      'Nota de 0 a 100 que compara o consumo do campus com a referência da universidade.',
     detail:
-      'Quanto maior, melhor: 100 significa consumir bem menos que a média; 50 é a média; perto de 0 é consumir muito acima dela. A nota junta água e energia com o mesmo peso.'
+      'Quanto maior, melhor: 100 é consumir metade da referência ou menos; 50 é estar exatamente na referência; 0 é consumir 50% acima dela ou mais. A referência é o consumo total da universidade dividido pela população total (água) e pela área total (energia). A nota junta água e energia com o mesmo peso.'
   },
   normalizacao: {
     label: 'Comparação justa',
@@ -43,18 +43,30 @@ export const glossary = {
     detail:
       'Total de energia do mês dividido pela área construída cadastrada. É o indicador usado para comparar prédios de tamanhos diferentes.'
   },
+  energiaPorPessoa: {
+    label: 'Energia por pessoa',
+    short: 'Quantos kWh cada pessoa do campus consumiu no mês.',
+    detail:
+      'Total de energia do mês dividido pela população cadastrada. É um indicador usado em rankings internacionais de sustentabilidade. Aqui ele é só informativo: não entra no Eco Score.'
+  },
+  semDados: {
+    label: 'Sem dados',
+    short: 'O campus não tem nenhum lançamento de água ou energia no mês.',
+    detail:
+      'Sem consumo registrado não há o que comparar, então o campus fica sem nota naquele mês — isso é diferente de consumir zero.'
+  },
   classificacao: {
     label: 'Classificação',
-    short: 'Tradução do Eco Score em três faixas: Ecológico, Atenção e Crítico.',
+    short: 'Tradução do Eco Score em três faixas: Ecológico, Na média e Crítico.',
     detail:
-      'Ecológico: nota 70 ou mais. Atenção: entre 40 e 70. Crítico: abaixo de 40 — consumo bem acima da média da universidade.'
+      'Ecológico: nota 70 ou mais. Na média: entre 40 e 70. Crítico: abaixo de 40 — consumo bem acima da referência da universidade.'
   },
   semDadosDemograficos: {
-    label: 'Sem população/área',
+    label: 'Sem cadastro',
     short:
       'Este campus ainda não tem população e área construída cadastradas.',
     detail:
-      'Sem esses números não dá para fazer a comparação justa, então a nota é calculada pelo consumo absoluto — o que penaliza campi grandes. Cadastre os dados em Campi.'
+      'Sem esses dois números não dá para fazer a comparação justa, então o campus fica sem nota e fora do ranking. O consumo dele continua contando no total da universidade. Cadastre os dados em Campi.'
   },
   metroCubico: {
     label: 'm³ (metro cúbico)',

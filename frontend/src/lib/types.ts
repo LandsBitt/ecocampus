@@ -63,23 +63,42 @@ export interface ResumoResponse {
   pontosSemConsumo?: number
 }
 
-export type Classificacao = 'Ecológico' | 'Atenção' | 'Crítico'
+export type Classificacao = 'Ecológico' | 'Na média' | 'Crítico'
+
+/**
+ * `ok` tem nota. As demais explicam por que o campus não tem:
+ * sem lançamento no mês, sem população/área, ou fora do ranking por decisão registrada.
+ */
+export type Situacao = 'ok' | 'sem_dados' | 'sem_cadastro' | 'em_revisao'
 
 export interface IndicadorCampus {
   campusId: number
   nome: string
   populacao: number
   areaConstruidaM2: number
+  situacao: Situacao
+  motivoForaDoRanking: string | null
+  /** Tem ao menos um lançamento com consumo no período. */
+  temDados: boolean
   total: number
+  /** m³ */
   totalAgua: number
+  /** kWh */
   totalLuz: number
+  /** m³ por pessoa */
   consumoAguaPerCapita: number | null
+  /** kWh por m² */
   consumoLuzPorM2: number | null
-  ecoScore: number
+  /** kWh por pessoa — informativo, não entra na nota */
+  consumoLuzPerCapita: number | null
+  /** Referência da universidade usada na nota (total ÷ total). */
+  referenciaAguaPerCapita: number | null
+  referenciaLuzPorM2: number | null
+  /** Nulo quando o campus não tem nota (situacao diferente de `ok`). */
+  ecoScore: number | null
   ecoScoreAgua: number | null
   ecoScoreLuz: number | null
-  normalizado: boolean
-  classificacao: Classificacao
+  classificacao: Classificacao | null
 }
 
 export interface PizzaItem {

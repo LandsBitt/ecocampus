@@ -24,7 +24,7 @@ import {
   useResumo
 } from '@/hooks/queries'
 import { formatMonthLabel, formatMonthLong, previousMonth } from '@/lib/date'
-import { classifyScore, styleForScore } from '@/lib/ecoScore'
+import { comNota, motivoSemNota, notaMedia, styleForScore, toneFill } from '@/lib/ecoScore'
 import { formatMedida, litrosPorDiaPorPessoa, variacao, type Medida } from '@/lib/formatters'
 import { buildInsights } from '@/lib/insights'
 import { useAuth } from '@/providers/AuthProvider'
@@ -65,11 +65,8 @@ export default function Dashboard() {
     [indicadores.data, isSuper]
   )
 
-  const scoreMedio = useMemo(() => {
-    const lista = indicadores.data ?? []
-    if (lista.length === 0) return null
-    return lista.reduce((sum, item) => sum + item.ecoScore, 0) / lista.length
-  }, [indicadores.data])
+  // Média só de quem tem nota: campus sem dado ou sem cadastro não entra.
+  const scoreMedio = useMemo(() => notaMedia(indicadores.data ?? []), [indicadores.data])
 
   const score = isSuper ? scoreMedio : meuCampus?.ecoScore ?? null
 
@@ -153,12 +150,16 @@ export default function Dashboard() {
           accent="eco"
           term="ecoScore"
           loading={indicadores.isLoading}
-          footnote={score !== null ? styleForScore(score).meaning : 'Sem dados suficientes no mês'}
+          footnote={
+            score !== null
+              ? styleForScore(score).meaning
+              : (meuCampus && motivoSemNota(meuCampus)?.meaning) ?? 'Sem dados suficientes no mês'
+          }
         />
         {isSuper ? (
           <KpiCard
             label="Campi com registro"
-            value={String((indicadores.data ?? []).filter((i) => i.total > 0).length)}
+            value={String((indicadores.data ?? []).filter((i) => i.temDados).length)}
             unit={`de ${indicadores.data?.length ?? 0}`}
             icon={Building2}
             accent="brand"
@@ -254,7 +255,7 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <RankingDestaques itens={indicadores.data ?? []} />
+                <RankingDestaques itens={comNota(indicadores.data ?? [])} />
               )}
             </CardContent>
           </Card>
@@ -275,21 +276,29 @@ export default function Dashboard() {
             <CardContent className="flex flex-col items-center gap-6 pt-6 sm:flex-row sm:items-center sm:gap-8">
               <EcoScoreGauge score={meuCampus.ecoScore} />
               <div className="min-w-0 flex-1 space-y-3">
-                <p className="text-sm leading-relaxed text-foreground">
-                  Em {formatMonthLong(mes)}, {meuCampus.nome} está classificado como{' '}
-                  <strong className={styleForScore(meuCampus.ecoScore).text}>
-                    {classifyScore(meuCampus.ecoScore)}
-                  </strong>
-                  . {styleForScore(meuCampus.ecoScore).meaning}
-                </p>
-                <dl className="grid grid-cols-2 gap-3">
+                {meuCampus.ecoScore !== null ? (
+                  <p className="text-sm leading-relaxed text-foreground">
+                    Em {formatMonthLong(mes)}, {meuCampus.nome} está classificado como{' '}
+                    <strong className={styleForScore(meuCampus.ecoScore).text}>
+                      {meuCampus.classificacao}
+                    </strong>
+                    . {styleForScore(meuCampus.ecoScore).meaning}
+                  </p>
+                ) : (
+                  <p className="text-sm leading-relaxed text-foreground">
+                    Em {formatMonthLong(mes)}, {meuCampus.nome} está{' '}
+                    <strong>{motivoSemNota(meuCampus)?.label.toLowerCase()}</strong>.{' '}
+                    {motivoSemNota(meuCampus)?.meaning}
+                  </p>
+                )}
+                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <div className="rounded-lg border border-border bg-surface-sunken px-3 py-2.5">
                     <dt className="text-2xs text-muted-foreground">
                       <Explain term="aguaPorPessoa">Água por pessoa</Explain>
                     </dt>
                     <dd className="mt-1 font-display text-lg font-semibold tabular-nums">
                       {meuCampus.consumoAguaPerCapita?.toFixed(2) ?? '—'}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">m³</span>
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">m³/pessoa</span>
                     </dd>
                   </div>
                   <div className="rounded-lg border border-border bg-surface-sunken px-3 py-2.5">
@@ -298,7 +307,16 @@ export default function Dashboard() {
                     </dt>
                     <dd className="mt-1 font-display text-lg font-semibold tabular-nums">
                       {meuCampus.consumoLuzPorM2?.toFixed(2) ?? '—'}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">kWh</span>
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">kWh/m²</span>
+                    </dd>
+                  </div>
+                  <div className="rounded-lg border border-border bg-surface-sunken px-3 py-2.5">
+                    <dt className="text-2xs text-muted-foreground">
+                      <Explain term="energiaPorPessoa">Energia por pessoa</Explain>
+                    </dt>
+                    <dd className="mt-1 font-display text-lg font-semibold tabular-nums">
+                      {meuCampus.consumoLuzPerCapita?.toFixed(1) ?? '—'}
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">kWh/pessoa</span>
                     </dd>
                   </div>
                 </dl>
@@ -350,13 +368,14 @@ function RankingDestaques({ itens }: { itens: { campusId: number; nome: string; 
     return (
       <EmptyState
         size="sm"
-        title="Sem indicadores neste mês"
-        description="Registre lançamentos para que o ranking seja calculado."
+        title="Nenhum campus com nota neste mês"
+        description="A nota aparece para os campi que têm lançamento no mês e população e área cadastradas."
       />
     )
   }
 
-  const ordenado = [...itens].sort((a, b) => b.ecoScore - a.ecoScore)
+  // `itens` já chega só com quem tem nota, do melhor para o pior.
+  const ordenado = itens
   const melhores = ordenado.slice(0, 3)
   const piores = ordenado.slice(-2).filter((item) => !melhores.includes(item))
 
@@ -399,13 +418,7 @@ function Grupo({
               </span>
               <div className="h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-muted">
                 <div
-                  className={
-                    style.tone === 'success'
-                      ? 'h-full bg-success'
-                      : style.tone === 'warning'
-                        ? 'h-full bg-warning'
-                        : 'h-full bg-destructive'
-                  }
+                  className={`h-full ${toneFill[style.tone].bg}`}
                   style={{ width: `${Math.max(0, Math.min(100, item.ecoScore))}%` }}
                 />
               </div>

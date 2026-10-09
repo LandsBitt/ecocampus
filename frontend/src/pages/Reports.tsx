@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/sonner'
 import { useIndicadores, usePizza } from '@/hooks/queries'
 import { formatMonthLabel, formatMonthLong } from '@/lib/date'
-import { classifyScore } from '@/lib/ecoScore'
+import { classifyScore, comNota, motivoSemNota, notaMedia, ordenarRanking } from '@/lib/ecoScore'
 import { downloadCsv } from '@/lib/export'
 import { formatNumber } from '@/lib/formatters'
 import { usePeriod } from '@/providers/PeriodProvider'
@@ -33,24 +33,21 @@ export default function Reports() {
   const indicadores = useIndicadores(mes)
   const pizza = usePizza(mes)
 
-  const ranking = useMemo(
-    () => [...(indicadores.data ?? [])].sort((a, b) => b.ecoScore - a.ecoScore),
-    [indicadores.data]
-  )
+  const ranking = useMemo(() => ordenarRanking(indicadores.data ?? []), [indicadores.data])
+  const comNotaQtd = useMemo(() => comNota(ranking).length, [ranking])
 
   const filtrado = useMemo(() => {
     if (campusSelecionado === 'all') return ranking
     return ranking.filter((item) => item.campusId === Number(campusSelecionado))
   }, [ranking, campusSelecionado])
 
-  const scoreMedio = ranking.length
-    ? ranking.reduce((sum, item) => sum + item.ecoScore, 0) / ranking.length
-    : 0
+  // Média só de quem tem nota; nula quando ninguém tem.
+  const scoreMedio = notaMedia(ranking)
 
   const distribuicaoClasses = useMemo(() => {
-    const contagem = { Ecológico: 0, Atenção: 0, Crítico: 0 }
+    const contagem = { Ecológico: 0, 'Na média': 0, Crítico: 0 }
     ranking.forEach((item) => {
-      contagem[item.classificacao] += 1
+      if (item.classificacao) contagem[item.classificacao] += 1
     })
     return contagem
   }, [ranking])
@@ -65,14 +62,15 @@ export default function Reports() {
         'Área (m²)',
         'Água (m³)',
         'Energia (kWh)',
-        'Água por pessoa',
-        'Energia por m²',
+        'Água por pessoa (m³/pessoa)',
+        'Energia por m² (kWh/m²)',
+        'Energia por pessoa (kWh/pessoa)',
         'Eco Score',
         'Classificação',
-        'Comparação justa'
+        'Situação'
       ],
       ranking.map((item, index) => [
-        index + 1,
+        item.ecoScore !== null ? index + 1 : '',
         item.nome,
         item.populacao,
         item.areaConstruidaM2,
@@ -80,9 +78,10 @@ export default function Reports() {
         item.totalLuz,
         item.consumoAguaPerCapita,
         item.consumoLuzPorM2,
+        item.consumoLuzPerCapita,
         item.ecoScore,
         item.classificacao,
-        item.normalizado ? 'Sim' : 'Não (faltam população/área)'
+        motivoSemNota(item)?.label ?? 'Com nota'
       ])
     )
     toast.success('Ranking exportado em CSV.')
@@ -124,11 +123,18 @@ export default function Reports() {
                 ) : (
                   <>
                     <EcoScoreGauge score={scoreMedio} />
-                    <p className="text-center text-[0.8125rem] leading-relaxed text-muted-foreground">
-                      Média do <Explain term="ecoScore">Eco Score</Explain> dos {ranking.length}{' '}
-                      campi. A universidade está classificada como{' '}
-                      <strong className="text-foreground">{classifyScore(scoreMedio)}</strong>.
-                    </p>
+                    {scoreMedio !== null ? (
+                      <p className="text-center text-[0.8125rem] leading-relaxed text-muted-foreground">
+                        Média do <Explain term="ecoScore">Eco Score</Explain> dos {comNotaQtd}{' '}
+                        {comNotaQtd === 1 ? 'campus' : 'campi'} com nota neste mês:{' '}
+                        <strong className="text-foreground">{classifyScore(scoreMedio)}</strong>.
+                      </p>
+                    ) : (
+                      <p className="text-center text-[0.8125rem] leading-relaxed text-muted-foreground">
+                        Nenhum campus tem nota neste mês. A nota exige lançamento no mês e população
+                        e área cadastradas.
+                      </p>
+                    )}
                   </>
                 )}
               </CardContent>
@@ -138,7 +144,11 @@ export default function Reports() {
               <CardToolbar
                 bordered
                 title="Como os campi se distribuem"
-                description="Quantos campi estão em cada faixa de classificação neste mês."
+                description={
+                  ranking.length > comNotaQtd
+                    ? `Quantos campi estão em cada faixa neste mês. ${ranking.length - comNotaQtd} de ${ranking.length} estão sem nota (sem dados, sem cadastro ou em revisão).`
+                    : 'Quantos campi estão em cada faixa de classificação neste mês.'
+                }
               />
               <CardContent className="pt-5">
                 {indicadores.isLoading ? (
@@ -148,22 +158,22 @@ export default function Reports() {
                     <FaixaCard
                       titulo="Ecológico"
                       quantidade={distribuicaoClasses['Ecológico']}
-                      total={ranking.length}
-                      descricao="Consomem menos que a média"
+                      total={comNotaQtd}
+                      descricao="Consomem bem menos que a referência"
                       tone="success"
                     />
                     <FaixaCard
-                      titulo="Atenção"
-                      quantidade={distribuicaoClasses['Atenção']}
-                      total={ranking.length}
-                      descricao="Estão perto da média"
-                      tone="warning"
+                      titulo="Na média"
+                      quantidade={distribuicaoClasses['Na média']}
+                      total={comNotaQtd}
+                      descricao="Estão perto da referência"
+                      tone="brand"
                     />
                     <FaixaCard
                       titulo="Crítico"
                       quantidade={distribuicaoClasses['Crítico']}
-                      total={ranking.length}
-                      descricao="Consomem bem acima da média"
+                      total={comNotaQtd}
+                      descricao="Consomem bem acima da referência"
                       tone="destructive"
                     />
                   </div>
@@ -280,10 +290,12 @@ export default function Reports() {
                 <p className="font-medium text-foreground">Como a nota é calculada</p>
                 <p>
                   Para cada campus, o consumo de água é dividido pela população e o de energia pela
-                  área construída. Cada resultado é comparado com a média da universidade e vira uma
-                  nota de 0 a 100 — quanto menor o consumo relativo, maior a nota. A nota final é a
-                  média das duas. Campi sem população e área cadastradas caem no cálculo por consumo
-                  absoluto e são marcados na tabela.
+                  área construída. Cada resultado é comparado com a referência da universidade —
+                  consumo total dividido pela população total (água) e pela área total (energia) — e
+                  vira uma nota de 0 a 100: metade da referência ou menos vale 100, a referência vale
+                  50, e 50% acima ou mais vale 0. A nota final é a média das duas. Campus sem
+                  lançamento no mês, ou sem população e área cadastradas, fica sem nota e fora da
+                  referência.
                 </p>
               </div>
             </CardContent>
@@ -305,11 +317,11 @@ function FaixaCard({
   quantidade: number
   total: number
   descricao: string
-  tone: 'success' | 'warning' | 'destructive'
+  tone: 'success' | 'brand' | 'destructive'
 }) {
   const classes = {
     success: 'border-success/25 bg-success-soft text-success',
-    warning: 'border-warning/25 bg-warning-soft text-warning',
+    brand: 'border-brand/25 bg-brand-soft text-brand',
     destructive: 'border-destructive/25 bg-destructive-soft text-destructive'
   }[tone]
 
@@ -335,7 +347,8 @@ function TabelaDetalhe({
     areaConstruidaM2: number
     totalAgua: number
     totalLuz: number
-    ecoScore: number
+    consumoLuzPerCapita: number | null
+    ecoScore: number | null
   }[]
 }) {
   if (itens.length === 0) {
@@ -356,6 +369,7 @@ function TabelaDetalhe({
             <th className="px-4 py-2.5 text-right eyebrow">Área (m²)</th>
             <th className="px-4 py-2.5 text-right eyebrow">Água (m³)</th>
             <th className="px-4 py-2.5 text-right eyebrow">Energia (kWh)</th>
+            <th className="px-4 py-2.5 text-right eyebrow">kWh/pessoa</th>
             <th className="px-4 py-2.5 text-right eyebrow">Eco Score</th>
           </tr>
         </thead>
@@ -371,8 +385,11 @@ function TabelaDetalhe({
               </td>
               <td className="px-4 py-3 text-right tabular-nums">{formatNumber(item.totalAgua, 0)}</td>
               <td className="px-4 py-3 text-right tabular-nums">{formatNumber(item.totalLuz, 0)}</td>
+              <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                {formatNumber(item.consumoLuzPerCapita, 1)}
+              </td>
               <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                {item.ecoScore.toFixed(1)}
+                {formatNumber(item.ecoScore, 1)}
               </td>
             </tr>
           ))}

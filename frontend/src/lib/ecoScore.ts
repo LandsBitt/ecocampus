@@ -1,4 +1,4 @@
-import type { Classificacao } from './types'
+import type { Classificacao, IndicadorCampus, Situacao } from './types'
 
 export const ECO_CONFIG = {
   ecoThreshold: 70,
@@ -7,19 +7,20 @@ export const ECO_CONFIG = {
 
 export function classifyScore(score: number): Classificacao {
   if (score >= ECO_CONFIG.ecoThreshold) return 'Ecológico'
-  if (score >= ECO_CONFIG.attentionThreshold) return 'Atenção'
+  if (score >= ECO_CONFIG.attentionThreshold) return 'Na média'
   return 'Crítico'
 }
 
-type BadgeVariant = 'success' | 'warning' | 'destructive'
-type ProgressTone = 'success' | 'warning' | 'destructive'
+type BadgeVariant = 'success' | 'brand' | 'destructive'
+/** `brand` é a faixa do meio: estar na média não é alerta, então não usa amarelo. */
+export type ScoreTone = 'success' | 'brand' | 'destructive'
 
 interface ClassificacaoStyle {
   label: string
   /** Frase curta que traduz a faixa para quem não conhece o indicador. */
   meaning: string
   badge: BadgeVariant
-  tone: ProgressTone
+  tone: ScoreTone
   text: string
   bg: string
   border: string
@@ -28,25 +29,25 @@ interface ClassificacaoStyle {
 export const classificacaoStyles: Record<Classificacao, ClassificacaoStyle> = {
   Ecológico: {
     label: 'Ecológico',
-    meaning: 'Consome menos que a média da universidade.',
+    meaning: 'Consome bem menos que a referência da universidade.',
     badge: 'success',
     tone: 'success',
     text: 'text-success',
     bg: 'bg-success-soft',
     border: 'border-success/25'
   },
-  Atenção: {
-    label: 'Atenção',
-    meaning: 'Está próximo da média — dá para melhorar.',
-    badge: 'warning',
-    tone: 'warning',
-    text: 'text-warning',
-    bg: 'bg-warning-soft',
-    border: 'border-warning/25'
+  'Na média': {
+    label: 'Na média',
+    meaning: 'Consome perto da referência da universidade.',
+    badge: 'brand',
+    tone: 'brand',
+    text: 'text-brand',
+    bg: 'bg-brand-soft',
+    border: 'border-brand/25'
   },
   Crítico: {
     label: 'Crítico',
-    meaning: 'Consome bem acima da média da universidade.',
+    meaning: 'Consome bem acima da referência da universidade.',
     badge: 'destructive',
     tone: 'destructive',
     text: 'text-destructive',
@@ -55,8 +56,62 @@ export const classificacaoStyles: Record<Classificacao, ClassificacaoStyle> = {
   }
 }
 
+/** Classes de preenchimento por tom — fonte única para barras e medidores. */
+export const toneFill: Record<ScoreTone, { bg: string; stroke: string }> = {
+  success: { bg: 'bg-success', stroke: 'stroke-success' },
+  brand: { bg: 'bg-brand', stroke: 'stroke-brand' },
+  destructive: { bg: 'bg-destructive', stroke: 'stroke-destructive' }
+}
+
 export function styleForScore(score: number): ClassificacaoStyle {
   return classificacaoStyles[classifyScore(score)]
+}
+
+/** Por que um campus não tem nota. Só as situações diferentes de `ok` aparecem na tela. */
+export const situacaoInfo: Record<Exclude<Situacao, 'ok'>, { label: string; meaning: string }> = {
+  sem_dados: {
+    label: 'Sem dados',
+    meaning: 'Nenhum lançamento de água ou energia neste mês, então não há nota.'
+  },
+  sem_cadastro: {
+    label: 'Sem cadastro',
+    meaning: 'Falta a população ou a área construída. Sem os dois números o campus não entra no ranking.'
+  },
+  em_revisao: {
+    label: 'Em revisão',
+    meaning: 'Fora do ranking por enquanto. O consumo continua contando no total da universidade.'
+  }
+}
+
+/** Texto que explica a ausência de nota de um campus; `null` quando ele tem nota. */
+export function motivoSemNota(item: Pick<IndicadorCampus, 'situacao' | 'motivoForaDoRanking'>) {
+  if (item.situacao === 'ok') return null
+  const info = situacaoInfo[item.situacao]
+  return {
+    label: info.label,
+    meaning: item.situacao === 'em_revisao' && item.motivoForaDoRanking
+      ? `${info.meaning} Motivo: ${item.motivoForaDoRanking}`
+      : info.meaning
+  }
+}
+
+/** Campi que têm nota, do melhor para o pior. */
+export function comNota<T extends { ecoScore: number | null }>(itens: T[]): (T & { ecoScore: number })[] {
+  return itens
+    .filter((item): item is T & { ecoScore: number } => item.ecoScore !== null)
+    .sort((a, b) => b.ecoScore - a.ecoScore)
+}
+
+/** Ranking completo: com nota primeiro (do melhor para o pior), sem nota no fim. */
+export function ordenarRanking<T extends { ecoScore: number | null }>(itens: T[]): T[] {
+  return [...comNota(itens), ...itens.filter((item) => item.ecoScore === null)]
+}
+
+/** Média das notas dos campi que têm nota; `null` se nenhum tem. */
+export function notaMedia(itens: { ecoScore: number | null }[]): number | null {
+  const notas = comNota(itens)
+  if (notas.length === 0) return null
+  return notas.reduce((soma, item) => soma + item.ecoScore, 0) / notas.length
 }
 
 /**

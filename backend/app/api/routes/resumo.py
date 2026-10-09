@@ -28,6 +28,10 @@ def _campus_totals(db: Session, mes: str | None = None, campus_id: int | None = 
             Campus.nome,
             Campus.populacao,
             Campus.area_construida_m2,
+            Campus.fora_do_ranking_motivo,
+            # Quantos lançamentos com consumo existem: distingue "consumiu zero" de "não tem dado".
+            func.count(case((Lancamento.tipo == LancamentoTipo.agua, Lancamento.consumo))).label("n_agua"),
+            func.count(case((Lancamento.tipo == LancamentoTipo.luz, Lancamento.consumo))).label("n_luz"),
             func.coalesce(
                 func.sum(case((Lancamento.tipo == LancamentoTipo.agua, Lancamento.consumo), else_=0)),
                 0,

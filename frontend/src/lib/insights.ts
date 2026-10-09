@@ -1,5 +1,6 @@
 import { formatDelta, formatMedidaInline, variacao } from './formatters'
 import { formatMonthLong } from './date'
+import { comNota } from './ecoScore'
 import type { IndicadorCampus } from './types'
 
 export type InsightTone = 'positive' | 'negative' | 'neutral' | 'warning'
@@ -118,7 +119,8 @@ export function buildInsights(params: {
 
   // 4. Destaques do ranking (só faz sentido comparando campi).
   if (escopo === 'universidade' && indicadores.length > 1) {
-    const ordenado = [...indicadores].sort((a, b) => b.ecoScore - a.ecoScore)
+    // Só quem tem nota disputa posição.
+    const ordenado = comNota(indicadores)
     const melhor = ordenado[0]
     const pior = ordenado[ordenado.length - 1]
     if (melhor && pior && melhor.campusId !== pior.campusId) {
@@ -129,15 +131,24 @@ export function buildInsights(params: {
       })
     }
 
-    const semDemografia = indicadores.filter((i) => !i.normalizado)
-    if (semDemografia.length > 0) {
+    const semCadastro = indicadores.filter((i) => i.situacao === 'sem_cadastro')
+    if (semCadastro.length > 0) {
       insights.push({
-        id: 'sem-demografia',
+        id: 'sem-cadastro',
         tone: 'warning',
         text:
-          semDemografia.length === 1
-            ? `${semDemografia[0].nome} ainda não tem população e área cadastradas, então sua nota não é comparável às demais.`
-            : `${semDemografia.length} campi ainda não têm população e área cadastradas, então suas notas não são comparáveis às demais.`
+          semCadastro.length === 1
+            ? `${semCadastro[0].nome} ainda não tem população e área cadastradas, então está fora do ranking.`
+            : `${semCadastro.length} campi ainda não têm população e área cadastradas, então estão fora do ranking.`
+      })
+    }
+
+    const emRevisao = indicadores.filter((i) => i.situacao === 'em_revisao')
+    if (emRevisao.length > 0) {
+      insights.push({
+        id: 'em-revisao',
+        tone: 'neutral',
+        text: `${emRevisao.map((i) => i.nome).join(', ')} ${emRevisao.length === 1 ? 'está' : 'estão'} fora do ranking por enquanto; o consumo continua contando no total da universidade.`
       })
     }
   }

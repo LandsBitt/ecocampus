@@ -1,9 +1,10 @@
-import { ECO_CONFIG, styleForScore } from '@/lib/ecoScore'
+import { ECO_CONFIG, styleForScore, toneFill } from '@/lib/ecoScore'
 import { formatNumber } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
 interface EcoScoreGaugeProps {
-  score: number
+  /** `null` = sem nota (sem dados, sem cadastro ou fora do ranking): o arco fica vazio. */
+  score: number | null
   size?: number
   className?: string
   /** Mostra as marcas de 40 e 70 que separam as três faixas. */
@@ -36,19 +37,14 @@ export function EcoScoreGauge({
   className,
   showThresholds = true
 }: EcoScoreGaugeProps) {
-  const clamped = Math.max(0, Math.min(100, score))
-  const style = styleForScore(clamped)
+  const semNota = score === null
+  const clamped = semNota ? 0 : Math.max(0, Math.min(100, score))
+  const style = semNota ? null : styleForScore(clamped)
   const cx = size / 2
   const cy = size / 2
   const radius = size / 2 - 12
   const stroke = size < 120 ? 8 : 10
   const end = START + (clamped / 100) * SWEEP
-
-  const strokeColor = {
-    success: 'stroke-success',
-    warning: 'stroke-warning',
-    destructive: 'stroke-destructive'
-  }[style.tone]
 
   return (
     <div className={cn('relative inline-flex shrink-0', className)} style={{ width: size, height: size }}>
@@ -60,13 +56,15 @@ export function EcoScoreGauge({
           fill="none"
           strokeLinecap="round"
         />
-        <path
-          d={arcPath(cx, cy, radius, START, end)}
-          className={strokeColor}
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-        />
+        {style && (
+          <path
+            d={arcPath(cx, cy, radius, START, end)}
+            className={toneFill[style.tone].stroke}
+            strokeWidth={stroke}
+            fill="none"
+            strokeLinecap="round"
+          />
+        )}
         {showThresholds &&
           [ECO_CONFIG.attentionThreshold, ECO_CONFIG.ecoThreshold].map((threshold) => {
             const angle = START + (threshold / 100) * SWEEP
@@ -91,32 +89,36 @@ export function EcoScoreGauge({
           className={cn(
             'font-display font-semibold leading-none tabular-nums',
             size < 120 ? 'text-xl' : 'text-3xl',
-            style.text
+            style ? style.text : 'text-subtle'
           )}
         >
-          {formatNumber(clamped, 1)}
+          {semNota ? '—' : formatNumber(clamped, 1)}
         </span>
-        <span className="mt-1 text-2xs text-subtle">de 100</span>
+        <span className="mt-1 text-2xs text-subtle">{semNota ? 'sem nota' : 'de 100'}</span>
       </div>
     </div>
   )
 }
 
 /** Barra horizontal de score — versão compacta para linhas de tabela. */
-export function EcoScoreBar({ score, className }: { score: number; className?: string }) {
+export function EcoScoreBar({ score, className }: { score: number | null; className?: string }) {
+  if (score === null) {
+    return (
+      <div className={cn('flex items-center gap-2.5', className)}>
+        <div className="h-1.5 w-full min-w-16 rounded-full bg-muted" />
+        <span className="w-9 shrink-0 text-right text-[0.8125rem] tabular-nums text-subtle">—</span>
+      </div>
+    )
+  }
+
   const clamped = Math.max(0, Math.min(100, score))
   const style = styleForScore(clamped)
-  const fill = {
-    success: 'bg-success',
-    warning: 'bg-warning',
-    destructive: 'bg-destructive'
-  }[style.tone]
 
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
       <div className="relative h-1.5 w-full min-w-16 overflow-hidden rounded-full bg-muted">
         <div
-          className={cn('h-full rounded-full', fill)}
+          className={cn('h-full rounded-full', toneFill[style.tone].bg)}
           style={{ width: `${clamped}%` }}
         />
       </div>

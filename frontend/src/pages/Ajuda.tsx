@@ -34,13 +34,13 @@ const PASSOS = [
     icon: Calculator,
     titulo: '3. Vira uma nota',
     texto:
-      'Cada campus é comparado com a média da universidade e recebe uma nota de 0 a 100 para água e outra para energia. A média das duas é o Eco Score.'
+      'Cada campus é comparado com a referência da universidade — o consumo total dividido pela população total (água) e pela área total (energia) — e recebe uma nota de 0 a 100 para cada medida. A média das duas é o Eco Score. Campus sem lançamento no mês ou sem população e área cadastradas fica sem nota.'
   },
   {
     icon: Gauge,
     titulo: '4. A nota vira uma situação',
     texto:
-      'A nota é traduzida em Ecológico, Atenção ou Crítico — a leitura rápida que aparece no ranking e nos painéis.'
+      'A nota é traduzida em Ecológico, Na média ou Crítico — a leitura rápida que aparece no ranking e nos painéis.'
   }
 ]
 
@@ -49,6 +49,7 @@ const TERMOS: GlossaryTerm[] = [
   'normalizacao',
   'aguaPorPessoa',
   'energiaPorM2',
+  'energiaPorPessoa',
   'classificacao',
   'lancamento',
   'pontoMedicao',
@@ -56,6 +57,7 @@ const TERMOS: GlossaryTerm[] = [
   'metroCubico',
   'kwh',
   'variacaoMensal',
+  'semDados',
   'semDadosDemograficos'
 ]
 
@@ -120,7 +122,7 @@ export default function Ajuda() {
           {(
             [
               { faixa: 'Ecológico', regra: 'Nota 70 ou mais' },
-              { faixa: 'Atenção', regra: 'Nota entre 40 e 70' },
+              { faixa: 'Na média', regra: 'Nota entre 40 e 70' },
               { faixa: 'Crítico', regra: 'Nota abaixo de 40' }
             ] as const
           ).map(({ faixa, regra }) => {

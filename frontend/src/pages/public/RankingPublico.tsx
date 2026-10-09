@@ -17,7 +17,7 @@ import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api } from '@/lib/api'
 import { formatMonthLong } from '@/lib/date'
-import { classifyScore } from '@/lib/ecoScore'
+import { classifyScore, comNota, notaMedia, ordenarRanking } from '@/lib/ecoScore'
 import { usePeriod } from '@/providers/PeriodProvider'
 import type { IndicadorCampus, PizzaItem } from '@/lib/types'
 
@@ -34,15 +34,11 @@ export default function RankingPublico() {
     queryFn: () => api.get<PizzaItem[]>(`/public/pizza?mes=${mes}`)
   })
 
-  const itens = useMemo(
-    () => [...(ranking.data ?? [])].sort((a, b) => b.ecoScore - a.ecoScore),
-    [ranking.data]
-  )
+  const itens = useMemo(() => ordenarRanking(ranking.data ?? []), [ranking.data])
 
-  const scoreMedio = itens.length
-    ? itens.reduce((soma, item) => soma + item.ecoScore, 0) / itens.length
-    : 0
-  const lider = itens[0]
+  // Média e líder só entre os campi que têm nota no mês.
+  const scoreMedio = notaMedia(itens)
+  const lider = comNota(itens)[0]
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,7 +75,7 @@ export default function RankingPublico() {
             </div>
           </div>
 
-          {!ranking.isLoading && itens.length > 0 && (
+          {!ranking.isLoading && scoreMedio !== null && (
             <Card className="shrink-0 lg:w-72">
               <CardContent className="flex items-center gap-5 p-5">
                 <EcoScoreGauge score={scoreMedio} size={104} />
@@ -133,7 +129,8 @@ export default function RankingPublico() {
                   description={
                     <>
                       A posição é dada pelo <Explain term="ecoScore">Eco Score</Explain> — uma nota
-                      de 0 a 100 em que consumir menos que a média vale mais pontos.
+                      de 0 a 100 em que consumir menos que a referência da universidade vale mais
+                      pontos.
                     </>
                   }
                 />
@@ -173,9 +170,10 @@ export default function RankingPublico() {
               <p className="font-medium text-foreground">Como a nota é calculada</p>
               <p>
                 A água de cada campus é dividida pelo número de pessoas e a energia pela área
-                construída. Cada resultado é comparado com a média da universidade e vira uma nota
-                de 0 a 100; a nota final é a média das duas. Campi que ainda não têm população e
-                área cadastradas são avaliados pelo consumo absoluto e ficam sinalizados na tabela.
+                construída. Cada resultado é comparado com a referência da universidade — o consumo
+                total dividido pela população total e pela área total — e vira uma nota de 0 a 100;
+                a nota final é a média das duas. Campi sem consumo registrado no mês, ou sem
+                população e área cadastradas, ficam sem nota e aparecem sinalizados na tabela.
               </p>
             </div>
           </CardContent>

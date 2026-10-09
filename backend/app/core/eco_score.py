@@ -1,11 +1,12 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class EcoScoreConfig:
-    # Lower/upper bounds for normalizing relative consumption.
+    # Consumo relativo à referência da universidade: 0,5 (metade) vale nota 100
+    # e 1,5 (50% acima) vale nota 0. Estar exatamente na referência vale 50.
     min_relative: float = 0.5
     max_relative: float = 1.5
     eco_threshold: int = 70
@@ -13,6 +14,10 @@ class EcoScoreConfig:
 
 
 CONFIG = EcoScoreConfig()
+
+ECOLOGICO = "Ecológico"
+NA_MEDIA = "Na média"
+CRITICO = "Crítico"
 
 
 def _clamp(value: float, minimum: float, maximum: float) -> float:
@@ -31,7 +36,7 @@ def compute_eco_score(total: float, average: float, config: EcoScoreConfig = CON
 
 def classify_score(score: float, config: EcoScoreConfig = CONFIG) -> str:
     if score >= config.eco_threshold:
-        return "Ecológico"
+        return ECOLOGICO
     if score >= config.attention_threshold:
-        return "Atenção"
-    return "Crítico"
+        return NA_MEDIA
+    return CRITICO

@@ -35,6 +35,8 @@ class Campus(Base):
     # Quem forneceu população/área ("FICTÍCIO" para dados de desenvolvimento) e a que data se referem.
     demografia_fonte: Mapped[str | None] = mapped_column(String(200), nullable=True)
     demografia_referencia: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Preenchido = campus fora do ranking (sem nota e fora da referência); o texto é o motivo exibido.
+    fora_do_ranking_motivo: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     lancamentos: Mapped[list["Lancamento"]] = relationship(back_populates="campus")
     pontos_medicao: Mapped[list["PontoMedicao"]] = relationship(back_populates="campus")

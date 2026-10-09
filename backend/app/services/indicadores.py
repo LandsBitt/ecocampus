@@ -1,3 +1,18 @@
+"""Indicadores e Eco Score por campus.
+
+Metodologia (SPEC 1.4 a 1.6):
+
+1. Só recebe nota o campus com população E área cadastradas, com pelo menos um
+   lançamento no período e que não esteja marcado como fora do ranking.
+2. A referência da universidade é ponderada: consumo total ÷ população total
+   (água) e kWh total ÷ área total (energia), somando apenas os campi do item 1
+   que têm lançamento daquela medida.
+3. Cada medida vira uma nota de 0 a 100 pela razão com a referência
+   (`compute_eco_score`). O Eco Score é a média das notas das medidas que o
+   campus tem no período.
+4. Campus sem nota não entra na referência e não recebe posição. O consumo dele
+   continua nos totais da universidade.
+"""
 from __future__ import annotations
 
 from typing import Iterable
@@ -6,81 +21,96 @@ from app.core.eco_score import classify_score, compute_eco_score
 from app.schemas.indicadores import IndicadorCampus
 
 
-def _avg(values: list[float]) -> float:
-    return sum(values) / len(values) if values else 0.0
+def _razao(numerador: float, denominador: float) -> float | None:
+    return numerador / denominador if denominador > 0 else None
 
 
 def calcular_indicadores(rows: Iterable) -> list[IndicadorCampus]:
-    """Indicadores e Eco Score de cada campus, na ordem recebida.
+    """Indicadores de cada campus, na ordem recebida.
 
     `rows` são os totais por campus (`_campus_totals`). Devem vir TODOS os
-    campi, mesmo quando só um será exibido: a média de referência é calculada
-    sobre o conjunto, e com uma linha só a nota seria sempre 100.
+    campi, mesmo quando só um será exibido: a referência é calculada sobre o
+    conjunto.
     """
-    enriched = []
+    linhas = []
     for row in rows:
-        total_agua = float(row.agua or 0)
-        total_luz = float(row.luz or 0)
-        total = float(row.total or 0)
-        per_capita_agua = (total_agua / row.populacao) if row.populacao and row.populacao > 0 else None
-        por_m2_luz = (total_luz / row.area_construida_m2) if row.area_construida_m2 and row.area_construida_m2 > 0 else None
-        enriched.append(
+        populacao = row.populacao or 0
+        area = row.area_construida_m2 or 0
+        tem_agua = (row.n_agua or 0) > 0
+        tem_luz = (row.n_luz or 0) > 0
+
+        if row.fora_do_ranking_motivo:
+            situacao = "em_revisao"
+        elif populacao <= 0 or area <= 0:
+            situacao = "sem_cadastro"
+        elif not (tem_agua or tem_luz):
+            situacao = "sem_dados"
+        else:
+            situacao = "ok"
+
+        linhas.append(
             {
                 "row": row,
-                "total_agua": total_agua,
-                "total_luz": total_luz,
-                "total": total,
-                "per_capita_agua": per_capita_agua,
-                "por_m2_luz": por_m2_luz,
+                "populacao": populacao,
+                "area": area,
+                "agua": float(row.agua or 0),
+                "luz": float(row.luz or 0),
+                "tem_agua": tem_agua,
+                "tem_luz": tem_luz,
+                "situacao": situacao,
             }
         )
 
-    avg_per_capita_agua = _avg([e["per_capita_agua"] for e in enriched if e["per_capita_agua"] is not None])
-    avg_por_m2_luz = _avg([e["por_m2_luz"] for e in enriched if e["por_m2_luz"] is not None])
-    avg_total = _avg([e["total"] for e in enriched])
+    com_nota = [l for l in linhas if l["situacao"] == "ok"]
+    com_agua = [l for l in com_nota if l["tem_agua"]]
+    com_luz = [l for l in com_nota if l["tem_luz"]]
+    ref_agua = _razao(sum(l["agua"] for l in com_agua), sum(l["populacao"] for l in com_agua))
+    ref_luz = _razao(sum(l["luz"] for l in com_luz), sum(l["area"] for l in com_luz))
 
     output: list[IndicadorCampus] = []
-    for e in enriched:
-        row = e["row"]
+    for l in linhas:
+        row = l["row"]
+        agua_per_capita = _razao(l["agua"], l["populacao"]) if l["tem_agua"] else None
+        luz_por_m2 = _razao(l["luz"], l["area"]) if l["tem_luz"] else None
+        luz_per_capita = _razao(l["luz"], l["populacao"]) if l["tem_luz"] else None
 
-        score_agua = (
-            compute_eco_score(e["per_capita_agua"], avg_per_capita_agua)
-            if e["per_capita_agua"] is not None
-            else None
-        )
-        score_luz = (
-            compute_eco_score(e["por_m2_luz"], avg_por_m2_luz)
-            if e["por_m2_luz"] is not None
-            else None
-        )
-
-        partial = [s for s in (score_agua, score_luz) if s is not None]
-        if partial:
-            eco_score = sum(partial) / len(partial)
-            normalizado = True
-        else:
-            # Fallback legado: campus sem população/área cadastradas.
-            # Mantém comportamento atual (consumo absoluto vs média absoluta)
-            # para não quebrar dashboards enquanto o admin não preenche os dados.
-            eco_score = compute_eco_score(e["total"], avg_total)
-            normalizado = False
+        score_agua = score_luz = eco_score = None
+        if l["situacao"] == "ok":
+            if agua_per_capita is not None and ref_agua is not None:
+                score_agua = compute_eco_score(agua_per_capita, ref_agua)
+            if luz_por_m2 is not None and ref_luz is not None:
+                score_luz = compute_eco_score(luz_por_m2, ref_luz)
+            parciais = [s for s in (score_agua, score_luz) if s is not None]
+            if parciais:
+                eco_score = sum(parciais) / len(parciais)
 
         output.append(
             IndicadorCampus(
                 campusId=row.id,
                 nome=row.nome,
-                populacao=row.populacao or 0,
-                areaConstruidaM2=row.area_construida_m2 or 0,
-                total=e["total"],
-                totalAgua=e["total_agua"],
-                totalLuz=e["total_luz"],
-                consumoAguaPerCapita=e["per_capita_agua"],
-                consumoLuzPorM2=e["por_m2_luz"],
+                populacao=l["populacao"],
+                areaConstruidaM2=l["area"],
+                situacao=l["situacao"],
+                motivoForaDoRanking=row.fora_do_ranking_motivo,
+                temDados=l["tem_agua"] or l["tem_luz"],
+                total=float(row.total or 0),
+                totalAgua=l["agua"],
+                totalLuz=l["luz"],
+                consumoAguaPerCapita=agua_per_capita,
+                consumoLuzPorM2=luz_por_m2,
+                consumoLuzPerCapita=luz_per_capita,
+                referenciaAguaPerCapita=ref_agua,
+                referenciaLuzPorM2=ref_luz,
                 ecoScore=eco_score,
                 ecoScoreAgua=score_agua,
                 ecoScoreLuz=score_luz,
-                normalizado=normalizado,
-                classificacao=classify_score(eco_score),
+                classificacao=classify_score(eco_score) if eco_score is not None else None,
             )
         )
     return output
+
+
+def ordenar_ranking(itens: list[IndicadorCampus]) -> list[IndicadorCampus]:
+    """Do melhor para o pior; quem não tem nota vai para o fim, na ordem original."""
+    com_nota = sorted((i for i in itens if i.eco_score is not None), key=lambda i: i.eco_score, reverse=True)
+    return com_nota + [i for i in itens if i.eco_score is None]

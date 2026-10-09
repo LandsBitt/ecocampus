@@ -9,7 +9,7 @@ from app.db.models import Campus
 from app.db.session import get_db
 from app.schemas.campus import CampusComUnidades
 from app.schemas.indicadores import IndicadorCampus, PizzaItem
-from app.services.indicadores import calcular_indicadores
+from app.services.indicadores import calcular_indicadores, ordenar_ranking
 
 router = APIRouter()
 
@@ -29,8 +29,7 @@ def public_ranking(
     mes: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
-    output = calcular_indicadores(_campus_totals(db, mes=mes))
-    return sorted(output, key=lambda x: x.eco_score, reverse=True)
+    return ordenar_ranking(calcular_indicadores(_campus_totals(db, mes=mes)))
 
 
 @router.get("/public/pizza", response_model=list[PizzaItem])
