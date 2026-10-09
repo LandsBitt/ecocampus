@@ -118,6 +118,8 @@ export interface PontoPreview {
 }
 
 export interface LinhaIgnorada {
+  /** Número da linha no arquivo (o cabeçalho é a linha 1). */
+  linha: number | null
   local: string
   identificador: string | null
   consumoFisico: number | null
@@ -131,9 +133,13 @@ export interface ImportPreview {
   matched: PontoPreview[]
   unmatched: LinhaIgnorada[]
   totalValor: number
+  /** Lançamentos manuais do mesmo campus/tipo/mês que a confirmação vai remover. */
+  manuaisSubstituidos: number
 }
 
 export interface ConfirmarOut {
   imported: number
   updated: number
+  ignored: number
+  manuaisRemovidos: number
 }

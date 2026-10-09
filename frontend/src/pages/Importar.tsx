@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { api } from '@/lib/api'
+import { ApiError, api } from '@/lib/api'
 import { formatMonthLong, getCurrentMonth } from '@/lib/date'
 import { formatCurrency, formatNumber } from '@/lib/formatters'
 import { useAuth } from '@/providers/AuthProvider'
@@ -73,9 +73,9 @@ export default function Importar() {
         })
       }
     },
-    onError: () =>
+    onError: (error: Error) =>
       toast.error('Não foi possível ler o arquivo', {
-        description: 'Confirme que é um CSV salvo a partir da planilha modelo.'
+        description: detalheDoErro(error) ?? 'Confirme que é um CSV salvo a partir da planilha modelo.'
       })
   })
 
@@ -239,6 +239,22 @@ export default function Importar() {
             />
           </div>
 
+          {preview.manuaisSubstituidos > 0 && (
+            <Card variant="flat">
+              <CardContent className="flex gap-3 p-4">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
+                <p className="text-[0.8125rem] leading-relaxed text-foreground">
+                  {preview.manuaisSubstituidos === 1
+                    ? 'Existe 1 lançamento manual'
+                    : `Existem ${preview.manuaisSubstituidos} lançamentos manuais`}{' '}
+                  para os mesmos campi neste mês. Ao confirmar,{' '}
+                  {preview.manuaisSubstituidos === 1 ? 'ele será substituído' : 'eles serão substituídos'}{' '}
+                  pelos dados da planilha, que vêm da fatura.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardToolbar
               bordered
@@ -287,12 +303,13 @@ export default function Importar() {
                     Linhas que ficaram de fora
                   </span>
                 }
-                description="O identificador não corresponde a nenhum ponto cadastrado, ou a linha veio sem consumo. Estes registros não entram no sistema."
+                description="Cada linha abaixo tem o motivo ao lado. Corrija na planilha e envie de novo; estes registros não entram no sistema."
               />
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-16">Linha</TableHead>
                       <TableHead>Local na planilha</TableHead>
                       <TableHead>Identificador</TableHead>
                       <TableHead>Motivo</TableHead>
@@ -301,6 +318,9 @@ export default function Importar() {
                   <TableBody>
                     {preview.unmatched.map((linha, index) => (
                       <TableRow key={`${linha.local}-${index}`}>
+                        <TableCell className="tabular-nums text-muted-foreground">
+                          {linha.linha ?? '—'}
+                        </TableCell>
                         <TableCell>{linha.local || '—'}</TableCell>
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {linha.identificador || '—'}
@@ -360,6 +380,15 @@ export default function Importar() {
               </div>
             </div>
 
+            {(resultado.manuaisRemovidos > 0 || resultado.ignored > 0) && (
+              <p className="text-2xs leading-relaxed text-muted-foreground">
+                {resultado.manuaisRemovidos > 0 &&
+                  `${resultado.manuaisRemovidos} lançamento(s) manual(is) do mesmo mês foram substituídos. `}
+                {resultado.ignored > 0 &&
+                  `${resultado.ignored} item(ns) não entraram porque o ponto de medição não existe mais.`}
+              </p>
+            )}
+
             <div className="flex w-full flex-col gap-2 sm:flex-row">
               <Button asChild className="flex-1">
                 <Link to="/dashboard">
@@ -377,6 +406,17 @@ export default function Importar() {
       )}
     </Page>
   )
+}
+
+/** Mensagem que o servidor mandou junto com o erro, quando é uma explicação legível. */
+function detalheDoErro(error: Error): string | null {
+  if (!(error instanceof ApiError)) return null
+  try {
+    const corpo = JSON.parse(error.message) as { detail?: unknown }
+    return typeof corpo.detail === 'string' ? corpo.detail : null
+  } catch {
+    return null
+  }
 }
 
 function ResumoBox({
