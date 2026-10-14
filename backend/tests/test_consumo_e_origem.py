@@ -40,7 +40,7 @@ def test_cpfl_legado_fica_fora_de_todos_os_indicadores(client, como, cadastrar, 
     super_ = como("super")
     assert super_.get(f"/resumo?mes={MES}").json()["totalGeral"]["luz"] == 10000
     assert _campi(super_.get(f"/indicadores?mes={MES}"))[1]["totalLuz"] == 10000
-    assert _campi(super_.get(f"/grafico/pizza?mes={MES}"))[1]["total"] == 10000
+    assert _campi(super_.get(f"/grafico/pizza?mes={MES}"))[1]["luz"] == 10000
     assert _campi(client.get(f"/public/ranking?mes={MES}"))[1]["totalLuz"] == 10000
     # Continua no banco e aparece na listagem, identificado.
     origens = sorted(item["origem"] for item in super_.get(f"/lancamentos?mes={MES}").json())

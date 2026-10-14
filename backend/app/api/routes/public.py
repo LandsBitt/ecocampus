@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.api.routes.grafico import pizza_por_campus
 from app.api.routes.resumo import _campus_totals
 from app.db.models import Campus
 from app.db.session import get_db
@@ -37,8 +38,4 @@ def public_pizza(
     mes: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
-    rows = _campus_totals(db, mes=mes)
-    return [
-        {"campusId": row.id, "nome": row.nome, "total": float(row.total or 0)}
-        for row in rows
-    ]
+    return pizza_por_campus(_campus_totals(db, mes=mes))

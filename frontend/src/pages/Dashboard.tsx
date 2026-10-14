@@ -6,14 +6,13 @@ import { Explain } from '@/components/Explain'
 import { InsightPanel } from '@/components/InsightPanel'
 import { KpiCard } from '@/components/KpiCard'
 import { LancamentosTable } from '@/components/LancamentosTable'
-import { CampusDistribution } from '@/components/charts/CampusDistribution'
+import { CampusDistribution, SeletorMedida } from '@/components/charts/CampusDistribution'
 import { ConsumoTrendChart } from '@/components/charts/ConsumoTrendChart'
 import { EcoScoreGauge } from '@/components/charts/EcoScoreGauge'
 import { Page, SectionHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardToolbar } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Segmented } from '@/components/ui/segmented'
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
 import {
   useCampusList,
@@ -36,6 +35,7 @@ export default function Dashboard() {
   const isSuper = claims?.role === 'super'
 
   const [medida, setMedida] = useState<Medida>('agua')
+  const [medidaPizza, setMedidaPizza] = useState<Medida>('agua')
 
   const mesAnterior = useMemo(() => previousMonth(mes), [mes])
   const resumo = useResumo(mes)
@@ -51,13 +51,13 @@ export default function Dashboard() {
   const atual = useMemo(() => {
     if (!resumo.data) return null
     const bloco = isSuper ? resumo.data.totalGeral : resumo.data.campus
-    return bloco ? { agua: bloco.agua, luz: bloco.luz, total: bloco.total } : null
+    return bloco ? { agua: bloco.agua, luz: bloco.luz } : null
   }, [resumo.data, isSuper])
 
   const anterior = useMemo(() => {
     if (!resumoAnterior.data) return null
     const bloco = isSuper ? resumoAnterior.data.totalGeral : resumoAnterior.data.campus
-    return bloco ? { agua: bloco.agua, luz: bloco.luz, total: bloco.total } : null
+    return bloco ? { agua: bloco.agua, luz: bloco.luz } : null
   }, [resumoAnterior.data, isSuper])
 
   const meuCampus = useMemo(
@@ -193,20 +193,12 @@ export default function Dashboard() {
           title="Consumo ao longo do tempo"
           description="Últimos 12 meses. A linha tracejada é a média do período — acima dela, o mês foi atípico."
         >
-          <Segmented
-            aria-label="Medida do gráfico"
-            value={medida}
-            onChange={setMedida}
-            options={[
-              { value: 'agua', label: 'Água', icon: Droplet },
-              { value: 'luz', label: 'Energia', icon: Zap }
-            ]}
-          />
+          <SeletorMedida value={medida} onChange={setMedida} />
         </CardToolbar>
         <CardContent className="pt-5">
           {historico.isLoading ? (
             <Skeleton className="h-[260px] w-full" />
-          ) : historico.data.every((ponto) => ponto.total === 0) ? (
+          ) : historico.data.every((ponto) => ponto[medida] === 0) ? (
             <EmptyState
               title="Ainda não há histórico"
               description="Assim que existirem lançamentos em meses anteriores, a evolução do consumo aparece aqui."
@@ -223,13 +215,15 @@ export default function Dashboard() {
             <CardToolbar
               bordered
               title="Divisão entre os campi"
-              description="Quanto cada campus representa do consumo total do mês."
-            />
+              description={`Quanto cada campus representa do consumo de ${medidaPizza === 'agua' ? 'água (m³)' : 'energia (kWh)'} do mês.`}
+            >
+              <SeletorMedida value={medidaPizza} onChange={setMedidaPizza} />
+            </CardToolbar>
             <CardContent className="pt-5">
               {pizza.isLoading ? (
                 <Skeleton className="h-[260px] w-full" />
               ) : (
-                <CampusDistribution data={pizza.data ?? []} height={220} />
+                <CampusDistribution data={pizza.data ?? []} medida={medidaPizza} height={220} />
               )}
             </CardContent>
           </Card>

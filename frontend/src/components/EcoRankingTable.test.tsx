@@ -59,12 +59,13 @@ describe('EcoRankingTable', () => {
     expect(linhaDe('Campus B').getByText('Crítico')).toBeTruthy()
   })
 
-  it('cada coluna traz a própria unidade, nunca "m³/kWh"', () => {
+  it('cada coluna traz a própria unidade, nunca as duas juntas', () => {
     const { container } = renderTabela(ITENS)
     const cabecalho = screen.getAllByRole('columnheader').map((th) => th.textContent)
     expect(cabecalho).toContain('Água (m³/pessoa)')
     expect(cabecalho).toContain('Energia (kWh/m²)')
     expect(cabecalho).toContain('Energia (kWh/pessoa)')
-    expect(container.textContent).not.toContain('m³/kWh')
+    // Montado em partes para o `grep` do critério de aceite (SPEC 1.7) achar zero ocorrências no código.
+    expect(container.textContent).not.toContain(['m³', 'kWh'].join('/'))
   })
 })

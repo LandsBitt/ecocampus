@@ -3,7 +3,7 @@ import { BarChart3, Download, Info, PieChart, Trophy } from 'lucide-react'
 
 import { Explain } from '@/components/Explain'
 import { EcoRankingTable } from '@/components/EcoRankingTable'
-import { CampusDistribution } from '@/components/charts/CampusDistribution'
+import { CampusDistribution, SeletorMedida } from '@/components/charts/CampusDistribution'
 import { EcoScoreGauge } from '@/components/charts/EcoScoreGauge'
 import { Page } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -23,12 +23,13 @@ import { useIndicadores, usePizza } from '@/hooks/queries'
 import { formatMonthLabel, formatMonthLong } from '@/lib/date'
 import { classifyScore, comNota, motivoSemNota, notaMedia, ordenarRanking } from '@/lib/ecoScore'
 import { downloadCsv } from '@/lib/export'
-import { formatNumber } from '@/lib/formatters'
+import { formatNumber, type Medida } from '@/lib/formatters'
 import { usePeriod } from '@/providers/PeriodProvider'
 
 export default function Reports() {
   const { mes } = usePeriod()
   const [campusSelecionado, setCampusSelecionado] = useState<string>('all')
+  const [medidaPizza, setMedidaPizza] = useState<Medida>('agua')
 
   const indicadores = useIndicadores(mes)
   const pizza = usePizza(mes)
@@ -247,15 +248,18 @@ export default function Reports() {
               <Card>
                 <CardToolbar
                   bordered
-                  title="Participação no consumo total"
+                  title={`Participação no consumo de ${medidaPizza === 'agua' ? 'água (m³)' : 'energia (kWh)'}`}
                   description="Diferente do ranking: aqui vale o volume absoluto, sem ajuste por tamanho. Campi maiores aparecem com fatias maiores."
-                />
+                >
+                  <SeletorMedida value={medidaPizza} onChange={setMedidaPizza} />
+                </CardToolbar>
                 <CardContent className="pt-5">
                   {pizza.isLoading ? (
                     <Skeleton className="h-64 w-full" />
                   ) : (
                     <CampusDistribution
                       data={pizza.data ?? []}
+                      medida={medidaPizza}
                       highlightedId={
                         campusSelecionado === 'all' ? null : Number(campusSelecionado)
                       }

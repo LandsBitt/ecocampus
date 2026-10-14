@@ -22,7 +22,6 @@ class IndicadorCampus(BaseModel):
     motivo_fora_do_ranking: str | None = Field(default=None, alias="motivoForaDoRanking")
     tem_dados: bool = Field(False, alias="temDados")
 
-    total: float
     # Consumo físico do período: água em m³, energia em kWh.
     total_agua: float = Field(0.0, alias="totalAgua")
     total_luz: float = Field(0.0, alias="totalLuz")
@@ -53,9 +52,13 @@ class IndicadoresOut(BaseModel):
 
 
 class PizzaItem(BaseModel):
+    """Participação de um campus no consumo do mês, uma medida por campo."""
+
     campus_id: int = Field(..., alias="campusId")
     nome: str
-    total: float
+    # Água em m³ e energia em kWh. Cada pizza usa uma medida só.
+    agua: float
+    luz: float
 
     model_config = ConfigDict(populate_by_name=True)
 

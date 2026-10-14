@@ -85,7 +85,6 @@ export interface PontoHistorico {
   mes: string
   agua: number
   luz: number
-  total: number
   /** Falso enquanto o mês ainda está carregando. */
   carregado: boolean
 }
@@ -122,7 +121,6 @@ export function useHistoricoResumo(mesFinal: string, meses = 12, enabled = true)
       mes,
       agua: bloco?.agua ?? 0,
       luz: bloco?.luz ?? 0,
-      total: bloco?.total ?? 0,
       carregado: !!result?.isSuccess
     }
   })

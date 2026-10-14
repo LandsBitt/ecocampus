@@ -9,7 +9,6 @@ class ResumoCampus(BaseModel):
     # Consumo físico: água em m³, luz em kWh.
     agua: float
     luz: float
-    total: float
 
     model_config = ConfigDict(populate_by_name=True)
 

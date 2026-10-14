@@ -10,7 +10,7 @@ from app.services.indicadores import calcular_indicadores, ordenar_ranking
 
 Totais = namedtuple(
     "Totais",
-    "id nome populacao area_construida_m2 agua luz total n_agua n_luz fora_do_ranking_motivo",
+    "id nome populacao area_construida_m2 agua luz n_agua n_luz fora_do_ranking_motivo",
 )
 
 
@@ -23,7 +23,6 @@ def campus(id, populacao, area, agua=None, luz=None, fora=None, nome=None):
         area,
         agua or 0,
         luz or 0,
-        (agua or 0) + (luz or 0),
         0 if agua is None else 1,
         0 if luz is None else 1,
         fora,

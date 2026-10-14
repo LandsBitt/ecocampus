@@ -1,11 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Award, Info, LogIn, PieChart, Trophy } from 'lucide-react'
 
 import { Explain } from '@/components/Explain'
 import { EcoRankingTable } from '@/components/EcoRankingTable'
-import { CampusDistribution } from '@/components/charts/CampusDistribution'
+import { CampusDistribution, SeletorMedida } from '@/components/charts/CampusDistribution'
 import { EcoScoreGauge } from '@/components/charts/EcoScoreGauge'
 import { Brand } from '@/components/layout/Brand'
 import { MonthPicker } from '@/components/layout/MonthPicker'
@@ -17,12 +17,14 @@ import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api } from '@/lib/api'
 import { formatMonthLong } from '@/lib/date'
+import type { Medida } from '@/lib/formatters'
 import { classifyScore, comNota, notaMedia, ordenarRanking } from '@/lib/ecoScore'
 import { usePeriod } from '@/providers/PeriodProvider'
 import type { IndicadorCampus, PizzaItem } from '@/lib/types'
 
 export default function RankingPublico() {
   const { mes } = usePeriod()
+  const [medidaPizza, setMedidaPizza] = useState<Medida>('agua')
 
   const ranking = useQuery<IndicadorCampus[]>({
     queryKey: ['public-ranking', mes],
@@ -148,14 +150,16 @@ export default function RankingPublico() {
               <Card>
                 <CardToolbar
                   bordered
-                  title="Participação de cada campus no consumo total"
+                  title={`Participação de cada campus no consumo de ${medidaPizza === 'agua' ? 'água (m³)' : 'energia (kWh)'}`}
                   description="Aqui vale o volume absoluto, sem ajuste de tamanho — por isso campi maiores aparecem com fatias maiores."
-                />
+                >
+                  <SeletorMedida value={medidaPizza} onChange={setMedidaPizza} />
+                </CardToolbar>
                 <CardContent className="pt-5">
                   {pizza.isLoading ? (
                     <Skeleton className="h-64 w-full" />
                   ) : (
-                    <CampusDistribution data={pizza.data ?? []} />
+                    <CampusDistribution data={pizza.data ?? []} medida={medidaPizza} />
                   )}
                 </CardContent>
               </Card>

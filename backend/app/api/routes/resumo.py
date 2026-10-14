@@ -14,6 +14,7 @@ router = APIRouter()
 
 # Todo número exibido é consumo físico (`consumo`). A carga antiga do script
 # CPFL fica de fora; importados sem consumo somem sozinhos da soma (NULL).
+# Água (m³) e energia (kWh) nunca são somadas entre si (SPEC 1.7).
 _CONTA_NOS_INDICADORES = Lancamento.origem != LancamentoOrigem.cpfl_legado.value
 
 
@@ -40,7 +41,6 @@ def _campus_totals(db: Session, mes: str | None = None, campus_id: int | None = 
                 func.sum(case((Lancamento.tipo == LancamentoTipo.luz, Lancamento.consumo), else_=0)),
                 0,
             ).label("luz"),
-            func.coalesce(func.sum(Lancamento.consumo), 0).label("total"),
         )
         .select_from(Campus)
         .outerjoin(Lancamento, join_condition)
@@ -63,7 +63,6 @@ def _total_geral(db: Session, mes: str | None = None):
             func.sum(case((Lancamento.tipo == LancamentoTipo.luz, Lancamento.consumo), else_=0)),
             0,
         ).label("luz"),
-        func.coalesce(func.sum(Lancamento.consumo), 0).label("total"),
     ).where(_CONTA_NOS_INDICADORES)
     if mes:
         stmt = stmt.where(Lancamento.mes_referencia == mes)
@@ -94,7 +93,6 @@ def resumo(
         nome="Universidade",
         agua=float(total_geral.agua or 0),
         luz=float(total_geral.luz or 0),
-        total=float(total_geral.total or 0),
     )
 
     if user.role == "campus":
@@ -106,7 +104,6 @@ def resumo(
                 nome=row.nome,
                 agua=float(row.agua or 0),
                 luz=float(row.luz or 0),
-                total=float(row.total or 0),
             )
         else:
             campus_out = ResumoCampus(
@@ -114,7 +111,6 @@ def resumo(
                 nome=None,
                 agua=0.0,
                 luz=0.0,
-                total=0.0,
             )
         return ResumoResponse(
             mes=mes,
@@ -130,7 +126,6 @@ def resumo(
             nome=row.nome,
             agua=float(row.agua or 0),
             luz=float(row.luz or 0),
-            total=float(row.total or 0),
         )
         for row in rows
     ]

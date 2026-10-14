@@ -10,7 +10,6 @@ export function indicador(overrides: Partial<IndicadorCampus> = {}): IndicadorCa
     situacao: 'ok',
     motivoForaDoRanking: null,
     temDados: true,
-    total: 8400,
     totalAgua: 400,
     totalLuz: 8000,
     consumoAguaPerCapita: 0.4,
@@ -34,7 +33,6 @@ export function semNota(
   return indicador({
     situacao,
     temDados: situacao !== 'sem_dados',
-    total: 0,
     totalAgua: 0,
     totalLuz: 0,
     consumoAguaPerCapita: null,

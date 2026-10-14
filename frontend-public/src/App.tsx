@@ -111,8 +111,11 @@ function RankingTable({ items }: { items: IndicadorCampus[] }) {
 
 const COLORS = ['#4ade80', '#fb923c', '#60a5fa', '#c084fc', '#f9a8d4', '#fde68a', '#6ee7b7', '#a5b4fc']
 
-function ConsumoPieChart({ data }: { data: PizzaItem[] }) {
-  if (data.length === 0) {
+// Uma pizza por medida: água (m³) e energia (kWh) não se somam.
+function ConsumoPieChart({ data, medida }: { data: PizzaItem[]; medida: 'agua' | 'luz' }) {
+  const unidade = medida === 'agua' ? 'm³' : 'kWh'
+  const fatias = data.map((d) => ({ nome: d.nome, valor: d[medida] })).filter((d) => d.valor > 0)
+  if (fatias.length === 0) {
     return (
       <div className="flex h-72 items-center justify-center rounded-xl border-2 border-dashed border-gray-200 text-sm text-gray-400">
         Sem dados para exibir.
@@ -120,20 +123,20 @@ function ConsumoPieChart({ data }: { data: PizzaItem[] }) {
     )
   }
 
-  const total = data.reduce((s, d) => s + d.total, 0)
+  const total = fatias.reduce((s, d) => s + d.valor, 0)
 
   return (
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
-          <Pie data={data} dataKey="total" nameKey="nome" innerRadius={60} outerRadius={100} paddingAngle={2} stroke="#fff" strokeWidth={2}>
-            {data.map((_, i) => (
+          <Pie data={fatias} dataKey="valor" nameKey="nome" innerRadius={60} outerRadius={100} paddingAngle={2} stroke="#fff" strokeWidth={2}>
+            {fatias.map((_, i) => (
               <Cell key={i} fill={COLORS[i % COLORS.length]} />
             ))}
           </Pie>
           <Tooltip
             formatter={(value: number, name: string) => [
-              `${fmt(value, 0)} kWh+L (${((value / total) * 100).toFixed(1)}%)`,
+              `${fmt(value, 0)} ${unidade} (${((value / total) * 100).toFixed(1)}%)`,
               name,
             ]}
             contentStyle={{ borderRadius: '0.5rem', fontSize: '0.75rem', border: '1px solid #e5e7eb' }}
@@ -262,7 +265,7 @@ export default function App() {
 
         {/* pie chart */}
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-700">Distribuição do consumo total</h2>
+          <h2 className="text-base font-semibold text-gray-700">Distribuição do consumo entre os campi</h2>
           <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             {pizzaQuery.isLoading ? (
               <Skeleton className="h-72 w-full" />
@@ -271,7 +274,16 @@ export default function App() {
                 Não foi possível carregar o gráfico.
               </p>
             ) : (
-              <ConsumoPieChart data={pizzaQuery.data ?? []} />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="mb-1 text-center text-sm font-medium text-gray-600">Água (m³)</p>
+                  <ConsumoPieChart data={pizzaQuery.data ?? []} medida="agua" />
+                </div>
+                <div>
+                  <p className="mb-1 text-center text-sm font-medium text-gray-600">Energia (kWh)</p>
+                  <ConsumoPieChart data={pizzaQuery.data ?? []} medida="luz" />
+                </div>
+              </div>
             )}
           </div>
         </section>

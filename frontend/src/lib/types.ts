@@ -46,12 +46,14 @@ export type LancamentoInput = {
   mesReferencia: string
 }
 
+/** Consumo físico do período. Água e energia nunca são somadas. */
 export interface ResumoCampus {
   campusId: number
   nome: string | null
+  /** m³ */
   agua: number
+  /** kWh */
   luz: number
-  total: number
 }
 
 export interface ResumoResponse {
@@ -80,7 +82,6 @@ export interface IndicadorCampus {
   motivoForaDoRanking: string | null
   /** Tem ao menos um lançamento com consumo no período. */
   temDados: boolean
-  total: number
   /** m³ */
   totalAgua: number
   /** kWh */
@@ -101,10 +102,14 @@ export interface IndicadorCampus {
   classificacao: Classificacao | null
 }
 
+/** Participação de cada campus no mês; cada pizza usa uma medida só. */
 export interface PizzaItem {
   campusId: number
   nome: string
-  total: number
+  /** m³ */
+  agua: number
+  /** kWh */
+  luz: number
 }
 
 export interface PontoPreview {
