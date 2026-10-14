@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { ApiError, api } from '@/lib/api'
+import { api, detalheDoErro } from '@/lib/api'
 import { formatMonthLong, getCurrentMonth } from '@/lib/date'
 import { formatCurrency, formatNumber } from '@/lib/formatters'
 import { useAuth } from '@/providers/AuthProvider'
@@ -406,17 +406,6 @@ export default function Importar() {
       )}
     </Page>
   )
-}
-
-/** Mensagem que o servidor mandou junto com o erro, quando é uma explicação legível. */
-function detalheDoErro(error: Error): string | null {
-  if (!(error instanceof ApiError)) return null
-  try {
-    const corpo = JSON.parse(error.message) as { detail?: unknown }
-    return typeof corpo.detail === 'string' ? corpo.detail : null
-  } catch {
-    return null
-  }
 }
 
 function ResumoBox({

@@ -131,6 +131,7 @@ def seed_lancamentos(db, nome_to_campus: dict[str, Campus], meses: int) -> None:
                     consumo=Decimal(f"{consumo:.2f}"),
                     origem=LancamentoOrigem.manual.value,
                     mes_referencia=mes,
+                    criado_por="scripts/seed_fake_data.py",
                 ))
 
     db.add_all(novos)

@@ -27,10 +27,11 @@ import {
 import { SkeletonTable } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/sonner'
 import { useCampusList, useLancamentos } from '@/hooks/queries'
-import { ApiError, api } from '@/lib/api'
+import { ApiError, api, detalheDoErro } from '@/lib/api'
 import { formatMonthLabel, formatMonthLong } from '@/lib/date'
 import { downloadCsv } from '@/lib/export'
 import { UNIDADES } from '@/lib/formatters'
+import { podeAlterarLancamento } from '@/lib/permissoes'
 import { useAuth } from '@/providers/AuthProvider'
 import { usePeriod } from '@/providers/PeriodProvider'
 import type { Lancamento, LancamentoInput } from '@/lib/types'
@@ -97,12 +98,16 @@ export default function Lancamentos() {
       setEditando(null)
     },
     onError: (error: Error) => {
-      // 409 é o caso comum: já existe lançamento do mesmo tipo no mesmo mês.
-      const conflito = error instanceof ApiError && error.status === 409
+      // 409: já existe manual (ou importado) do mesmo campus, tipo e mês; 403: sem
+      // permissão; 422: valor fora do limite. A API explica cada caso em `detail`.
+      const status = error instanceof ApiError ? error.status : null
+      const explicado = status === 409 || status === 403 || status === 422
       toast.error('Não foi possível salvar', {
-        description: conflito
-          ? 'Já existe um lançamento deste tipo para este campus e mês. Edite o registro existente em vez de criar outro.'
-          : 'Verifique os dados informados e tente novamente.'
+        description:
+          (explicado && detalheDoErro(error)) ||
+          (status === 409
+            ? 'Já existe um lançamento deste tipo para este campus e mês. Edite o registro existente em vez de criar outro.'
+            : 'Verifique os dados informados e tente novamente.')
       })
     }
   })
@@ -114,7 +119,8 @@ export default function Lancamentos() {
       invalidar()
       setParaExcluir(null)
     },
-    onError: () => toast.error('Falha ao excluir o lançamento.')
+    onError: (error: Error) =>
+      toast.error('Falha ao excluir o lançamento.', { description: detalheDoErro(error) ?? undefined })
   })
 
   const exportar = () => {
@@ -247,6 +253,7 @@ export default function Lancamentos() {
             setFormOpen(true)
           }}
           onDelete={setParaExcluir}
+          podeAlterar={(item) => podeAlterarLancamento(claims, item)}
           emptyAction={
             <Button
               size="sm"

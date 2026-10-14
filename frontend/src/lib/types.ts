@@ -36,6 +36,9 @@ export interface Lancamento {
   pontoMedicaoId: number | null
   mesReferencia: string
   createdAt?: string
+  /** E-mail (ou uid) de quem criou. Nulo em registro anterior à trilha de auditoria. */
+  criadoPor?: string | null
+  atualizadoEm?: string
 }
 
 export type LancamentoInput = {

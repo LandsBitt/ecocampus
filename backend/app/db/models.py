@@ -4,7 +4,20 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Enum as SQLEnum, ForeignKey, Integer, Numeric, String, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Enum as SQLEnum,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    func,
+    text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -62,6 +75,21 @@ class PontoMedicao(Base):
 
 class Lancamento(Base):
     __tablename__ = "lancamentos"
+    # Os mesmos limites de app/core/limites.py, criados pela migration 0013.
+    __table_args__ = (
+        CheckConstraint("consumo IS NULL OR (consumo >= 0 AND consumo <= 10000000)", name="ck_lancamentos_consumo"),
+        CheckConstraint("valor_rs IS NULL OR (valor_rs >= 0 AND valor_rs <= 10000000)", name="ck_lancamentos_valor_rs"),
+        CheckConstraint("mes_referencia ~ '^20[0-9]{2}-(0[1-9]|1[0-2])$'", name="ck_lancamentos_mes"),
+        # Um lançamento manual por campus, tipo e mês (D4).
+        Index(
+            "uq_lancamentos_manual_campus_tipo_mes",
+            "campus_id",
+            "tipo",
+            "mes_referencia",
+            unique=True,
+            postgresql_where=text("origem = 'manual'"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     campus_id: Mapped[int] = mapped_column(ForeignKey("campus.id"), index=True, nullable=False)
@@ -74,6 +102,11 @@ class Lancamento(Base):
     origem: Mapped[str] = mapped_column(String(20), index=True, nullable=False)
     mes_referencia: Mapped[str] = mapped_column(String(7), index=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    # Quem criou (e-mail do Firebase, ou o uid quando não há e-mail). Nulo só em registro anterior à 0013.
+    criado_por: Mapped[str | None] = mapped_column(String(254), nullable=True)
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
     ponto_medicao_id: Mapped[int | None] = mapped_column(ForeignKey("pontos_medicao.id"), index=True, nullable=True)
 
     campus: Mapped[Campus] = relationship(back_populates="lancamentos")

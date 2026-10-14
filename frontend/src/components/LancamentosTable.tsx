@@ -28,6 +28,8 @@ interface LancamentosTableProps {
   showActions?: boolean
   onEdit?: (item: Lancamento) => void
   onDelete?: (item: Lancamento) => void
+  /** Quem pode editar/excluir cada linha (D5). Sem ela, todas as linhas mostram as ações. */
+  podeAlterar?: (item: Lancamento) => boolean
   emptyAction?: React.ReactNode
 }
 
@@ -38,6 +40,7 @@ export function LancamentosTable({
   showActions = true,
   onEdit,
   onDelete,
+  podeAlterar = () => true,
   emptyAction
 }: LancamentosTableProps) {
   const nomePorId = useMemo(
@@ -76,7 +79,8 @@ export function LancamentosTable({
     )
   }
 
-  const comAcoes = showActions && (!!onEdit || !!onDelete)
+  // A coluna só aparece se houver ao menos uma linha que o usuário pode alterar.
+  const comAcoes = showActions && (!!onEdit || !!onDelete) && items.some(podeAlterar)
 
   return (
     <div className="overflow-hidden rounded-lg border border-border">
@@ -180,32 +184,34 @@ export function LancamentosTable({
 
               {comAcoes && (
                 <TableCell className="text-right">
-                  <div className="inline-flex gap-0.5">
-                    {onEdit && (
-                      <Hint content="Editar lançamento">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => onEdit(item)}
-                          aria-label={`Editar lançamento de ${formatMonthLabel(item.mesReferencia)}`}
-                        >
-                          <Pencil />
-                        </Button>
-                      </Hint>
-                    )}
-                    {onDelete && (
-                      <Hint content="Excluir lançamento">
-                        <Button
-                          variant="destructive-ghost"
-                          size="icon-sm"
-                          onClick={() => onDelete(item)}
-                          aria-label={`Excluir lançamento de ${formatMonthLabel(item.mesReferencia)}`}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </Hint>
-                    )}
-                  </div>
+                  {podeAlterar(item) && (
+                    <div className="inline-flex gap-0.5">
+                      {onEdit && (
+                        <Hint content="Editar lançamento">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => onEdit(item)}
+                            aria-label={`Editar lançamento de ${formatMonthLabel(item.mesReferencia)}`}
+                          >
+                            <Pencil />
+                          </Button>
+                        </Hint>
+                      )}
+                      {onDelete && (
+                        <Hint content="Excluir lançamento">
+                          <Button
+                            variant="destructive-ghost"
+                            size="icon-sm"
+                            onClick={() => onDelete(item)}
+                            aria-label={`Excluir lançamento de ${formatMonthLabel(item.mesReferencia)}`}
+                          >
+                            <Trash2 />
+                          </Button>
+                        </Hint>
+                      )}
+                    </div>
+                  )}
                 </TableCell>
               )}
             </TableRow>

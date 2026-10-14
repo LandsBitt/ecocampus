@@ -11,9 +11,11 @@ from sqlalchemy import delete, func, select, text, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from app.core.security import require_super
+from app.core.limites import CONSUMO_MAXIMO, MES_PATTERN, VALOR_RS_MAXIMO
+from app.core.security import autor, require_super
 from app.db.models import Lancamento, LancamentoOrigem, LancamentoTipo, PontoMedicao
 from app.db.session import get_db
+from app.schemas.auth import UserClaims
 from app.schemas.importar import (
     ConfirmarOut,
     ConfirmarPayload,
@@ -23,8 +25,6 @@ from app.schemas.importar import (
 )
 
 router = APIRouter()
-
-MES_PATTERN = r"^\d{4}-(0[1-9]|1[0-2])$"
 
 # Colunas de cada planilha modelo (comparadas sem diferenciar maiúsculas).
 COLUNAS = {
@@ -69,6 +69,11 @@ def parse_numero(valor: str | None) -> tuple[float | None, str | None]:
     if _DECIMAL_PONTO.match(limpo):
         return float(limpo), None
     return None, f"'{bruto}' não é um número"
+
+
+def _milhar(valor) -> str:
+    """10000000 → "10.000.000", para mensagens."""
+    return f"{valor:,.0f}".replace(",", ".")
 
 
 def _sniff_delimiter(raw: str) -> str:
@@ -178,6 +183,12 @@ def preview_csv(
         if erro_valor:
             ignora(f"Valor da fatura inválido: {erro_valor}")
             continue
+        if consumo is not None and consumo > CONSUMO_MAXIMO:
+            ignora(f"Consumo acima do limite de {_milhar(CONSUMO_MAXIMO)} por conta; confira a célula")
+            continue
+        if valor is not None and valor > VALOR_RS_MAXIMO:
+            ignora(f"Valor da fatura acima do limite de R$ {_milhar(VALOR_RS_MAXIMO)}; confira a célula")
+            continue
 
         mes_linha, erro_mes = _mes_da_linha(row)
         if erro_mes:
@@ -258,7 +269,7 @@ def preview_csv(
 def confirmar_importacao(
     payload: ConfirmarPayload,
     db: Session = Depends(get_db),
-    _user=Depends(require_super),
+    user: UserClaims = Depends(require_super),
 ):
     inserted = 0
     updated = 0
@@ -284,6 +295,7 @@ def confirmar_importacao(
                 origem=LancamentoOrigem.importado.value,
                 mes_referencia=payload.mes_referencia,
                 ponto_medicao_id=item.ponto_medicao_id,
+                criado_por=autor(user),
             )
             .on_conflict_do_update(
                 index_elements=[Lancamento.ponto_medicao_id, Lancamento.mes_referencia],
@@ -291,6 +303,8 @@ def confirmar_importacao(
                 set_={
                     "consumo": item.consumo_fisico,
                     "valor_rs": item.valor_fatura,
+                    # `onupdate` do modelo não vale no ON CONFLICT; quem criou continua o mesmo.
+                    "atualizado_em": func.now(),
                 },
             )
             # xmax = 0 indica linha recém-inserida (PostgreSQL); senão foi update.

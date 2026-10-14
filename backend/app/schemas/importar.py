@@ -2,18 +2,20 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.limites import CONSUMO_MAXIMO, MES_PATTERN, VALOR_RS_MAXIMO
+
 
 class LancamentoImportItem(BaseModel):
     ponto_medicao_id: int = Field(..., alias="pontoMedicaoId")
     # O consumo físico é obrigatório; o valor da fatura é complementar.
-    consumo_fisico: float = Field(..., alias="consumoFisico", ge=0)
-    valor_fatura: float | None = Field(default=None, alias="valorFatura", ge=0)
+    consumo_fisico: float = Field(..., alias="consumoFisico", ge=0, le=CONSUMO_MAXIMO)
+    valor_fatura: float | None = Field(default=None, alias="valorFatura", ge=0, le=VALOR_RS_MAXIMO)
 
     model_config = ConfigDict(populate_by_name=True)
 
 
 class ConfirmarPayload(BaseModel):
-    mes_referencia: str = Field(..., alias="mesReferencia", pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    mes_referencia: str = Field(..., alias="mesReferencia", pattern=MES_PATTERN)
     lancamentos: list[LancamentoImportItem]
 
     model_config = ConfigDict(populate_by_name=True)

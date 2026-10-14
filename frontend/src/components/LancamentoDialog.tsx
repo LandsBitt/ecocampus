@@ -31,7 +31,7 @@ import type { Campus, Lancamento, LancamentoInput, LancamentoTipo } from '@/lib/
 const schema = z.object({
   campusId: z.coerce.number().int().min(1, 'Escolha um campus'),
   tipo: z.enum(['agua', 'luz']),
-  consumo: z.coerce.number({ invalid_type_error: 'Informe um número' }).positive('O consumo deve ser maior que zero'),
+  consumo: z.coerce.number({ invalid_type_error: 'Informe um número' }).min(0, 'O consumo não pode ser negativo'),
   // Opcional: campo vazio vira null, não zero.
   valorRs: z.preprocess(
     (v) => (v === '' || v === null || v === undefined ? null : v),
@@ -118,6 +118,8 @@ export function LancamentoDialog({
 
   const tipo = watch('tipo')
   const campusValue = watch('campusId')
+  // Importado segue o ponto de medição: campus e tipo não mudam (a API recusa).
+  const importado = editing?.pontoMedicaoId != null
 
   const submit = handleSubmit(async (data) => {
     await onSubmit({ ...data, id: editing?.id })
@@ -136,7 +138,13 @@ export function LancamentoDialog({
         </DialogHeader>
 
         <form onSubmit={submit} className="space-y-4">
-          {isSuper && (
+          {importado && (
+            <p className="rounded-md bg-surface-sunken px-3 py-2 text-xs text-muted-foreground">
+              Lançamento importado da planilha: campus e tipo seguem o ponto de medição e não podem ser trocados.
+            </p>
+          )}
+
+          {isSuper && !importado && (
             <Field label="Campus" htmlFor="lanc-campus" error={errors.campusId?.message}>
               <Select
                 value={campusValue ? String(campusValue) : ''}
@@ -158,18 +166,20 @@ export function LancamentoDialog({
             </Field>
           )}
 
-          <Field label="O que está sendo registrado">
-            <Segmented
-              aria-label="Tipo de consumo"
-              value={tipo}
-              onChange={(value) => setValue('tipo', value as LancamentoTipo, { shouldValidate: true })}
-              options={[
-                { value: 'agua', label: 'Água', icon: Droplet },
-                { value: 'luz', label: 'Energia', icon: Zap }
-              ]}
-              className="w-full [&>button]:flex-1"
-            />
-          </Field>
+          {!importado && (
+            <Field label="O que está sendo registrado">
+              <Segmented
+                aria-label="Tipo de consumo"
+                value={tipo}
+                onChange={(value) => setValue('tipo', value as LancamentoTipo, { shouldValidate: true })}
+                options={[
+                  { value: 'agua', label: 'Água', icon: Droplet },
+                  { value: 'luz', label: 'Energia', icon: Zap }
+                ]}
+                className="w-full [&>button]:flex-1"
+              />
+            </Field>
+          )}
 
           <Field
             label={`Consumo em ${UNIDADES[tipo].curta}`}

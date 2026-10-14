@@ -81,3 +81,8 @@ def require_super(user: UserClaims = Depends(get_current_user)) -> UserClaims:
     if user.role != "super":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Super only")
     return user
+
+
+def autor(user: UserClaims) -> str | None:
+    """Como o usuário fica registrado em `criado_por`: o e-mail, ou o uid se não houver e-mail."""
+    return user.email or user.uid
