@@ -216,7 +216,7 @@ Antes do relatório, só 3.1 e 3.2. O restante fica para depois.
 
 | # | Tarefa | Achados | Depende de |
 |---|---|---|---|
-| 3.1 | Aposentar `scripts/import_consumo_cpfl.py` e `app/data/campus_mapping.py` (D2); apagar `schema.sql` e `app/seed.py`; corrigir `seed_fake_data.py` para os 8 campi ou removê-lo; atualizar README. | B8, C11 | 1.3 |
+| 3.1 | ✅ **Feito** (2026-10-26; `seed_fake_data.py` já usava os 8 campi e virou o seed de demonstração da R.0). Aposentar `scripts/import_consumo_cpfl.py` e `app/data/campus_mapping.py` (D2); apagar `schema.sql` e `app/seed.py`; corrigir `seed_fake_data.py` para os 8 campi ou removê-lo; atualizar README. | B8, C11 | 1.3 |
 | 3.2 | Apagar `frontend-public/`; fica a rota `/ranking` do app (D6). | S3, C10 | 0.3 |
 | 3.3 | Limpar código morto e redundante do backend; unificar a agregação do resumo. | S4 | — |
 | 3.4 | Front: hook único para ranking e nota média, função única de invalidação, componente único para "Como a nota é calculada"; remover funções sem uso; corrigir textos. | S5, S4, F4, F5 | — |

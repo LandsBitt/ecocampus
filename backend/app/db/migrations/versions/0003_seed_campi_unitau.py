@@ -17,8 +17,8 @@ branch_labels = None
 depends_on = None
 
 
-# Mantido inline para que a migration seja autocontida.
-# Fonte canônica em runtime: app/data/campus_mapping.py (deve espelhar esta lista).
+# Mantido inline para que a migration seja autocontida. Depois dela, a fonte
+# dos campi é a própria tabela `campus` (não há mais cópia da lista no código).
 CAMPI = [
     (1, "Campus da Juta"),
     (2, "Campus do Itaim"),

@@ -1,36 +1,31 @@
 # ECOCAMPUS
 
-Monorepo com dashboard de sustentabilidade para 8 campi universitarios.
+Sistema web de monitoramento do consumo de água e energia dos 8 campi da UNITAU em
+Taubaté, com nota de eficiência (Eco Score), ranking, pegada de carbono e alertas.
+Projeto PIBITI/CNPq. O roteiro de trabalho e as decisões estão no [`SPEC.md`](SPEC.md).
 
 ## Estrutura
 
-- `frontend/` React + Vite + Tailwind
-- `backend/` FastAPI + SQLAlchemy + Alembic
-- `scripts/set_claims.py` utilitario para custom claims do Firebase
-- `backend/sql/schema.sql` script SQL para Supabase/Neon
+- `frontend/` React + Vite + TypeScript + Tailwind (shadcn/ui)
+- `backend/` FastAPI + SQLAlchemy + Alembic (o banco é criado só pelas migrations)
+- `scripts/` utilitários de linha de comando (ver [Scripts](#scripts))
 - `docker-compose.yml` Postgres local para desenvolvimento
 
-## Desenvolvimento local (Docker Postgres)
+## Desenvolvimento local
 
-Caminho recomendado: subir um Postgres local em Docker (idêntico ao Neon de produção)
-e apontar o backend pra ele. Não toca em produção.
+O caminho recomendado é um Postgres local em Docker, igual ao Neon de produção.
+Nada aqui toca produção.
 
-### 1. Subir o banco
+### 1. Banco
 
-Na raiz do projeto:
+Na raiz do projeto (com o Docker Desktop aberto):
 
 ```powershell
 docker compose up -d
-```
-
-Verifique que está saudável:
-
-```powershell
 docker compose ps
 ```
 
-Para parar (mantém dados): `docker compose stop`
-Para zerar tudo (apaga dados): `docker compose down -v`
+Para parar mantendo os dados: `docker compose stop`. Para apagar tudo: `docker compose down -v`.
 
 ### 2. Backend
 
@@ -46,48 +41,25 @@ Edite `backend\.env`:
 
 ```
 DATABASE_URL=postgresql+psycopg://ecocampus:dev@localhost:5432/ecocampus
-FIREBASE_PROJECT_ID=<mesmo da prod>
-FIREBASE_SERVICE_ACCOUNT_JSON=<mesmo JSON da prod, em uma linha>
+FIREBASE_PROJECT_ID=<id do projeto Firebase>
+FIREBASE_SERVICE_ACCOUNT_JSON=<JSON da conta de serviço, em uma linha>
 FRONTEND_ORIGINS=http://localhost:5173
 ```
 
-> Pode reusar as credenciais Firebase de produção para login em dev — os tokens
-> são por projeto Firebase, não por ambiente. Se preferir isolar, crie um projeto
-> Firebase separado.
+> O login em dev pode usar o mesmo projeto Firebase da produção: o token é por
+> projeto, não por ambiente. Para isolar, crie outro projeto Firebase.
+> `scripts/firebase_admin_to_env.py` converte o JSON da conta de serviço para uma linha.
 
-Aplique o schema e popule os campi:
+Crie as tabelas e os 8 campi, e suba a API:
 
 ```powershell
 alembic upgrade head
-python -m app.seed
-```
-
-Suba o servidor:
-
-```powershell
 uvicorn app.main:app --reload
 ```
 
-API em `http://localhost:8000`. Teste o health: `curl http://localhost:8000/health`.
-
-#### Testes do backend
-
-Com o Postgres do Docker no ar e o venv ativo:
-
-```powershell
-pip install -r requirements-dev.txt
-pytest
-```
-
-Os testes usam um banco separado, `ecocampus_test`, criado e migrado automaticamente
-no mesmo Postgres; o banco de desenvolvimento não é tocado. Para apontar para outro
-servidor, defina `TEST_DATABASE_URL` (o nome do banco precisa terminar em `_test`).
+API em `http://localhost:8000` (`/health` responde sem login).
 
 ### 3. Frontend
-
-> ⚠️ O frontend foi migrado para **TypeScript + shadcn/ui**. Após o `git pull`,
-> rode `npm install` para baixar as novas dependências (Radix UI, lucide-react,
-> sonner, etc). Veja seção "Migração TS" abaixo se vier de uma versão anterior.
 
 Em outro terminal:
 
@@ -97,185 +69,98 @@ npm install
 copy .env.example .env.local
 ```
 
-Edite `frontend\.env.local`:
-
-```
-VITE_API_BASE_URL=http://localhost:8000
-VITE_FIREBASE_API_KEY=<...>
-VITE_FIREBASE_AUTH_DOMAIN=<...>
-# ... demais VITE_FIREBASE_* iguais ao da Vercel
-```
-
-Suba o front:
+Preencha `frontend\.env.local` com `VITE_API_BASE_URL=http://localhost:8000` e as
+variáveis `VITE_FIREBASE_*` do snippet do console do Firebase (`apiKey` →
+`VITE_FIREBASE_API_KEY`, `authDomain` → `VITE_FIREBASE_AUTH_DOMAIN`, e assim por diante).
 
 ```powershell
 npm run dev
 ```
 
-App em `http://localhost:5173`. Login funciona com os mesmos usuários de prod
-(o token Firebase é validado pelo backend local).
+App em `http://localhost:5173`.
 
-### 4. Custom claims (primeira vez)
+### 4. Dados de demonstração
 
-Se for criar usuários novos só para dev, use:
+Sem dados reais suficientes, o sistema roda com dados **de demonstração**: lançamentos
+com `origem = 'demonstracao'`, que entram nos números mas aparecem sempre marcados
+("Demonstração") nas telas e no CSV. Dado real lançado ou importado substitui a
+demonstração do mesmo campus, tipo e mês. Para popular o banco local (com o venv do backend ativo, a partir da raiz):
 
 ```powershell
-cd backend
-.venv\Scripts\activate
-python ..\scripts\set_claims.py <UID> super
-python ..\scripts\set_claims.py <UID> campus 3
+python scripts/seed_fake_data.py           # população/área FICTÍCIO, fatores de emissão e 18 meses
+python scripts/seed_fake_data.py --reset   # apaga a demonstração e gera de novo
+python scripts/seed_fake_data.py --wipe    # apaga só a demonstração
 ```
 
-### 5. Popular dados de teste
+Onde já existe consumo real de um campus, a demonstração segue a média dele. O script
+recusa bancos que não sejam locais.
 
-Faça login como `super` e abra a página de Relatórios. Use o formulário
-"Dados demográficos dos campi" para preencher população e área. Depois,
-faça login como `campus` e crie alguns lançamentos.
+### 5. Testes
 
-### Estrutura do frontend (após refatoração)
-
-```
-frontend/src/
-├── components/
-│   ├── ui/              # shadcn/ui primitives (Button, Card, Dialog, etc)
-│   ├── layout/          # AppShell, AppSidebar, AppHeader, PageLayout
-│   └── *.tsx            # feature components (SummaryCards, EcoRankingTable…)
-├── lib/                 # api, types, utils, formatters, ecoScore, firebase
-├── pages/               # Login, Dashboard, Lancamentos, Reports, Campi, Profile…
-├── providers/           # AuthProvider
-└── App.tsx, main.tsx
+```powershell
+cd backend; pytest                # precisa do Postgres do Docker no ar
+cd frontend; npm test             # vitest
+cd frontend; npm run typecheck
 ```
 
-### Rotas e papéis
+Os testes do backend usam um banco separado, `ecocampus_test`, criado e migrado
+automaticamente no mesmo Postgres. Para outro servidor, defina `TEST_DATABASE_URL`
+(o nome do banco precisa terminar em `_test`). Instale antes `pip install -r requirements-dev.txt`.
 
-| Rota | Acesso | Descrição |
-|---|---|---|
-| `/login`, `/recuperar-senha` | público | autenticação |
-| `/dashboard` | autenticado | overview por papel |
-| `/lancamentos` | autenticado | CRUD de lançamentos |
-| `/perfil` | autenticado | dados da conta + alteração de senha |
-| `/relatorios` | super | ranking + distribuição |
-| `/campi` | super | gestão de população/área |
+## Usuários e papéis
 
-### Diferenças entre dev local e prod
+Contas ficam no Firebase Auth (e-mail e senha); o papel vai nas custom claims do token:
 
-| Aspecto | Dev local | Prod |
-|---|---|---|
-| Banco | Docker Postgres 16 | NeonDB (Postgres) |
-| Pooler | Direto, sem pooler | Use sempre `-pooler` no host |
-| SSL | Sem `?sslmode=require` | Com `?sslmode=require` |
-| CORS | `http://localhost:5173` | URL Vercel + previews |
-| Cold start | Nenhum | Render free dorme após 15min |
+- `role`: `super` (administração central) ou `campus`
+- `campusId`: obrigatório quando `role=campus`
 
-## Backend (FastAPI)
+O caminho normal é a tela **Usuários** (só `super`): cria a conta já com o papel, libera
+contas que existem sem papel, troca o papel e desativa. Trocar o papel ou desativar
+obriga a pessoa a entrar de novo. Sem nenhum `super` ainda (primeira vez), use o script:
 
-1. Instale dependencias:
-
-```bash
-cd backend
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-2. Configure variaveis:
-
-```bash
-copy .env.example .env
-```
-
-Preencha:
-
-- `DATABASE_URL` (PostgreSQL). Exemplo:
-  `postgresql+psycopg://USER:PASSWORD@HOST/DBNAME?sslmode=require`
-  Supabase:
-  `postgresql+psycopg://postgres:YOUR_PASSWORD@db.znqkstqwwvahhcmsqoqj.supabase.co:5432/postgres?sslmode=require`
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_SERVICE_ACCOUNT_JSON` (opcional) ou `GOOGLE_APPLICATION_CREDENTIALS`
-- `FRONTEND_ORIGINS` (ex: `http://localhost:5173`)
-
-3. Crie o schema (Supabase/Neon):
-
-- Execute `backend/sql/schema.sql` no SQL editor do Supabase/Neon, ou
-- Rode as migracoes com Alembic:
-
-```bash
-alembic upgrade head
-```
-
-4. Seed inicial dos campi:
-
-```bash
-python -m app.seed
-```
-
-5. Suba o servidor:
-
-```bash
-uvicorn app.main:app --reload
-```
-
-## Frontend (React + Vite + Tailwind)
-
-1. Instale dependencias:
-
-```bash
-cd frontend
-npm install
-```
-
-2. Configure variaveis:
-
-```bash
-copy .env.example .env.local
-```
-
-Preencha os valores do Firebase (console do projeto) e a API:
-
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
-- `VITE_FIREBASE_MEASUREMENT_ID`
-- `VITE_API_BASE_URL` (ex: `http://localhost:8000`)
-
-Mapa direto do snippet do Firebase:
-
-- `apiKey` -> `VITE_FIREBASE_API_KEY`
-- `authDomain` -> `VITE_FIREBASE_AUTH_DOMAIN`
-- `projectId` -> `VITE_FIREBASE_PROJECT_ID`
-- `storageBucket` -> `VITE_FIREBASE_STORAGE_BUCKET`
-- `messagingSenderId` -> `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `appId` -> `VITE_FIREBASE_APP_ID`
-- `measurementId` -> `VITE_FIREBASE_MEASUREMENT_ID`
-
-3. Suba o front:
-
-```bash
-npm run dev
-```
-
-## Firebase Auth + Claims
-
-1. Ative **Email/Senha** no Firebase Auth.
-2. Crie os usuarios (8 admins de campus + 2 super).
-3. Aplique custom claims usando o script (no mesmo venv do backend):
-
-```bash
+```powershell
 python scripts/set_claims.py <UID> super
 python scripts/set_claims.py <UID> campus 3
 ```
 
-- `role`: `super` ou `campus`
-- `campusId`: obrigatorio quando `role=campus` (1..8)
+| Rota | Acesso | O que tem |
+|---|---|---|
+| `/login`, `/recuperar-senha` | público | autenticação |
+| `/ranking` | público | ranking do mês |
+| `/dashboard` | autenticado | visão geral (universidade ou o próprio campus) |
+| `/lancamentos` | autenticado | lançamento manual; o campus altera só os manuais dele |
+| `/ajuda`, `/perfil` | autenticado | glossário; conta e senha |
+| `/relatorios` | super | ranking, distribuição, números do mês, comparação, CSV |
+| `/campi` | super | população e área usadas na nota |
+| `/importar` | super | planilha da concessionária |
+| `/usuarios` | super | contas e papéis |
 
-Depois de aplicar claims, o usuario precisa sair e entrar novamente para atualizar o token.
+## Scripts
 
-## Observacoes
+Rode a partir da raiz, com o venv do backend ativo.
 
-- O backend valida token Firebase em todas as rotas protegidas.
-- O calculo de eco score e centralizado em `backend/app/core/eco_score.py`.
-- Para credenciais locais, use `GOOGLE_APPLICATION_CREDENTIALS` apontando para o JSON do Admin SDK.
-- A conexao com Postgres aceita `postgresql://` ou `postgresql+psycopg://` (o backend ajusta automaticamente).
+| Script | Para quê |
+|---|---|
+| `seed_fake_data.py` | dados de demonstração no banco local (ver acima) |
+| `excluir_cpfl_legado.py` | apaga, com prévia, a carga antiga do script CPFL (`origem = 'cpfl_legado'`, já fora dos indicadores) |
+| `set_claims.py` | papel de um usuário direto no Firebase (primeiro `super`) |
+| `firebase_admin_to_env.py` | JSON da conta de serviço em uma linha, para o `.env` |
+| `planilha_orientadora.py` | gera e lê a planilha de pontos da Reitoria e população/área |
+| `gerar_relatorio_pibiti.py` | relatório parcial do PIBITI em `.docx` |
+
+## Dev local × produção
+
+| Aspecto | Dev local | Produção |
+|---|---|---|
+| Banco | Docker Postgres 16 | Neon (Postgres) |
+| Host | direto | com `-pooler` para a API; **sem** `-pooler` para rodar migrations |
+| SSL | sem `?sslmode=require` | com `?sslmode=require` |
+| CORS (`FRONTEND_ORIGINS`) | `http://localhost:5173` | URL da Vercel + previews |
+| Migrations | `alembic upgrade head` | manual: o Render não roda migrations no deploy |
+| Cold start | nenhum | Render free dorme após 15 min |
+
+## Observações
+
+- O backend valida o token Firebase em todas as rotas, exceto `/health` e `/public/*` (ranking e divisão do consumo, usados pela página `/ranking`).
+- A regra da nota está em `backend/app/core/eco_score.py`; a do alerta de pico, em `backend/app/core/alertas.py`; os limites de um lançamento, em `backend/app/core/limites.py`.
+- `DATABASE_URL` aceita `postgres://`, `postgresql://` ou `postgresql+psycopg://` (o backend ajusta).
