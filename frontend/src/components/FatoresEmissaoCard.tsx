@@ -229,7 +229,7 @@ function FatorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{editando ? `Fator de ${editando.ano}` : 'Novo fator de emissão'}</DialogTitle>
           <DialogDescription>

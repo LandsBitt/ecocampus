@@ -33,13 +33,19 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4',
-        'glass rounded-2xl border border-border p-7 shadow-xl outline-none',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+        'fixed z-50 grid gap-4 border border-border shadow-xl outline-none',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        // Celular: gaveta presa embaixo, perto do polegar, que sobe da borda.
+        'inset-x-0 bottom-0 max-h-[92dvh] overflow-y-auto rounded-t-[1.75rem] border-b-0 bg-surface px-5 pb-6 pt-3',
+        'max-sm:data-[state=closed]:slide-out-to-bottom max-sm:data-[state=open]:slide-in-from-bottom max-sm:data-[state=open]:duration-300',
+        // Telas maiores: janela de vidro no centro.
+        'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100%-2rem)] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border-b sm:p-7',
+        'sm:glass sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95',
         className
       )}
       {...props}
     >
+      <span aria-hidden className="mx-auto -mb-1 h-1.5 w-11 rounded-full bg-input sm:hidden" />
       {children}
       {!hideClose && (
         <DialogPrimitive.Close className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
@@ -59,7 +65,12 @@ DialogHeader.displayName = 'DialogHeader'
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)}
+    className={cn(
+      'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
+      // Na gaveta do celular a ação fica presa embaixo, ao alcance do polegar, mesmo com o formulário rolando.
+      'max-sm:sticky max-sm:-bottom-6 max-sm:-mx-5 max-sm:-mb-6 max-sm:bg-surface max-sm:px-5 max-sm:pb-6 max-sm:pt-3',
+      className
+    )}
     {...props}
   />
 )

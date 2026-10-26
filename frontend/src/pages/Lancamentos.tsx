@@ -289,7 +289,7 @@ export default function Lancamentos() {
       />
 
       <Dialog open={!!paraExcluir} onOpenChange={(open) => !open && setParaExcluir(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Excluir este lançamento?</DialogTitle>
             <DialogDescription>

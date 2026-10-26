@@ -102,7 +102,7 @@ export function UsuarioDialog({ open, onOpenChange, onSubmit, editing, campusOpt
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{editing ? 'Alterar acesso' : 'Novo usuário'}</DialogTitle>
           <DialogDescription>

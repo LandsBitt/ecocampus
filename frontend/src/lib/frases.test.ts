@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { fraseComoTexto, fraseDoMes, nomeDoMes } from './frases'
+import { comparaComMesAnterior, fraseComoTexto, fraseDoMes, nomeDoMes } from './frases'
 import { medidaNumerica } from './formatters'
 
 const base = { mes: '2026-10', mesAnterior: '2026-09', sujeito: 'A universidade' }
@@ -47,5 +47,28 @@ describe('medidaNumerica', () => {
     expect(medidaNumerica(48426, 'luz')).toEqual({ n: 48.426, casas: 1, unit: 'MWh' })
     expect(medidaNumerica(21283, 'agua')).toEqual({ n: 21283, casas: 0, unit: 'm³' })
     expect(medidaNumerica(null, 'agua')).toBeNull()
+  })
+})
+
+describe('comparaComMesAnterior', () => {
+  it('diz quanto a mais ou a menos, sem sinal', () => {
+    expect(comparaComMesAnterior(2259, 2062)).toEqual({ quanto: '9,6%', direcao: 'mais', conferir: false })
+    expect(comparaComMesAnterior(1800, 2000)).toEqual({ quanto: '10,0%', direcao: 'menos', conferir: false })
+  })
+
+  it('pede para conferir quando a diferença é grande (provável erro de digitação)', () => {
+    expect(comparaComMesAnterior(20620, 2062)?.conferir).toBe(true)
+    expect(comparaComMesAnterior(206, 2062)?.conferir).toBe(true)
+  })
+
+  it('sem número digitado ou sem mês anterior, não compara', () => {
+    expect(comparaComMesAnterior(null, 2062)).toBeNull()
+    expect(comparaComMesAnterior(Number.NaN, 2062)).toBeNull()
+    expect(comparaComMesAnterior(100, null)).toBeNull()
+    expect(comparaComMesAnterior(100, 0)).toBeNull()
+  })
+
+  it('diferença abaixo de 0,5% conta como igual', () => {
+    expect(comparaComMesAnterior(1001, 1000)?.direcao).toBe('igual')
   })
 })

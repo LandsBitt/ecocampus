@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react'
+import { AlertTriangle, type LucideIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -33,8 +33,8 @@ export function EmptyState({
       )}
     >
       {Icon && (
-        <span className="flex size-12 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          <Icon className="size-6" />
+        <span className="flex size-14 items-center justify-center rounded-full border border-border bg-surface-sunken text-muted-foreground">
+          <Icon className="size-6" aria-hidden />
         </span>
       )}
       <div className="space-y-1">
@@ -69,13 +69,16 @@ export function ErrorState({
         className
       )}
     >
+      <span className="flex size-14 items-center justify-center rounded-full bg-destructive-soft text-destructive">
+        <AlertTriangle className="size-6" aria-hidden />
+      </span>
       <div className="space-y-1">
         <p className="font-display text-lg font-bold tracking-[-0.02em] text-destructive">{title}</p>
         <p className="mx-auto max-w-sm text-[0.8125rem] leading-relaxed text-muted-foreground">
           {description}
         </p>
       </div>
-      {action}
+      {action && <div className="mt-1">{action}</div>}
     </div>
   )
 }

@@ -61,3 +61,25 @@ export function fraseDoMes(params: {
 export function fraseComoTexto(trechos: TrechoFrase[]): string {
   return trechos.map((t) => t.texto).join('')
 }
+
+/** A partir desta diferença (para mais ou para menos) o formulário pede para conferir o número. */
+export const LIMITE_CONFERIR = 30
+
+/**
+ * Compara o consumo que está sendo digitado com o do mês anterior do mesmo
+ * campus e tipo. Serve para pegar erro de digitação (um zero a mais) antes de salvar.
+ */
+export function comparaComMesAnterior(
+  atual: number | null,
+  anterior: number | null
+): { quanto: string; direcao: 'mais' | 'menos' | 'igual'; conferir: boolean } | null {
+  if (atual === null || !Number.isFinite(atual) || anterior === null) return null
+  const delta = variacao(atual, anterior)
+  if (delta === null) return null
+  if (Math.abs(delta) < 0.5) return { quanto: '0%', direcao: 'igual', conferir: false }
+  return {
+    quanto: formatDelta(Math.abs(delta)).replace('+', ''),
+    direcao: delta > 0 ? 'mais' : 'menos',
+    conferir: Math.abs(delta) >= LIMITE_CONFERIR
+  }
+}
