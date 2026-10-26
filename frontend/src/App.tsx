@@ -16,6 +16,7 @@ const Lancamentos = lazy(() => import('@/pages/Lancamentos'))
 const Reports = lazy(() => import('@/pages/Reports'))
 const Campi = lazy(() => import('@/pages/Campi'))
 const Importar = lazy(() => import('@/pages/Importar'))
+const Usuarios = lazy(() => import('@/pages/Usuarios'))
 const Ajuda = lazy(() => import('@/pages/Ajuda'))
 const Profile = lazy(() => import('@/pages/Profile'))
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'))
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="/relatorios" element={<Reports />} />
             <Route path="/campi" element={<Campi />} />
             <Route path="/importar" element={<Importar />} />
+            <Route path="/usuarios" element={<Usuarios />} />
           </Route>
         </Route>
 

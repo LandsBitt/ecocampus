@@ -9,7 +9,8 @@ import type {
   Lancamento,
   LancamentoTipo,
   PizzaItem,
-  ResumoResponse
+  ResumoResponse,
+  Usuario
 } from '@/lib/types'
 
 /**
@@ -27,6 +28,15 @@ export function useCampusList() {
     queryFn: async () => api.get<Campus[]>('/campus', await getToken()),
     enabled: !!claims,
     staleTime: 10 * 60 * 1000
+  })
+}
+
+export function useUsuarios() {
+  const { getToken, claims } = useAuth()
+  return useQuery<Usuario[]>({
+    queryKey: ['usuarios'],
+    queryFn: async () => api.get<Usuario[]>('/usuarios', await getToken()),
+    enabled: claims?.role === 'super'
   })
 }
 

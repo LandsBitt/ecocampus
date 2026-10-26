@@ -19,6 +19,26 @@ export interface Campus {
 
 export const FONTE_FICTICIA = 'FICTÍCIO'
 
+/** Conta do Firebase Auth com o papel das custom claims. */
+export interface Usuario {
+  uid: string
+  email: string | null
+  /** Nulo quando a conta existe mas ninguém atribuiu papel. */
+  role: Role | null
+  campusId: number | null
+  desativado: boolean
+  /** ms desde a época */
+  criadoEm: number | null
+  ultimoAcesso: number | null
+}
+
+export interface UsuarioInput {
+  email: string
+  senha: string
+  role: Role
+  campusId: number | null
+}
+
 export type LancamentoTipo = 'agua' | 'luz'
 
 /** `cpfl_legado`: carga antiga (total anual ÷ 12), fora de todos os indicadores. */
