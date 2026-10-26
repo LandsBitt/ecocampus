@@ -10,6 +10,7 @@ export function indicador(overrides: Partial<IndicadorCampus> = {}): IndicadorCa
     situacao: 'ok',
     motivoForaDoRanking: null,
     temDados: true,
+    demonstracao: false,
     totalAgua: 400,
     totalLuz: 8000,
     consumoAguaPerCapita: 0.4,

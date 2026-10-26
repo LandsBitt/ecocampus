@@ -126,7 +126,13 @@ def test_importacao_exige_consumo_e_trata_reais_como_opcional(como, csv_agua, db
         "/importar/confirmar",
         json={"mesReferencia": MES, "lancamentos": corpo["matched"]},
     )
-    assert confirmado.json() == {"imported": 2, "updated": 0, "ignored": 0, "manuaisRemovidos": 0}
+    assert confirmado.json() == {
+        "imported": 2,
+        "updated": 0,
+        "ignored": 0,
+        "manuaisRemovidos": 0,
+        "demonstracaoRemovida": 0,
+    }
 
     gravados = {item["pontoMedicaoId"]: item for item in cliente.get(f"/lancamentos?mes={MES}").json()}
     assert (gravados[a.id]["consumo"], gravados[a.id]["valorRs"], gravados[a.id]["origem"]) == (694, 6940.69, "importado")

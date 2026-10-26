@@ -80,5 +80,23 @@ describe('Dashboard', () => {
 
     expect(container.textContent).toMatch(/Universidade \(referência\): 900/)
     expect(container.textContent).toMatch(/Universidade \(referência\): 40/)
+    expect(container.textContent).not.toMatch(/dados de demonstração/)
+  })
+
+  it('mês com demonstração mostra a faixa de aviso (R.0)', () => {
+    claims = { role: 'super', campusId: null }
+    resumo = {
+      data: {
+        mes: '2026-01',
+        campi: [],
+        totalGeral: { campusId: 0, nome: 'Universidade', agua: 900, luz: 40000, demonstracao: true }
+      },
+      isLoading: false,
+      isError: false,
+      refetch: refetchResumo
+    }
+    const { container } = renderDashboard()
+
+    expect(container.textContent).toMatch(/Este mês tem dados de demonstração/)
   })
 })

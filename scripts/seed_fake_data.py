@@ -2,7 +2,7 @@
 
 Uso (a partir da raiz do projeto, com o venv do backend ativo):
 
-    python scripts/seed_fake_data.py               # demografia fictícia + 12 meses de lançamentos
+    python scripts/seed_fake_data.py               # demografia fictícia + 18 meses de lançamentos
     python scripts/seed_fake_data.py --months 6    # últimos 6 meses
     python scripts/seed_fake_data.py --demografia  # só população/área fictícias, sem lançamentos
     python scripts/seed_fake_data.py --wipe        # remove o que este script criou
@@ -12,8 +12,13 @@ Nada aqui é dado real. População e área ficam gravadas com a fonte "FICTÍCI
 (`campus.demografia_fonte`), que a tela de Campi exibe; quando os números reais
 forem cadastrados, a marca some. O script recusa bancos que não sejam locais.
 
-`--wipe` remove só lançamentos manuais sem ponto de medição e zera a demografia
-marcada como fictícia. Importações e a carga antiga do script CPFL não são tocadas.
+Os lançamentos entram com `origem='demonstracao'` (SPEC R.0): contam nos
+indicadores, mas a API marca os totais que os contêm e as telas mostram
+"Demonstração". Campus/tipo/mês que já tenha lançamento manual ou importado é
+pulado — dado real nunca é coberto por simulação.
+
+`--wipe` remove só lançamentos de demonstração e zera a demografia marcada como
+fictícia. Manuais, importações e a carga antiga do script CPFL não são tocados.
 
 Requer DATABASE_URL configurado em `backend/.env`.
 """
@@ -33,7 +38,7 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / "backend" / ".env")
 
-from sqlalchemy import delete, update  # noqa: E402
+from sqlalchemy import delete, select, update  # noqa: E402
 
 from app.db.models import Campus, Lancamento, LancamentoOrigem, LancamentoTipo  # noqa: E402
 from app.db.session import SessionLocal, engine  # noqa: E402
@@ -75,10 +80,7 @@ def _ultimos_meses(n: int) -> list[str]:
 
 def wipe(db) -> None:
     n_lanc = db.execute(
-        delete(Lancamento).where(
-            Lancamento.origem == LancamentoOrigem.manual.value,
-            Lancamento.ponto_medicao_id.is_(None),
-        )
+        delete(Lancamento).where(Lancamento.origem == LancamentoOrigem.demonstracao.value)
     ).rowcount
     n_campi = db.execute(
         update(Campus)
@@ -86,7 +88,7 @@ def wipe(db) -> None:
         .values(populacao=0, area_construida_m2=0, demografia_fonte=None, demografia_referencia=None)
     ).rowcount
     db.commit()
-    print(f"[wipe] {n_lanc} lançamentos manuais removidos; demografia fictícia zerada em {n_campi} campi.")
+    print(f"[wipe] {n_lanc} lançamentos de demonstração removidos; demografia fictícia zerada em {n_campi} campi.")
 
 
 def seed_demografia(db) -> dict[str, Campus]:
@@ -115,7 +117,17 @@ def seed_lancamentos(db, nome_to_campus: dict[str, Campus], meses: int) -> None:
     rng = random.Random(42)  # determinístico
 
     lista_meses = _ultimos_meses(meses)
+    # O que já existe (real ou demonstração anterior) não recebe simulação por cima.
+    ocupados = set(
+        db.execute(
+            select(Lancamento.campus_id, Lancamento.tipo, Lancamento.mes_referencia).where(
+                Lancamento.mes_referencia.in_(lista_meses),
+                Lancamento.origem != LancamentoOrigem.cpfl_legado.value,
+            )
+        ).all()
+    )
     novos = []
+    pulados = 0
     for nome, perfil in PERFIL.items():
         c = nome_to_campus.get(nome)
         if not c:
@@ -125,19 +137,22 @@ def seed_lancamentos(db, nome_to_campus: dict[str, Campus], meses: int) -> None:
             luz = perfil["luz"] * rng.uniform(0.85, 1.15)
             agua = perfil["agua"] * rng.uniform(0.85, 1.15)
             for tipo, consumo in ((LancamentoTipo.luz, luz), (LancamentoTipo.agua, agua)):
+                if (c.id, tipo, mes) in ocupados:
+                    pulados += 1
+                    continue
                 novos.append(Lancamento(
                     campus_id=c.id,
                     tipo=tipo,
                     consumo=Decimal(f"{consumo:.2f}"),
-                    origem=LancamentoOrigem.manual.value,
+                    origem=LancamentoOrigem.demonstracao.value,
                     mes_referencia=mes,
                     criado_por="scripts/seed_fake_data.py",
                 ))
 
     db.add_all(novos)
     db.commit()
-    print(f"[seed] {len(novos)} lançamentos fictícios criados "
-          f"({len(PERFIL)} campi × {meses} meses × 2 tipos).")
+    print(f"[seed] {len(novos)} lançamentos de demonstração criados "
+          f"({len(PERFIL)} campi × {meses} meses × 2 tipos; {pulados} já tinham lançamento e foram pulados).")
 
 
 def main() -> None:
@@ -145,7 +160,8 @@ def main() -> None:
     parser.add_argument("--wipe", action="store_true", help="Remove o que este script criou.")
     parser.add_argument("--reset", action="store_true", help="Wipe + seed novamente.")
     parser.add_argument("--demografia", action="store_true", help="Só população/área fictícias, sem lançamentos.")
-    parser.add_argument("--months", type=int, default=12, help="Meses a gerar (default 12).")
+    # 18 meses: a comparação com o ano anterior (R.3) precisa de 13 e o alerta de pico (R.4) de 6 de base.
+    parser.add_argument("--months", type=int, default=18, help="Meses a gerar (default 18).")
     args = parser.parse_args()
 
     _exige_banco_local()

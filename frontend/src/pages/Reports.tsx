@@ -8,6 +8,7 @@ import { EcoScoreGauge } from '@/components/charts/EcoScoreGauge'
 import { Page } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardToolbar } from '@/components/ui/card'
+import { DemonstracaoAviso } from '@/components/DemonstracaoAviso'
 import { ErrorState } from '@/components/ui/empty-state'
 import {
   Select,
@@ -68,7 +69,8 @@ export default function Reports() {
         'Energia por pessoa (kWh/pessoa)',
         'Eco Score',
         'Classificação',
-        'Situação'
+        'Situação',
+        'Demonstração'
       ],
       ranking.map((item, index) => [
         item.ecoScore !== null ? index + 1 : '',
@@ -82,7 +84,9 @@ export default function Reports() {
         item.consumoLuzPerCapita,
         item.ecoScore,
         item.classificacao,
-        motivoSemNota(item)?.label ?? 'Com nota'
+        motivoSemNota(item)?.label ?? 'Com nota',
+        // Dado simulado nunca sai do sistema sem a marca (SPEC R.0).
+        item.demonstracao ? 'Sim' : 'Não'
       ])
     )
     toast.success('Ranking exportado em CSV.')
@@ -111,6 +115,7 @@ export default function Reports() {
         />
       ) : (
         <>
+          {indicadores.data?.some((item) => item.demonstracao) && <DemonstracaoAviso />}
           <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
             <Card>
               <CardToolbar

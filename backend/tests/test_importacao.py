@@ -238,7 +238,13 @@ def test_importacao_substitui_o_lancamento_manual_do_mesmo_campus_tipo_e_mes(com
     confirmado = cliente.post(
         "/importar/confirmar", json={"mesReferencia": MES, "lancamentos": previa["matched"]}
     ).json()
-    assert confirmado == {"imported": 1, "updated": 0, "ignored": 0, "manuaisRemovidos": 1}
+    assert confirmado == {
+        "imported": 1,
+        "updated": 0,
+        "ignored": 0,
+        "manuaisRemovidos": 1,
+        "demonstracaoRemovida": 0,
+    }
 
     resumo = cliente.get(f"/resumo?mes={MES}").json()
     campus2 = next(c for c in resumo["campi"] if c["campusId"] == 2)

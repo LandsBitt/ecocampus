@@ -117,12 +117,12 @@ def _mes_da_linha(row: dict[str, str]) -> tuple[str | None, str | None]:
     return f"{ano_n:04d}-{mes_n:02d}", None
 
 
-def _manuais_no_caminho(db: Session, mes: str, alvos: set[tuple[int, LancamentoTipo]]):
-    """Lançamentos manuais dos mesmos campus/tipo/mês que a importação vai preencher."""
+def _no_caminho(db: Session, origem: LancamentoOrigem, mes: str, alvos: set[tuple[int, LancamentoTipo]]):
+    """Lançamentos de `origem` (manual ou demonstração) nos campus/tipo/mês que a importação vai preencher."""
     if not alvos:
         return select(Lancamento.id).where(text("false"))
     return select(Lancamento.id).where(
-        Lancamento.origem == LancamentoOrigem.manual.value,
+        Lancamento.origem == origem.value,
         Lancamento.mes_referencia == mes,
         tuple_(Lancamento.campus_id, Lancamento.tipo).in_(list(alvos)),
     )
@@ -251,9 +251,10 @@ def preview_csv(
     unmatched.sort(key=lambda linha: linha.linha or 0)
 
     alvos = {(m.campus_id, LancamentoTipo(tipo)) for m in matched}
-    manuais = db.execute(
-        select(func.count()).select_from(_manuais_no_caminho(db, mes_referencia, alvos).subquery())
-    ).scalar_one()
+    def quantos(origem: LancamentoOrigem) -> int:
+        return db.execute(
+            select(func.count()).select_from(_no_caminho(db, origem, mes_referencia, alvos).subquery())
+        ).scalar_one()
 
     return PreviewOut(
         mes_referencia=mes_referencia,
@@ -261,7 +262,8 @@ def preview_csv(
         matched=matched,
         unmatched=unmatched,
         total_valor=sum(m.valor_fatura or 0 for m in matched),
-        manuais_substituidos=manuais,
+        manuais_substituidos=quantos(LancamentoOrigem.manual),
+        demonstracao_substituida=quantos(LancamentoOrigem.demonstracao),
     )
 
 
@@ -315,11 +317,21 @@ def confirmar_importacao(
         else:
             updated += 1
 
-    # O importado vem da fatura e prevalece: o lançamento manual do mesmo
-    # campus/tipo/mês sai na mesma transação, senão o consumo contaria em dobro.
-    removidos = db.execute(
-        delete(Lancamento).where(Lancamento.id.in_(_manuais_no_caminho(db, payload.mes_referencia, alvos)))
-    ).rowcount
+    # O importado vem da fatura e prevalece: o lançamento manual (ou de demonstração)
+    # do mesmo campus/tipo/mês sai na mesma transação, senão o consumo contaria em dobro.
+    def remove(origem: LancamentoOrigem) -> int:
+        return db.execute(
+            delete(Lancamento).where(Lancamento.id.in_(_no_caminho(db, origem, payload.mes_referencia, alvos)))
+        ).rowcount
+
+    removidos = remove(LancamentoOrigem.manual)
+    demonstracao_removida = remove(LancamentoOrigem.demonstracao)
 
     db.commit()
-    return ConfirmarOut(imported=inserted, updated=updated, ignored=ignored, manuais_removidos=removidos)
+    return ConfirmarOut(
+        imported=inserted,
+        updated=updated,
+        ignored=ignored,
+        manuais_removidos=removidos,
+        demonstracao_removida=demonstracao_removida,
+    )

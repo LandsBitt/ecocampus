@@ -14,7 +14,8 @@ function lancamento(id: number, campusId: number, origem: Lancamento['origem'], 
 const ITENS = [
   lancamento(1, 2, 'manual', '2026-01'),
   lancamento(2, 2, 'importado', '2026-02'),
-  lancamento(3, 3, 'manual', '2026-03')
+  lancamento(3, 3, 'manual', '2026-03'),
+  lancamento(4, 2, 'demonstracao', '2026-04')
 ]
 
 function renderComo(claims: UserClaims) {
@@ -50,6 +51,13 @@ describe('LancamentosTable — Editar/Excluir só para quem pode (D5)', () => {
   it('super vê as ações em todas as linhas', () => {
     renderComo({ role: 'super', campusId: null })
     for (const mes of [/jan/i, /fev/i, /mar/i]) expect(botoesDa(mes)).toHaveLength(2)
+  })
+
+  it('demonstração tem selo e não tem ações, nem para o super (R.0)', () => {
+    renderComo({ role: 'super', campusId: null })
+    const linha = screen.getByText(/abr/i).closest('tr') as HTMLElement
+    expect(within(linha).getByText('demonstração')).toBeTruthy()
+    expect(botoesDa(/abr/i)).toHaveLength(0)
   })
 
   it('sem nenhuma linha alterável, a coluna de ações some', () => {

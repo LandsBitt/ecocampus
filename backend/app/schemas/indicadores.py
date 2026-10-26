@@ -21,6 +21,8 @@ class IndicadorCampus(BaseModel):
     situacao: Situacao
     motivo_fora_do_ranking: str | None = Field(default=None, alias="motivoForaDoRanking")
     tem_dados: bool = Field(False, alias="temDados")
+    # O consumo do período inclui lançamento de demonstração (SPEC R.0).
+    demonstracao: bool = False
 
     # Consumo físico do período: água em m³, energia em kWh.
     total_agua: float = Field(0.0, alias="totalAgua")

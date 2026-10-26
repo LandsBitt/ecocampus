@@ -53,6 +53,8 @@ class PreviewOut(BaseModel):
     total_valor: float = Field(..., alias="totalValor")
     # Lançamentos manuais do mesmo campus/tipo/mês, que a confirmação vai remover.
     manuais_substituidos: int = Field(0, alias="manuaisSubstituidos")
+    # Lançamentos de demonstração do mesmo campus/tipo/mês: o dado real os substitui (R.0).
+    demonstracao_substituida: int = Field(0, alias="demonstracaoSubstituida")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -63,5 +65,6 @@ class ConfirmarOut(BaseModel):
     # Itens cujo ponto de medição não existe mais.
     ignored: int = 0
     manuais_removidos: int = Field(0, alias="manuaisRemovidos")
+    demonstracao_removida: int = Field(0, alias="demonstracaoRemovida")
 
     model_config = ConfigDict(populate_by_name=True)

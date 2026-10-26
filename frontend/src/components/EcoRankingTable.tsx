@@ -14,6 +14,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { Hint } from '@/components/ui/tooltip'
+import { DemonstracaoSelo } from '@/components/DemonstracaoAviso'
 import { useSort } from '@/hooks/useSort'
 import { classificacaoStyles, comNota, motivoSemNota } from '@/lib/ecoScore'
 import { formatNumber } from '@/lib/formatters'
@@ -144,7 +145,10 @@ export function EcoRankingTable({
 
                 <TableCell>
                   <div className="flex min-w-0 flex-col">
-                    <span className="truncate font-medium text-foreground">{item.nome}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate font-medium text-foreground">{item.nome}</span>
+                      {item.demonstracao && <DemonstracaoSelo />}
+                    </span>
                     {/* Em telas estreitas as colunas do meio somem; o dado volta aqui. */}
                     <span className="mt-1 text-2xs tabular-nums text-subtle md:hidden">
                       {formatNumber(item.consumoAguaPerCapita, 2)} m³/pessoa ·{' '}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from psycopg.errors import UniqueViolation
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -84,6 +84,21 @@ def _exige_mes_livre(
         )
 
 
+def _substitui_demonstracao(db: Session, campus_id: int, tipo: LancamentoTipo, mes: str) -> None:
+    """Dado real prevalece sobre o de demonstração do mesmo campus/tipo/mês (SPEC R.0).
+
+    Roda na mesma transação do lançamento: se ele falhar, a demonstração volta.
+    """
+    db.execute(
+        delete(Lancamento).where(
+            Lancamento.campus_id == campus_id,
+            Lancamento.tipo == tipo,
+            Lancamento.mes_referencia == mes,
+            Lancamento.origem == LancamentoOrigem.demonstracao.value,
+        )
+    )
+
+
 def _commit(db: Session) -> None:
     """Grava; violação de índice único (corrida entre dois cliques, mês de ponto já importado) vira 409."""
     try:
@@ -135,6 +150,7 @@ def create_lancamento(
 
     _validate_campus_id(db, campus_id)
     _exige_mes_livre(db, LancamentoOrigem.manual.value, campus_id, payload.tipo, payload.mes_referencia)
+    _substitui_demonstracao(db, campus_id, payload.tipo, payload.mes_referencia)
 
     item = Lancamento(
         campus_id=campus_id,
@@ -162,6 +178,11 @@ def update_lancamento(
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lançamento não encontrado")
     _exige_permissao(user, item)
+    if item.origem == LancamentoOrigem.demonstracao.value:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Lançamento de demonstração não se edita. Registre o consumo real: ele substitui a demonstração do mês.",
+        )
 
     campus_id = payload.campus_id if payload.campus_id is not None else item.campus_id
     tipo = payload.tipo if payload.tipo is not None else item.tipo
@@ -185,6 +206,7 @@ def update_lancamento(
         _validate_campus_id(db, campus_id)
     if (campus_id, tipo, mes) != (item.campus_id, item.tipo, item.mes_referencia):
         _exige_mes_livre(db, item.origem, campus_id, tipo, mes, ignorar_id=item.id)
+        _substitui_demonstracao(db, campus_id, tipo, mes)
 
     item.campus_id = campus_id
     item.tipo = tipo

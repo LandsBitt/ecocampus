@@ -41,8 +41,11 @@ export interface UsuarioInput {
 
 export type LancamentoTipo = 'agua' | 'luz'
 
-/** `cpfl_legado`: carga antiga (total anual ÷ 12), fora de todos os indicadores. */
-export type LancamentoOrigem = 'manual' | 'importado' | 'cpfl_legado'
+/**
+ * `cpfl_legado`: carga antiga (total anual ÷ 12), fora de todos os indicadores.
+ * `demonstracao`: dado simulado; conta nos números, mas é sempre sinalizado (SPEC R.0).
+ */
+export type LancamentoOrigem = 'manual' | 'importado' | 'cpfl_legado' | 'demonstracao'
 
 export interface Lancamento {
   id: number
@@ -77,6 +80,8 @@ export interface ResumoCampus {
   agua: number
   /** kWh */
   luz: number
+  /** A soma inclui lançamento de demonstração: não é medição real. */
+  demonstracao?: boolean
 }
 
 export interface ResumoResponse {
@@ -105,6 +110,8 @@ export interface IndicadorCampus {
   motivoForaDoRanking: string | null
   /** Tem ao menos um lançamento com consumo no período. */
   temDados: boolean
+  /** O consumo do período inclui lançamento de demonstração. */
+  demonstracao: boolean
   /** m³ */
   totalAgua: number
   /** kWh */
@@ -163,6 +170,8 @@ export interface ImportPreview {
   totalValor: number
   /** Lançamentos manuais do mesmo campus/tipo/mês que a confirmação vai remover. */
   manuaisSubstituidos: number
+  /** Lançamentos de demonstração do mesmo campus/tipo/mês, que o dado real substitui. */
+  demonstracaoSubstituida: number
 }
 
 export interface ConfirmarOut {
@@ -170,4 +179,5 @@ export interface ConfirmarOut {
   updated: number
   ignored: number
   manuaisRemovidos: number
+  demonstracaoRemovida: number
 }

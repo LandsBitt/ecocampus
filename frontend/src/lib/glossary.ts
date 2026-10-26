@@ -68,6 +68,12 @@ export const glossary = {
     detail:
       'Sem esses dois números não dá para fazer a comparação justa, então o campus fica sem nota e fora do ranking. O consumo dele continua contando no total da universidade. Cadastre os dados em Campi.'
   },
+  demonstracao: {
+    label: 'Demonstração',
+    short: 'Dado simulado, não medido. Serve para mostrar como o sistema funciona enquanto o consumo real não chega.',
+    detail:
+      'Os números de demonstração entram nos totais, na nota e no ranking como se fossem reais, mas sempre aparecem marcados. Quando o consumo real de um campus em um mês é lançado ou importado, ele substitui a demonstração daquele mês.'
+  },
   metroCubico: {
     label: 'm³ (metro cúbico)',
     short: 'Unidade de volume de água. 1 m³ = 1.000 litros.'

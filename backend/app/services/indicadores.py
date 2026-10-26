@@ -93,6 +93,7 @@ def calcular_indicadores(rows: Iterable) -> list[IndicadorCampus]:
                 situacao=l["situacao"],
                 motivoForaDoRanking=row.fora_do_ranking_motivo,
                 temDados=l["tem_agua"] or l["tem_luz"],
+                demonstracao=(getattr(row, "n_demonstracao", 0) or 0) > 0,
                 totalAgua=l["agua"],
                 totalLuz=l["luz"],
                 consumoAguaPerCapita=agua_per_capita,

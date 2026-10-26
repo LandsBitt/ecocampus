@@ -17,6 +17,12 @@ router = APIRouter()
 # Água (m³) e energia (kWh) nunca são somadas entre si (SPEC 1.7).
 _CONTA_NOS_INDICADORES = Lancamento.origem != LancamentoOrigem.cpfl_legado.value
 
+# Quantos lançamentos de demonstração entram na soma (R.0): o total que os contém
+# é marcado para nunca passar por medição real.
+_N_DEMONSTRACAO = func.count(
+    case((Lancamento.origem == LancamentoOrigem.demonstracao.value, Lancamento.id))
+).label("n_demonstracao")
+
 
 def _campus_totals(db: Session, mes: str | None = None, campus_id: int | None = None):
     join_condition = and_(Lancamento.campus_id == Campus.id, _CONTA_NOS_INDICADORES)
@@ -41,6 +47,7 @@ def _campus_totals(db: Session, mes: str | None = None, campus_id: int | None = 
                 func.sum(case((Lancamento.tipo == LancamentoTipo.luz, Lancamento.consumo), else_=0)),
                 0,
             ).label("luz"),
+            _N_DEMONSTRACAO,
         )
         .select_from(Campus)
         .outerjoin(Lancamento, join_condition)
@@ -63,6 +70,7 @@ def _total_geral(db: Session, mes: str | None = None):
             func.sum(case((Lancamento.tipo == LancamentoTipo.luz, Lancamento.consumo), else_=0)),
             0,
         ).label("luz"),
+        _N_DEMONSTRACAO,
     ).where(_CONTA_NOS_INDICADORES)
     if mes:
         stmt = stmt.where(Lancamento.mes_referencia == mes)
@@ -93,6 +101,7 @@ def resumo(
         nome="Universidade",
         agua=float(total_geral.agua or 0),
         luz=float(total_geral.luz or 0),
+        demonstracao=total_geral.n_demonstracao > 0,
     )
 
     if user.role == "campus":
@@ -104,6 +113,7 @@ def resumo(
                 nome=row.nome,
                 agua=float(row.agua or 0),
                 luz=float(row.luz or 0),
+                demonstracao=row.n_demonstracao > 0,
             )
         else:
             campus_out = ResumoCampus(
@@ -126,6 +136,7 @@ def resumo(
             nome=row.nome,
             agua=float(row.agua or 0),
             luz=float(row.luz or 0),
+            demonstracao=row.n_demonstracao > 0,
         )
         for row in rows
     ]

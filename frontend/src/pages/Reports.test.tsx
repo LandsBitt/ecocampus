@@ -46,6 +46,19 @@ describe('Relatórios', () => {
     expect(container.querySelector('.animate-pulse')).toBeNull()
   })
 
+  it('campus com demonstração recebe selo e a tela mostra a faixa de aviso (R.0)', () => {
+    indicadores = [
+      indicador({ campusId: 1, nome: 'Campus A', demonstracao: true }),
+      indicador({ campusId: 2, nome: 'Campus B', ecoScore: 50, classificacao: 'Na média' })
+    ]
+    const { container } = renderReports()
+
+    expect(container.textContent).toMatch(/Este mês tem dados de demonstração/)
+    const linha = (nome: string) => screen.getByText(nome).closest('tr')?.textContent ?? ''
+    expect(linha('Campus A')).toContain('demonstração')
+    expect(linha('Campus B')).not.toContain('demonstração')
+  })
+
   it('a nota média usa só os campi com nota', () => {
     indicadores = [
       indicador({ campusId: 1, nome: 'Campus A', ecoScore: 70 }),

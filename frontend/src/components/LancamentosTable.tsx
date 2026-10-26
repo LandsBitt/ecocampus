@@ -14,6 +14,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { Hint } from '@/components/ui/tooltip'
+import { DemonstracaoSelo } from '@/components/DemonstracaoAviso'
 import { useSort } from '@/hooks/useSort'
 import { formatMonthLabel } from '@/lib/date'
 import { formatCurrency, formatNumber, UNIDADES } from '@/lib/formatters'
@@ -176,6 +177,7 @@ export function LancamentosTable({
                     </Badge>
                   </Hint>
                 )}
+                {item.origem === 'demonstracao' && <DemonstracaoSelo className="ml-2" />}
               </TableCell>
 
               <TableCell className="hidden whitespace-nowrap text-right tabular-nums text-muted-foreground lg:table-cell">

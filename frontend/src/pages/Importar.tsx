@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
+  Info,
   ArrowRight,
   CheckCircle2,
   Download,
@@ -239,6 +240,21 @@ export default function Importar() {
             />
           </div>
 
+          {preview.demonstracaoSubstituida > 0 && (
+            <Card variant="flat">
+              <CardContent className="flex gap-3 p-4">
+                <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <p className="text-[0.8125rem] leading-relaxed text-foreground">
+                  {preview.demonstracaoSubstituida === 1
+                    ? 'Existe 1 lançamento de demonstração'
+                    : `Existem ${preview.demonstracaoSubstituida} lançamentos de demonstração`}{' '}
+                  para os mesmos campi neste mês. Ao confirmar, o consumo real da planilha toma o lugar
+                  {preview.demonstracaoSubstituida === 1 ? ' dele' : ' deles'}.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {preview.manuaisSubstituidos > 0 && (
             <Card variant="flat">
               <CardContent className="flex gap-3 p-4">
@@ -380,10 +396,12 @@ export default function Importar() {
               </div>
             </div>
 
-            {(resultado.manuaisRemovidos > 0 || resultado.ignored > 0) && (
+            {(resultado.manuaisRemovidos > 0 || resultado.demonstracaoRemovida > 0 || resultado.ignored > 0) && (
               <p className="text-2xs leading-relaxed text-muted-foreground">
                 {resultado.manuaisRemovidos > 0 &&
                   `${resultado.manuaisRemovidos} lançamento(s) manual(is) do mesmo mês foram substituídos. `}
+                {resultado.demonstracaoRemovida > 0 &&
+                  `${resultado.demonstracaoRemovida} lançamento(s) de demonstração deram lugar ao consumo real. `}
                 {resultado.ignored > 0 &&
                   `${resultado.ignored} item(ns) não entraram porque o ponto de medição não existe mais.`}
               </p>

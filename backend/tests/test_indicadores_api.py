@@ -14,6 +14,7 @@ CAMPOS_INDICADOR = {
     "situacao",
     "motivoForaDoRanking",
     "temDados",
+    "demonstracao",
     "totalAgua",
     "totalLuz",
     "consumoAguaPerCapita",

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Building2, Droplet, Gauge, Plus, Users, Zap } from 'lucide-react'
 
+import { DemonstracaoAviso } from '@/components/DemonstracaoAviso'
 import { Explain } from '@/components/Explain'
 import { InsightPanel } from '@/components/InsightPanel'
 import { KpiCard } from '@/components/KpiCard'
@@ -98,6 +99,8 @@ export default function Dashboard() {
     return `Universidade (referência): ${total.value} ${total.unit}`
   }
 
+  const temDemonstracao = !!(isSuper ? resumo.data?.totalGeral.demonstracao : resumo.data?.campus?.demonstracao)
+
   // Sem /resumo ou /indicadores a tela não tem o que mostrar: melhor dizer que falhou
   // do que deixar os cartões carregando para sempre.
   const falhou = resumo.isError || indicadores.isError
@@ -142,6 +145,7 @@ export default function Dashboard() {
 
   return (
     <Page {...cabecalho}>
+      {temDemonstracao && <DemonstracaoAviso />}
       <InsightPanel insights={insights} loading={carregando} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

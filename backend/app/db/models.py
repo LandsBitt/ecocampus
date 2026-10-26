@@ -36,6 +36,9 @@ class LancamentoOrigem(str, Enum):
     # Carga antiga do script CPFL (total anual ÷ 12). Fica no banco, mas fora
     # de todos os indicadores, até ser excluída por scripts/excluir_cpfl_legado.py.
     cpfl_legado = "cpfl_legado"
+    # Dado simulado (scripts/seed_fake_data.py). Conta nos indicadores, mas a API
+    # marca os totais que o contêm; lançamento real do mesmo mês o substitui.
+    demonstracao = "demonstracao"
 
 
 class Campus(Base):
@@ -88,6 +91,15 @@ class Lancamento(Base):
             "mes_referencia",
             unique=True,
             postgresql_where=text("origem = 'manual'"),
+        ),
+        # E um de demonstração (0014).
+        Index(
+            "uq_lancamentos_demonstracao_campus_tipo_mes",
+            "campus_id",
+            "tipo",
+            "mes_referencia",
+            unique=True,
+            postgresql_where=text("origem = 'demonstracao'"),
         ),
     )
 
