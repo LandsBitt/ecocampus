@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Iterable
 
 from app.core.eco_score import classify_score, compute_eco_score
-from app.schemas.indicadores import IndicadorCampus
+from app.schemas.indicadores import IndicadorCampus, IndicadorUniversidade
 
 
 def _razao(numerador: float, denominador: float) -> float | None:
@@ -108,6 +108,27 @@ def calcular_indicadores(rows: Iterable) -> list[IndicadorCampus]:
             )
         )
     return output
+
+
+def indicador_universidade(itens: Iterable[IndicadorCampus]) -> IndicadorUniversidade:
+    """kWh por pessoa da universidade (R.1), a partir dos indicadores por campus.
+
+    Entram só os campi com energia e população no período. Campus sem cadastro
+    ou fora do ranking também entra se tiver os dois números: aqui não há nota,
+    é a universidade inteira.
+    """
+    considerados = [i for i in itens if i.consumo_luz_per_capita is not None]
+    sem_populacao = [i for i in itens if i.total_luz > 0 and i.consumo_luz_per_capita is None]
+    kwh = sum(i.total_luz for i in considerados)
+    populacao = sum(i.populacao for i in considerados)
+    return IndicadorUniversidade(
+        kwhPorPessoa=_razao(kwh, populacao),
+        kwh=kwh,
+        populacao=populacao,
+        campiConsiderados=[i.nome for i in considerados],
+        campiSemPopulacao=[i.nome for i in sem_populacao],
+        demonstracao=any(i.demonstracao for i in considerados),
+    )
 
 
 def ordenar_ranking(itens: list[IndicadorCampus]) -> list[IndicadorCampus]:

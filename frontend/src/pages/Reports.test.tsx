@@ -1,16 +1,18 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import Reports from './Reports'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { indicador, semNota } from '@/test/fixtures'
-import type { IndicadorCampus } from '@/lib/types'
+import type { IndicadorCampus, IndicadorUniversidade } from '@/lib/types'
 
 let indicadores: IndicadorCampus[] = []
+let universidade: IndicadorUniversidade | undefined
 
 vi.mock('@/hooks/queries', () => ({
   useIndicadores: () => ({ data: indicadores, isLoading: false, isError: false, refetch: vi.fn() }),
+  useIndicadorUniversidade: () => ({ data: universidade, isLoading: false, isError: false }),
   usePizza: () => ({ data: [], isLoading: false, isError: false })
 }))
 
@@ -28,7 +30,10 @@ function renderReports() {
   )
 }
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  universidade = undefined
+})
 
 describe('Relatórios', () => {
   it('mês sem nenhum lançamento não mostra nota nem classifica a universidade', () => {
@@ -71,5 +76,28 @@ describe('Relatórios', () => {
     expect(container.textContent).toContain('40,0')
     expect(screen.getByText(/dos 2 campi com nota neste mês/)).toBeTruthy()
     expect(container.textContent).toContain('1 de 3 estão sem nota')
+  })
+
+  it('a tabela de detalhe fecha com o kWh por pessoa da universidade (R.1)', () => {
+    indicadores = [
+      indicador({ campusId: 1, nome: 'Campus A', populacao: 1000, totalLuz: 8000, consumoLuzPerCapita: 8 }),
+      indicador({ campusId: 2, nome: 'Campus B', populacao: 500, totalLuz: 6000, consumoLuzPerCapita: 12 }),
+      semNota('sem_cadastro', { campusId: 3, nome: 'Campus C', populacao: 0, totalLuz: 3000 })
+    ]
+    universidade = {
+      kwhPorPessoa: 14000 / 1500,
+      kwh: 14000,
+      populacao: 1500,
+      campiConsiderados: ['Campus A', 'Campus B'],
+      campiSemPopulacao: ['Campus C'],
+      demonstracao: false
+    }
+    renderReports()
+    fireEvent.mouseDown(screen.getByRole('tab', { name: /Números|Detalhe/i }))
+
+    const rodape = screen.getByText('Universidade').closest('tfoot')?.textContent ?? ''
+    expect(rodape).toContain('9,3')
+    expect(rodape).toContain('2 de 3')
+    expect(rodape).toContain('ficam de fora: Campus C')
   })
 })

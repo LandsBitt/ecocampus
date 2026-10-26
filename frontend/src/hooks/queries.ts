@@ -6,6 +6,7 @@ import { useAuth } from '@/providers/AuthProvider'
 import type {
   Campus,
   IndicadorCampus,
+  IndicadorUniversidade,
   Lancamento,
   LancamentoTipo,
   PizzaItem,
@@ -54,6 +55,16 @@ export function useIndicadores(mes: string, enabled = true) {
   return useQuery<IndicadorCampus[]>({
     queryKey: ['indicadores', mes],
     queryFn: async () => api.get<IndicadorCampus[]>(`/indicadores?mes=${mes}`, await getToken()),
+    enabled: enabled && !!claims
+  })
+}
+
+export function useIndicadorUniversidade(mes: string, enabled = true) {
+  const { getToken, claims } = useAuth()
+  return useQuery<IndicadorUniversidade>({
+    queryKey: ['indicadores', 'universidade', mes],
+    queryFn: async () =>
+      api.get<IndicadorUniversidade>(`/indicadores/universidade?mes=${mes}`, await getToken()),
     enabled: enabled && !!claims
   })
 }

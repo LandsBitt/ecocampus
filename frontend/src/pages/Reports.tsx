@@ -20,12 +20,13 @@ import {
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/sonner'
-import { useIndicadores, usePizza } from '@/hooks/queries'
+import { useIndicadorUniversidade, useIndicadores, usePizza } from '@/hooks/queries'
 import { formatMonthLabel, formatMonthLong } from '@/lib/date'
 import { classifyScore, comNota, motivoSemNota, notaMedia, ordenarRanking } from '@/lib/ecoScore'
 import { downloadCsv } from '@/lib/export'
 import { formatNumber, type Medida } from '@/lib/formatters'
 import { usePeriod } from '@/providers/PeriodProvider'
+import type { IndicadorUniversidade } from '@/lib/types'
 
 export default function Reports() {
   const { mes } = usePeriod()
@@ -33,6 +34,7 @@ export default function Reports() {
   const [medidaPizza, setMedidaPizza] = useState<Medida>('agua')
 
   const indicadores = useIndicadores(mes)
+  const universidade = useIndicadorUniversidade(mes)
   const pizza = usePizza(mes)
 
   const ranking = useMemo(() => ordenarRanking(indicadores.data ?? []), [indicadores.data])
@@ -87,7 +89,28 @@ export default function Reports() {
         motivoSemNota(item)?.label ?? 'Com nota',
         // Dado simulado nunca sai do sistema sem a marca (SPEC R.0).
         item.demonstracao ? 'Sim' : 'Não'
-      ])
+      ]).concat(
+        // Linha da universidade: só o kWh por pessoa (R.1) e o que entra nele.
+        universidade.data
+          ? [
+              [
+                '',
+                'Universidade (campi com energia e população)',
+                universidade.data.populacao,
+                '',
+                '',
+                universidade.data.kwh,
+                '',
+                '',
+                universidade.data.kwhPorPessoa,
+                '',
+                '',
+                '',
+                universidade.data.demonstracao ? 'Sim' : 'Não'
+              ]
+            ]
+          : []
+      )
     )
     toast.success('Ranking exportado em CSV.')
   }
@@ -285,7 +308,10 @@ export default function Reports() {
                   {indicadores.isLoading ? (
                     <SkeletonTable rows={6} cols={6} />
                   ) : (
-                    <TabelaDetalhe itens={campusSelecionado === 'all' ? ranking : filtrado} />
+                    <TabelaDetalhe
+                      itens={campusSelecionado === 'all' ? ranking : filtrado}
+                      universidade={campusSelecionado === 'all' ? universidade.data : undefined}
+                    />
                   )}
                 </CardContent>
               </Card>
@@ -347,8 +373,11 @@ function FaixaCard({
 }
 
 function TabelaDetalhe({
-  itens
+  itens,
+  universidade
 }: {
+  /** Linha final com o kWh por pessoa da universidade (R.1). Só na visão de todos os campi. */
+  universidade?: IndicadorUniversidade
   itens: {
     campusId: number
     nome: string
@@ -403,6 +432,32 @@ function TabelaDetalhe({
             </tr>
           ))}
         </tbody>
+        {universidade && (
+          <tfoot className="border-t border-border bg-surface-sunken">
+            <tr>
+              <td className="px-4 py-3 font-medium">Universidade</td>
+              <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                {universidade.populacao ? formatNumber(universidade.populacao, 0) : '—'}
+              </td>
+              <td className="px-4 py-3" />
+              <td className="px-4 py-3" />
+              <td className="px-4 py-3 text-right tabular-nums">{formatNumber(universidade.kwh, 0)}</td>
+              <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                {formatNumber(universidade.kwhPorPessoa, 1)}
+              </td>
+              <td className="px-4 py-3" />
+            </tr>
+            <tr>
+              <td colSpan={7} className="px-4 pb-3 text-2xs leading-relaxed text-muted-foreground">
+                <Explain term="energiaPorPessoa">kWh por pessoa</Explain> da universidade: energia total
+                dividida pela população total, só dos campi que têm os dois números no mês (
+                {universidade.campiConsiderados.length} de {itens.length}).
+                {universidade.campiSemPopulacao.length > 0 &&
+                  ` Sem população cadastrada, ficam de fora: ${universidade.campiSemPopulacao.join(', ')}.`}
+              </td>
+            </tr>
+          </tfoot>
+        )}
       </table>
     </div>
   )

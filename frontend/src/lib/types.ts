@@ -101,6 +101,18 @@ export type Classificacao = 'Ecológico' | 'Na média' | 'Crítico'
  */
 export type Situacao = 'ok' | 'sem_dados' | 'sem_cadastro' | 'em_revisao'
 
+/** Indicadores da universidade inteira no período (GreenMetric EC4). */
+export interface IndicadorUniversidade {
+  /** kWh total ÷ população total, só sobre os campi com energia e população no período. */
+  kwhPorPessoa: number | null
+  kwh: number
+  populacao: number
+  campiConsiderados: string[]
+  /** Têm energia no período mas não têm população: ficam fora da conta. */
+  campiSemPopulacao: string[]
+  demonstracao: boolean
+}
+
 export interface IndicadorCampus {
   campusId: number
   nome: string

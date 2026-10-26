@@ -47,6 +47,22 @@ class IndicadorCampus(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class IndicadorUniversidade(BaseModel):
+    """Indicadores da universidade inteira no período (GreenMetric EC4)."""
+
+    # kWh total ÷ população total, só sobre os campi que têm energia E população
+    # no período: numerador e denominador vêm do mesmo conjunto de campi.
+    kwh_por_pessoa: float | None = Field(default=None, alias="kwhPorPessoa")
+    kwh: float = 0.0
+    populacao: int = 0
+    campi_considerados: list[str] = Field(default_factory=list, alias="campiConsiderados")
+    # Têm consumo de energia no período mas não têm população: o kWh deles fica fora da conta.
+    campi_sem_populacao: list[str] = Field(default_factory=list, alias="campiSemPopulacao")
+    demonstracao: bool = False
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class IndicadoresOut(BaseModel):
     campi: list[IndicadorCampus]
 
