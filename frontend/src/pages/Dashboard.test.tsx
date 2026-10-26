@@ -5,11 +5,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import Dashboard from './Dashboard'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { indicador } from '@/test/fixtures'
-import type { ResumoResponse, UserClaims } from '@/lib/types'
+import type { ComparacaoMedida, ComparacaoResponse, ResumoResponse, UserClaims } from '@/lib/types'
 
 let claims: UserClaims = { role: 'super', campusId: null }
 let resumo: { data?: ResumoResponse; isLoading: boolean; isError: boolean; refetch: () => void }
 const refetchResumo = vi.fn()
+let comparacao: ComparacaoResponse | undefined
 
 vi.mock('@/providers/AuthProvider', () => ({
   useAuth: () => ({ claims })
@@ -31,7 +32,8 @@ vi.mock('@/hooks/queries', () => ({
     isError: false,
     refetch: vi.fn()
   }),
-  useHistoricoResumo: () => ({ data: [], isLoading: false, isError: false }),
+  useSerie: () => ({ data: [], isLoading: false, isError: false }),
+  useComparacao: () => ({ data: comparacao }),
   useLancamentos: () => ({ data: [], isLoading: false }),
   useCampusList: () => ({ data: [{ id: 3, nome: 'Campus C' }] }),
   usePizza: () => ({ data: [], isLoading: false })
@@ -98,5 +100,33 @@ describe('Dashboard', () => {
     const { container } = renderDashboard()
 
     expect(container.textContent).toMatch(/Este mês tem dados de demonstração/)
+  })
+
+  it('os cartões mostram a variação contra o mesmo mês do ano anterior, ou "sem base" (R.3)', () => {
+    const vazia: ComparacaoMedida = { atual: null, mesAnterior: null, anoAnterior: null, variacaoMensal: null, variacaoAnual: null, demonstracao: false }
+    claims = { role: 'super', campusId: null }
+    resumo = {
+      data: { mes: '2026-01', campi: [], totalGeral: { campusId: 0, nome: 'Universidade', agua: 900, luz: 40000 } },
+      isLoading: false,
+      isError: false,
+      refetch: refetchResumo
+    }
+    comparacao = {
+      mes: '2026-01',
+      mesAnterior: '2025-12',
+      anoAnterior: '2025-01',
+      escopo: {
+        campusId: null,
+        nome: 'Universidade',
+        agua: { ...vazia, atual: 900, anoAnterior: 1000, variacaoAnual: -10 },
+        luz: { ...vazia, atual: 40000 }
+      },
+      campi: []
+    }
+    const { container } = renderDashboard()
+
+    expect(container.textContent).toMatch(/-10,0%\s*vs\. jan\/2025/)
+    expect(container.textContent).toContain('Sem base em jan/2025')
+    comparacao = undefined
   })
 })

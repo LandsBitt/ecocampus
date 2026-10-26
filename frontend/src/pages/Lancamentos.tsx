@@ -80,6 +80,8 @@ export default function Lancamentos() {
     queryClient.invalidateQueries({ queryKey: ['resumo'] })
     queryClient.invalidateQueries({ queryKey: ['indicadores'] })
     queryClient.invalidateQueries({ queryKey: ['pizza'] })
+    queryClient.invalidateQueries({ queryKey: ['serie'] })
+    queryClient.invalidateQueries({ queryKey: ['comparacao'] })
   }
 
   const salvar = useMutation({

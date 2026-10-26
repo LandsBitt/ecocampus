@@ -209,3 +209,45 @@ export interface ConfirmarOut {
   manuaisRemovidos: number
   demonstracaoRemovida: number
 }
+
+/** Um mês da série histórica (R.5). Água em m³, energia em kWh, nunca somadas. */
+export interface PontoSerie {
+  mes: string
+  agua: number
+  luz: number
+  /** Distingue "consumiu zero" de "não tem lançamento". */
+  temAgua: boolean
+  temLuz: boolean
+  demonstracao: boolean
+}
+
+/**
+ * Uma medida no mês e nas duas bases de comparação (R.3). Nulo = mês sem
+ * lançamento ("sem base"); variação nula quando falta o atual ou a base.
+ */
+export interface ComparacaoMedida {
+  atual: number | null
+  mesAnterior: number | null
+  anoAnterior: number | null
+  /** Em %. */
+  variacaoMensal: number | null
+  variacaoAnual: number | null
+  demonstracao: boolean
+}
+
+export interface ComparacaoBloco {
+  campusId: number | null
+  nome: string
+  agua: ComparacaoMedida
+  luz: ComparacaoMedida
+}
+
+export interface ComparacaoResponse {
+  mes: string
+  mesAnterior: string
+  anoAnterior: string
+  /** Universidade para o super; o próprio campus para o papel campus. */
+  escopo: ComparacaoBloco
+  /** Um bloco por campus; vazio para o papel campus. */
+  campi: ComparacaoBloco[]
+}

@@ -103,6 +103,8 @@ export default function Importar() {
       queryClient.invalidateQueries({ queryKey: ['resumo'] })
       queryClient.invalidateQueries({ queryKey: ['indicadores'] })
       queryClient.invalidateQueries({ queryKey: ['pizza'] })
+      queryClient.invalidateQueries({ queryKey: ['serie'] })
+      queryClient.invalidateQueries({ queryKey: ['comparacao'] })
     },
     onError: () => toast.error('Erro ao gravar os lançamentos. Nada foi importado.')
   })

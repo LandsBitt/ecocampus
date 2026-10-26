@@ -5,14 +5,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import Reports from './Reports'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { indicador, semNota } from '@/test/fixtures'
-import type { IndicadorCampus, IndicadorUniversidade } from '@/lib/types'
+import type { ComparacaoMedida, ComparacaoResponse, IndicadorCampus, IndicadorUniversidade } from '@/lib/types'
 
 let indicadores: IndicadorCampus[] = []
 let universidade: IndicadorUniversidade | undefined
+let comparacao: ComparacaoResponse | undefined
 
 vi.mock('@/hooks/queries', () => ({
   useIndicadores: () => ({ data: indicadores, isLoading: false, isError: false, refetch: vi.fn() }),
   useIndicadorUniversidade: () => ({ data: universidade, isLoading: false, isError: false }),
+  useComparacao: () => ({ data: comparacao, isError: false, refetch: vi.fn() }),
   usePizza: () => ({ data: [], isLoading: false, isError: false })
 }))
 
@@ -33,6 +35,7 @@ function renderReports() {
 afterEach(() => {
   cleanup()
   universidade = undefined
+  comparacao = undefined
 })
 
 describe('Relatórios', () => {
@@ -125,5 +128,39 @@ describe('Relatórios', () => {
     const rodape = screen.getByText('Universidade').closest('tfoot')?.textContent ?? ''
     expect(rodape).toContain('sem fator de emissão cadastrado')
     expect(rodape).not.toMatch(/0 kg CO₂/)
+  })
+
+  it('a aba Comparação mostra as variações e diz "sem base" quando falta o ano anterior (R.3)', () => {
+    const vazia: ComparacaoMedida = { atual: null, mesAnterior: null, anoAnterior: null, variacaoMensal: null, variacaoAnual: null, demonstracao: false }
+    indicadores = [indicador({ campusId: 1, nome: 'Campus A' })]
+    comparacao = {
+      mes: '2026-01',
+      mesAnterior: '2025-12',
+      anoAnterior: '2025-01',
+      escopo: {
+        campusId: null,
+        nome: 'Universidade',
+        agua: { ...vazia, atual: 150, mesAnterior: 100, anoAnterior: 150, variacaoMensal: 50, variacaoAnual: 0 },
+        luz: vazia
+      },
+      campi: [
+        {
+          campusId: 1,
+          nome: 'Campus A',
+          agua: { ...vazia, atual: 120, mesAnterior: 100, variacaoMensal: 20 },
+          luz: vazia
+        }
+      ]
+    }
+    renderReports()
+    fireEvent.mouseDown(screen.getByRole('tab', { name: /Comparação/i }))
+
+    const linhaA = screen.getByText('Campus A', { selector: 'td' }).closest('tr')?.textContent ?? ''
+    expect(linhaA).toContain('+20,0%')
+    expect(linhaA).toContain('sem base')   // água sem jan/2025
+    expect(linhaA).toContain('sem dados')  // energia sem lançamento no mês
+    const total = screen.getByText('Universidade', { selector: 'td' }).closest('tr')?.textContent ?? ''
+    expect(total).toContain('+50,0%')
+    expect(total).toContain('0,0%')        // zero de verdade não vira "sem base"
   })
 })

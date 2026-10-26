@@ -1,15 +1,16 @@
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 
 import { api } from '@/lib/api'
-import { monthRange } from '@/lib/date'
 import { useAuth } from '@/providers/AuthProvider'
 import type {
   Campus,
+  ComparacaoResponse,
   IndicadorCampus,
   IndicadorUniversidade,
   Lancamento,
   LancamentoTipo,
   PizzaItem,
+  PontoSerie,
   ResumoResponse,
   Usuario
 } from '@/lib/types'
@@ -102,49 +103,30 @@ export function useLancamentos(filter: LancamentosFilter, enabled = true) {
   })
 }
 
-export interface PontoHistorico {
-  mes: string
-  agua: number
-  luz: number
-  /** Falso enquanto o mês ainda está carregando. */
-  carregado: boolean
-}
+/** Um mês do gráfico de tendência. */
+export type PontoHistorico = PontoSerie
 
 /**
- * Série histórica dos últimos N meses.
- *
- * A API expõe /resumo por mês, sem endpoint de série. Buscar N meses em
- * paralelo é aceitável nesta escala (7 campi, dados mensais) e cada mês fica
- * no cache do React Query, então navegar entre períodos reaproveita quase tudo.
+ * Série histórica dos N meses que terminam em `mesFinal`, numa chamada só (R.5).
+ * Universidade para o super; o próprio campus para o papel campus.
  */
-export function useHistoricoResumo(mesFinal: string, meses = 12, enabled = true) {
+export function useSerie(mesFinal: string, meses = 12, enabled = true) {
   const { getToken, claims } = useAuth()
-  const lista = monthRange(mesFinal, meses)
-
-  const results = useQueries({
-    queries: lista.map((mes) => ({
-      queryKey: ['resumo', mes],
-      queryFn: async () => api.get<ResumoResponse>(`/resumo?mes=${mes}`, await getToken()),
-      enabled: enabled && !!claims,
-      staleTime: 5 * 60 * 1000
-    }))
+  const query = useQuery<PontoSerie[]>({
+    queryKey: ['serie', mesFinal, meses],
+    queryFn: async () => api.get<PontoSerie[]>(`/serie?ate=${mesFinal}&meses=${meses}`, await getToken()),
+    enabled: enabled && !!claims,
+    staleTime: 5 * 60 * 1000
   })
+  return { data: query.data ?? [], isLoading: query.isLoading, isError: query.isError }
+}
 
-  const isLoading = results.some((r) => r.isLoading)
-  const isError = results.every((r) => r.isError) && results.length > 0
-
-  const data: PontoHistorico[] = lista.map((mes, index) => {
-    const result = results[index]
-    const resposta = result?.data
-    const bloco =
-      claims?.role === 'campus' ? resposta?.campus : resposta?.totalGeral
-    return {
-      mes,
-      agua: bloco?.agua ?? 0,
-      luz: bloco?.luz ?? 0,
-      carregado: !!result?.isSuccess
-    }
+/** Comparação com o mês anterior e com o mesmo mês do ano anterior, por medida (R.3). */
+export function useComparacao(mes: string, enabled = true) {
+  const { getToken, claims } = useAuth()
+  return useQuery<ComparacaoResponse>({
+    queryKey: ['comparacao', mes],
+    queryFn: async () => api.get<ComparacaoResponse>(`/comparacao?mes=${mes}`, await getToken()),
+    enabled: enabled && !!claims
   })
-
-  return { data, isLoading, isError }
 }

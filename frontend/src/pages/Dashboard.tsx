@@ -17,11 +17,12 @@ import { EmptyState, ErrorState } from '@/components/ui/empty-state'
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
 import {
   useCampusList,
-  useHistoricoResumo,
+  useComparacao,
   useIndicadores,
   useLancamentos,
   usePizza,
-  useResumo
+  useResumo,
+  useSerie
 } from '@/hooks/queries'
 import { formatMonthLabel, formatMonthLong, previousMonth } from '@/lib/date'
 import { comNota, motivoSemNota, notaMedia, styleForScore, toneFill } from '@/lib/ecoScore'
@@ -42,7 +43,8 @@ export default function Dashboard() {
   const resumo = useResumo(mes)
   const resumoAnterior = useResumo(mesAnterior)
   const indicadores = useIndicadores(mes)
-  const historico = useHistoricoResumo(mes, 12)
+  const historico = useSerie(mes, 12)
+  const comparacao = useComparacao(mes)
   const lancamentos = useLancamentos({ mes })
   const campi = useCampusList()
   const pizza = usePizza(mes, isSuper)
@@ -93,6 +95,15 @@ export default function Dashboard() {
 
   // O campus vê o próprio consumo e, ao lado, o total da universidade só como referência (D11).
   const universidade = !isSuper ? resumo.data?.totalGeral ?? null : null
+  // R.3: o mesmo mês do ano anterior, ao lado da variação mensal.
+  const anual = (medida: Medida) =>
+    comparacao.data
+      ? {
+          delta: comparacao.data.escopo[medida].variacaoAnual,
+          rotulo: formatMonthLabel(comparacao.data.anoAnterior)
+        }
+      : undefined
+
   const referencia = (medida: Medida) => {
     if (!universidade) return undefined
     const total = formatMedida(universidade[medida], medida)
@@ -156,6 +167,7 @@ export default function Dashboard() {
           icon={Droplet}
           accent="water"
           delta={variacao(atual?.agua ?? 0, anterior?.agua)}
+          anual={anual('agua')}
           series={serieAgua}
           term="metroCubico"
           loading={carregando}
@@ -172,6 +184,7 @@ export default function Dashboard() {
           icon={Zap}
           accent="energy"
           delta={variacao(atual?.luz ?? 0, anterior?.luz)}
+          anual={anual('luz')}
           series={serieLuz}
           term="kwh"
           loading={carregando}

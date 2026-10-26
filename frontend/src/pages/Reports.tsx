@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { BarChart3, Download, Info, PieChart, Trophy } from 'lucide-react'
+import { Fragment, useMemo, useState } from 'react'
+import { BarChart3, CalendarRange, Download, Info, PieChart, Trophy } from 'lucide-react'
 
 import { Explain } from '@/components/Explain'
 import { EcoRankingTable } from '@/components/EcoRankingTable'
@@ -20,13 +20,13 @@ import {
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/sonner'
-import { useIndicadorUniversidade, useIndicadores, usePizza } from '@/hooks/queries'
+import { useComparacao, useIndicadorUniversidade, useIndicadores, usePizza } from '@/hooks/queries'
 import { formatMonthLabel, formatMonthLong } from '@/lib/date'
 import { classifyScore, comNota, motivoSemNota, notaMedia, ordenarRanking } from '@/lib/ecoScore'
 import { downloadCsv } from '@/lib/export'
-import { descreverFator, formatEmissao, formatNumber, type Medida } from '@/lib/formatters'
+import { descreverFator, formatDelta, formatEmissao, formatNumber, UNIDADES, type Medida } from '@/lib/formatters'
 import { usePeriod } from '@/providers/PeriodProvider'
-import type { IndicadorUniversidade } from '@/lib/types'
+import type { ComparacaoBloco, ComparacaoMedida, ComparacaoResponse, IndicadorUniversidade } from '@/lib/types'
 
 export default function Reports() {
   const { mes } = usePeriod()
@@ -35,6 +35,7 @@ export default function Reports() {
 
   const indicadores = useIndicadores(mes)
   const universidade = useIndicadorUniversidade(mes)
+  const comparacao = useComparacao(mes)
   const pizza = usePizza(mes)
 
   const ranking = useMemo(() => ordenarRanking(indicadores.data ?? []), [indicadores.data])
@@ -73,7 +74,11 @@ export default function Reports() {
         'Eco Score',
         'Classificação',
         'Situação',
-        'Demonstração'
+        'Demonstração',
+        'Água vs mês anterior (%)',
+        'Água vs ano anterior (%)',
+        'Energia vs mês anterior (%)',
+        'Energia vs ano anterior (%)'
       ],
       ranking.map((item, index) => [
         item.ecoScore !== null ? index + 1 : '',
@@ -90,7 +95,9 @@ export default function Reports() {
         item.classificacao,
         motivoSemNota(item)?.label ?? 'Com nota',
         // Dado simulado nunca sai do sistema sem a marca (SPEC R.0).
-        item.demonstracao ? 'Sim' : 'Não'
+        item.demonstracao ? 'Sim' : 'Não',
+        // R.3: vazio = sem base para comparar (mês sem lançamento), nunca 0.
+        ...variacoesCsv(comparacao.data?.campi.find((c) => c.campusId === item.campusId))
       ]).concat(
         // Linha da universidade: só o kWh por pessoa (R.1) e o que entra nele.
         universidade.data
@@ -109,7 +116,8 @@ export default function Reports() {
                 '',
                 '',
                 '',
-                universidade.data.demonstracao ? 'Sim' : 'Não'
+                universidade.data.demonstracao ? 'Sim' : 'Não',
+                ...variacoesCsv(comparacao.data?.escopo)
               ],
               // A pegada só vale com o fator e a fonte junto (critério da Fase R).
               [
@@ -236,6 +244,10 @@ export default function Reports() {
                   <BarChart3 />
                   Números do mês
                 </TabsTrigger>
+                <TabsTrigger value="comparacao">
+                  <CalendarRange />
+                  Comparação
+                </TabsTrigger>
               </TabsList>
 
               <Select value={campusSelecionado} onValueChange={setCampusSelecionado}>
@@ -322,6 +334,35 @@ export default function Reports() {
                       itens={campusSelecionado === 'all' ? ranking : filtrado}
                       universidade={campusSelecionado === 'all' ? universidade.data : undefined}
                     />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="comparacao">
+              <Card>
+                <CardToolbar
+                  bordered
+                  title="Comparação com o mês e o ano anteriores"
+                  description={
+                    comparacao.data
+                      ? `${formatMonthLabel(mes)} contra ${formatMonthLabel(comparacao.data.mesAnterior)} e contra ${formatMonthLabel(comparacao.data.anoAnterior)}. Aqui, cair é bom.`
+                      : 'Cada medida contra o mês anterior e o mesmo mês do ano anterior.'
+                  }
+                />
+                <CardContent className="pt-5">
+                  {comparacao.isError ? (
+                    <ErrorState
+                      action={
+                        <Button variant="secondary" size="sm" onClick={() => comparacao.refetch()}>
+                          Tentar novamente
+                        </Button>
+                      }
+                    />
+                  ) : !comparacao.data ? (
+                    <SkeletonTable rows={6} cols={7} />
+                  ) : (
+                    <TabelaComparacao dados={comparacao.data} campusSelecionado={campusSelecionado} />
                   )}
                 </CardContent>
               </Card>
@@ -490,5 +531,105 @@ function TabelaDetalhe({
         )}
       </table>
     </div>
+  )
+}
+
+/** As quatro variações de um bloco para o CSV, na ordem das colunas. Vazio = sem base. */
+function variacoesCsv(bloco: ComparacaoBloco | undefined): (number | string)[] {
+  if (!bloco) return ['', '', '', '']
+  const v = (x: number | null) => (x === null ? '' : Number(x.toFixed(1)))
+  return [
+    v(bloco.agua.variacaoMensal),
+    v(bloco.agua.variacaoAnual),
+    v(bloco.luz.variacaoMensal),
+    v(bloco.luz.variacaoAnual)
+  ]
+}
+
+/** "+12,0%", ou o motivo de não haver número: sem dado no mês ou sem base para comparar. */
+function CelulaVariacao({ medida, qual }: { medida: ComparacaoMedida; qual: 'mensal' | 'anual' }) {
+  const delta = qual === 'mensal' ? medida.variacaoMensal : medida.variacaoAnual
+  if (delta !== null) {
+    return (
+      <span
+        className={
+          Math.abs(delta) < 0.5 ? 'text-muted-foreground' : delta < 0 ? 'text-success' : 'text-destructive'
+        }
+      >
+        {formatDelta(delta)}
+      </span>
+    )
+  }
+  return <span className="text-2xs text-subtle">{medida.atual === null ? 'sem dados' : 'sem base'}</span>
+}
+
+function TabelaComparacao({
+  dados,
+  campusSelecionado
+}: {
+  dados: ComparacaoResponse
+  campusSelecionado: string
+}) {
+  const linhas =
+    campusSelecionado === 'all'
+      ? dados.campi
+      : dados.campi.filter((c) => c.campusId === Number(campusSelecionado))
+  const medidas: Medida[] = ['agua', 'luz']
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border">
+      <table className="w-full text-sm">
+        <thead className="bg-surface-sunken">
+          <tr className="border-b border-border">
+            <th rowSpan={2} className="px-4 py-2.5 text-left eyebrow">
+              Campus
+            </th>
+            {medidas.map((m) => (
+              <th key={m} colSpan={3} className="px-4 pt-2.5 text-center eyebrow">
+                {UNIDADES[m].nome} ({UNIDADES[m].curta})
+              </th>
+            ))}
+          </tr>
+          <tr className="border-b border-border">
+            {medidas.map((m) => (
+              <Fragment key={m}>
+                <th className="px-4 py-2 text-right eyebrow">No mês</th>
+                <th className="px-4 py-2 text-right eyebrow">vs. {formatMonthLabel(dados.mesAnterior)}</th>
+                <th className="px-4 py-2 text-right eyebrow">vs. {formatMonthLabel(dados.anoAnterior)}</th>
+              </Fragment>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {linhas.map((bloco) => (
+            <LinhaComparacao key={bloco.campusId ?? 'universidade'} bloco={bloco} medidas={medidas} />
+          ))}
+        </tbody>
+        {campusSelecionado === 'all' && (
+          <tfoot className="border-t border-border bg-surface-sunken font-medium">
+            <LinhaComparacao bloco={dados.escopo} medidas={medidas} />
+          </tfoot>
+        )}
+      </table>
+    </div>
+  )
+}
+
+function LinhaComparacao({ bloco, medidas }: { bloco: ComparacaoBloco; medidas: Medida[] }) {
+  return (
+    <tr className="border-b border-border last:border-0">
+      <td className="px-4 py-3 font-medium">{bloco.nome}</td>
+      {medidas.map((m) => (
+        <Fragment key={m}>
+          <td className="px-4 py-3 text-right tabular-nums">{formatNumber(bloco[m].atual, 0)}</td>
+          <td className="px-4 py-3 text-right tabular-nums">
+            <CelulaVariacao medida={bloco[m]} qual="mensal" />
+          </td>
+          <td className="px-4 py-3 text-right tabular-nums">
+            <CelulaVariacao medida={bloco[m]} qual="anual" />
+          </td>
+        </Fragment>
+      ))}
+    </tr>
   )
 }
