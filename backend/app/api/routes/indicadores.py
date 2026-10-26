@@ -8,6 +8,7 @@ from app.core.security import get_current_user
 from app.db.session import get_db
 from app.schemas.auth import UserClaims
 from app.schemas.indicadores import IndicadorCampus, IndicadorUniversidade
+from app.services.carbono import ano_do_mes, fator_para_ano
 from app.services.indicadores import calcular_indicadores, indicador_universidade
 
 router = APIRouter()
@@ -22,7 +23,8 @@ def indicadores(
     # When the user is a campus admin, they only see their own row, but the
     # benchmark (averages) must still be computed against ALL campi. Otherwise
     # a single-row dataset would always return score 100.
-    output = calcular_indicadores(_campus_totals(db, mes=mes))
+    fator = fator_para_ano(db, ano_do_mes(mes))
+    output = calcular_indicadores(_campus_totals(db, mes=mes), fator)
     if user.role == "campus":
         return [item for item in output if item.campus_id == user.campusId]
     return output
@@ -35,4 +37,5 @@ def indicadores_universidade(
     _user: UserClaims = Depends(get_current_user),
 ):
     # Agregado da universidade: o papel campus também vê (D11, "referência").
-    return indicador_universidade(calcular_indicadores(_campus_totals(db, mes=mes)))
+    fator = fator_para_ano(db, ano_do_mes(mes))
+    return indicador_universidade(calcular_indicadores(_campus_totals(db, mes=mes), fator), fator)

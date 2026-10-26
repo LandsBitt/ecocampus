@@ -40,7 +40,7 @@ load_dotenv(ROOT / "backend" / ".env")
 
 from sqlalchemy import delete, select, update  # noqa: E402
 
-from app.db.models import Campus, Lancamento, LancamentoOrigem, LancamentoTipo  # noqa: E402
+from app.db.models import Campus, FatorEmissao, Lancamento, LancamentoOrigem, LancamentoTipo  # noqa: E402
 from app.db.session import SessionLocal, engine  # noqa: E402
 
 FONTE_FICTICIA = "FICTÍCIO"
@@ -56,6 +56,21 @@ PERFIL = {
     "Reitoria":                {"pop":  220, "area":  1800, "luz":  1900, "agua":  80},
     "Colégio UNITAU":          {"pop":  600, "area":  3500, "luz":  3200, "agua": 210},
     "Campus de Arquitetura":   {"pop":  450, "area":  2800, "luz":  2600, "agua": 110},
+}
+
+
+# Fatores médios anuais do SIN (tCO₂/MWh) informados por Roland em 2026-10-09
+# (SPEC 4.3). Não são fictícios, mas só entram no banco local por aqui: o
+# `--wipe` não os apaga. Conferir no site do MCTI antes do relatório final.
+FONTE_FATORES = (
+    "MCTI – fator médio anual do SIN (valores de 2024/2025 conferidos via inventários GEE que "
+    "usam a ferramenta GHG Protocol; confirmar no site do MCTI antes do relatório final)"
+)
+FATORES = {
+    2023: (Decimal("0.0385"), False),
+    2024: (Decimal("0.0545"), False),
+    2025: (Decimal("0.0461"), False),
+    2026: (Decimal("0.0461"), True),  # repete 2025 até o MCTI publicar
 }
 
 
@@ -155,6 +170,15 @@ def seed_lancamentos(db, nome_to_campus: dict[str, Campus], meses: int) -> None:
           f"({len(PERFIL)} campi × {meses} meses × 2 tipos; {pulados} já tinham lançamento e foram pulados).")
 
 
+def seed_fatores(db) -> None:
+    for ano, (fator, provisorio) in FATORES.items():
+        registro = db.get(FatorEmissao, ano) or FatorEmissao(ano=ano)
+        registro.fator, registro.provisorio, registro.fonte = fator, provisorio, FONTE_FATORES
+        db.add(registro)
+    db.commit()
+    print(f"[seed] fatores de emissão de {min(FATORES)} a {max(FATORES)} gravados.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Seed/wipe de dados FICTÍCIOS (somente banco local).")
     parser.add_argument("--wipe", action="store_true", help="Remove o que este script criou.")
@@ -170,6 +194,7 @@ def main() -> None:
             wipe(db)
         if args.wipe and not args.reset:
             return
+        seed_fatores(db)
         campi = seed_demografia(db)
         if not args.demografia:
             seed_lancamentos(db, campi, args.months)

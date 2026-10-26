@@ -101,6 +101,17 @@ export type Classificacao = 'Ecológico' | 'Na média' | 'Crítico'
  */
 export type Situacao = 'ok' | 'sem_dados' | 'sem_cadastro' | 'em_revisao'
 
+/** Fator de emissão usado num cálculo, para mostrar ao lado do número (R.2). */
+export interface FatorAplicado {
+  anoReferencia: number
+  /** Pode ser anterior ao ano de referência, quando este ainda não tem fator. */
+  anoDoFator: number
+  /** tCO₂/MWh = kgCO₂/kWh */
+  fator: number
+  provisorio: boolean
+  fonte: string
+}
+
 /** Indicadores da universidade inteira no período (GreenMetric EC4). */
 export interface IndicadorUniversidade {
   /** kWh total ÷ população total, só sobre os campi com energia e população no período. */
@@ -111,6 +122,9 @@ export interface IndicadorUniversidade {
   /** Têm energia no período mas não têm população: ficam fora da conta. */
   campiSemPopulacao: string[]
   demonstracao: boolean
+  /** Pegada de carbono da energia de todos os campi, em kg CO₂. Nula sem fator cadastrado. */
+  emissaoKgCo2: number | null
+  fatorEmissao: FatorAplicado | null
 }
 
 export interface IndicadorCampus {
@@ -134,6 +148,8 @@ export interface IndicadorCampus {
   consumoLuzPorM2: number | null
   /** kWh por pessoa — informativo, não entra na nota */
   consumoLuzPerCapita: number | null
+  /** Pegada de carbono da energia (kWh × fator do ano), em kg CO₂. Nula sem energia ou sem fator. */
+  emissaoKgCo2: number | null
   /** Referência da universidade usada na nota (total ÷ total). */
   referenciaAguaPerCapita: number | null
   referenciaLuzPorM2: number | null

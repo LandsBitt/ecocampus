@@ -20,6 +20,7 @@ CAMPOS_INDICADOR = {
     "consumoAguaPerCapita",
     "consumoLuzPorM2",
     "consumoLuzPerCapita",
+    "emissaoKgCo2",
     "referenciaAguaPerCapita",
     "referenciaLuzPorM2",
     "ecoScore",

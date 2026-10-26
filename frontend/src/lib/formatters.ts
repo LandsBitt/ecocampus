@@ -53,6 +53,17 @@ export function formatDelta(value: number | null | undefined, fractionDigits = 1
   return `${sign}${formatNumber(value, fractionDigits)}%`
 }
 
+/** Emissão em kg CO₂; acima de 1 t passa a toneladas para não virar um número enorme. */
+export function formatEmissao(kg: number | null | undefined): string {
+  if (kg === null || kg === undefined || Number.isNaN(kg)) return '—'
+  return kg >= 1000 ? `${formatNumber(kg / 1000, 2)} t CO₂` : `${formatNumber(kg, 0)} kg CO₂`
+}
+
+/** "0,0461 tCO₂/MWh (fator de 2025, provisório)" */
+export function descreverFator(f: { fator: number; anoDoFator: number; provisorio: boolean }): string {
+  return `${formatNumber(f.fator, 4)} tCO₂/MWh (fator de ${f.anoDoFator}${f.provisorio ? ', provisório' : ''})`
+}
+
 export type Medida = 'agua' | 'luz'
 
 export const UNIDADES: Record<Medida, { curta: string; longa: string; nome: string }> = {

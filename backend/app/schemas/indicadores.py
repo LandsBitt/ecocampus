@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.carbono import FatorAplicado
+
 # ok            tem cadastro e consumo no período: recebe nota e entra no ranking
 # sem_dados     tem cadastro, mas nenhum lançamento no período
 # sem_cadastro  falta população ou área construída
@@ -33,6 +35,8 @@ class IndicadorCampus(BaseModel):
     consumo_luz_por_m2: float | None = Field(default=None, alias="consumoLuzPorM2")
     # kWh por pessoa (GreenMetric EC4). Informativo: não entra na nota.
     consumo_luz_per_capita: float | None = Field(default=None, alias="consumoLuzPerCapita")
+    # Pegada de carbono da energia (R.2): kWh × fator do ano. Nula sem energia ou sem fator.
+    emissao_kg_co2: float | None = Field(default=None, alias="emissaoKgCo2")
 
     # Referência da universidade usada na nota (igual em todas as linhas).
     referencia_agua_per_capita: float | None = Field(default=None, alias="referenciaAguaPerCapita")
@@ -59,6 +63,9 @@ class IndicadorUniversidade(BaseModel):
     # Têm consumo de energia no período mas não têm população: o kWh deles fica fora da conta.
     campi_sem_populacao: list[str] = Field(default_factory=list, alias="campiSemPopulacao")
     demonstracao: bool = False
+    # Pegada de carbono da energia de TODOS os campi (não só os com população) e o fator usado.
+    emissao_kg_co2: float | None = Field(default=None, alias="emissaoKgCo2")
+    fator_emissao: FatorAplicado | None = Field(default=None, alias="fatorEmissao")
 
     model_config = ConfigDict(populate_by_name=True)
 

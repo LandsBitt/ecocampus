@@ -90,7 +90,9 @@ describe('Relatórios', () => {
       populacao: 1500,
       campiConsiderados: ['Campus A', 'Campus B'],
       campiSemPopulacao: ['Campus C'],
-      demonstracao: false
+      demonstracao: false,
+      emissaoKgCo2: 17000 * 0.0461,
+      fatorEmissao: { anoReferencia: 2026, anoDoFator: 2025, fator: 0.0461, provisorio: true, fonte: 'MCTI (teste)' }
     }
     renderReports()
     fireEvent.mouseDown(screen.getByRole('tab', { name: /Números|Detalhe/i }))
@@ -99,5 +101,29 @@ describe('Relatórios', () => {
     expect(rodape).toContain('9,3')
     expect(rodape).toContain('2 de 3')
     expect(rodape).toContain('ficam de fora: Campus C')
+    // R.2: a pegada aparece com o fator e a fonte usados.
+    expect(rodape).toContain('784 kg CO₂') // 17.000 kWh × 0,0461 = 783,7
+    expect(rodape).toContain('0,0461 tCO₂/MWh (fator de 2025, provisório)')
+    expect(rodape).toContain('Fonte: MCTI (teste)')
+  })
+
+  it('sem fator cadastrado, a pegada diz isso em vez de mostrar zero (R.2)', () => {
+    indicadores = [indicador({ campusId: 1, nome: 'Campus A', emissaoKgCo2: null })]
+    universidade = {
+      kwhPorPessoa: 8,
+      kwh: 8000,
+      populacao: 1000,
+      campiConsiderados: ['Campus A'],
+      campiSemPopulacao: [],
+      demonstracao: false,
+      emissaoKgCo2: null,
+      fatorEmissao: null
+    }
+    renderReports()
+    fireEvent.mouseDown(screen.getByRole('tab', { name: /Números/i }))
+
+    const rodape = screen.getByText('Universidade').closest('tfoot')?.textContent ?? ''
+    expect(rodape).toContain('sem fator de emissão cadastrado')
+    expect(rodape).not.toMatch(/0 kg CO₂/)
   })
 })

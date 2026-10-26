@@ -68,6 +68,12 @@ export const glossary = {
     detail:
       'Sem esses dois números não dá para fazer a comparação justa, então o campus fica sem nota e fora do ranking. O consumo dele continua contando no total da universidade. Cadastre os dados em Campi.'
   },
+  pegadaCarbono: {
+    label: 'Pegada de carbono',
+    short: 'Quanto CO₂ a geração da energia consumida jogou na atmosfera.',
+    detail:
+      'Energia do mês (kWh) multiplicada pelo fator médio anual de emissão da rede elétrica brasileira, publicado pelo MCTI. Ano ainda sem fator publicado usa o do ano anterior, marcado como provisório. Água não entra nesta conta.'
+  },
   demonstracao: {
     label: 'Demonstração',
     short: 'Dado simulado, não medido. Serve para mostrar como o sistema funciona enquanto o consumo real não chega.',

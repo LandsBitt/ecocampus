@@ -18,19 +18,21 @@ from __future__ import annotations
 from typing import Iterable
 
 from app.core.eco_score import classify_score, compute_eco_score
+from app.schemas.carbono import FatorAplicado
 from app.schemas.indicadores import IndicadorCampus, IndicadorUniversidade
+from app.services.carbono import emissao_kg
 
 
 def _razao(numerador: float, denominador: float) -> float | None:
     return numerador / denominador if denominador > 0 else None
 
 
-def calcular_indicadores(rows: Iterable) -> list[IndicadorCampus]:
+def calcular_indicadores(rows: Iterable, fator: FatorAplicado | None = None) -> list[IndicadorCampus]:
     """Indicadores de cada campus, na ordem recebida.
 
     `rows` são os totais por campus (`_campus_totals`). Devem vir TODOS os
     campi, mesmo quando só um será exibido: a referência é calculada sobre o
-    conjunto.
+    conjunto. `fator` é o de emissão do ano do período (R.2); sem ele, não há pegada.
     """
     linhas = []
     for row in rows:
@@ -99,6 +101,7 @@ def calcular_indicadores(rows: Iterable) -> list[IndicadorCampus]:
                 consumoAguaPerCapita=agua_per_capita,
                 consumoLuzPorM2=luz_por_m2,
                 consumoLuzPerCapita=luz_per_capita,
+                emissaoKgCo2=emissao_kg(l["luz"], fator) if l["tem_luz"] else None,
                 referenciaAguaPerCapita=ref_agua,
                 referenciaLuzPorM2=ref_luz,
                 ecoScore=eco_score,
@@ -110,14 +113,18 @@ def calcular_indicadores(rows: Iterable) -> list[IndicadorCampus]:
     return output
 
 
-def indicador_universidade(itens: Iterable[IndicadorCampus]) -> IndicadorUniversidade:
+def indicador_universidade(
+    itens: Iterable[IndicadorCampus], fator: FatorAplicado | None = None
+) -> IndicadorUniversidade:
     """kWh por pessoa da universidade (R.1), a partir dos indicadores por campus.
 
     Entram só os campi com energia e população no período. Campus sem cadastro
     ou fora do ranking também entra se tiver os dois números: aqui não há nota,
     é a universidade inteira.
     """
+    itens = list(itens)
     considerados = [i for i in itens if i.consumo_luz_per_capita is not None]
+    kwh_todos = sum(i.total_luz for i in itens)
     sem_populacao = [i for i in itens if i.total_luz > 0 and i.consumo_luz_per_capita is None]
     kwh = sum(i.total_luz for i in considerados)
     populacao = sum(i.populacao for i in considerados)
@@ -127,7 +134,9 @@ def indicador_universidade(itens: Iterable[IndicadorCampus]) -> IndicadorUnivers
         populacao=populacao,
         campiConsiderados=[i.nome for i in considerados],
         campiSemPopulacao=[i.nome for i in sem_populacao],
-        demonstracao=any(i.demonstracao for i in considerados),
+        demonstracao=any(i.demonstracao for i in itens if i.total_luz > 0),
+        emissaoKgCo2=emissao_kg(kwh_todos, fator) if kwh_todos > 0 else None,
+        fatorEmissao=fator,
     )
 
 

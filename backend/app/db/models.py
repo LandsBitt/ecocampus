@@ -123,3 +123,22 @@ class Lancamento(Base):
 
     campus: Mapped[Campus] = relationship(back_populates="lancamentos")
     ponto_medicao: Mapped[PontoMedicao | None] = relationship(back_populates="lancamentos")
+
+
+class FatorEmissao(Base):
+    """Fator médio anual do SIN (MCTI), em tCO₂/MWh = kgCO₂/kWh. SPEC R.2, migration 0015."""
+
+    __tablename__ = "fator_emissao"
+    __table_args__ = (
+        CheckConstraint("ano BETWEEN 2000 AND 2099", name="ck_fator_emissao_ano"),
+        CheckConstraint("fator > 0 AND fator < 2", name="ck_fator_emissao_fator"),
+    )
+
+    ano: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fator: Mapped[Decimal] = mapped_column(Numeric(8, 5), nullable=False)
+    # Valor ainda não publicado em definitivo pelo MCTI (ex.: repete o ano anterior).
+    provisorio: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    fonte: Mapped[str] = mapped_column(String(500), nullable=False)
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )

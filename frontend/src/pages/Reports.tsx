@@ -24,7 +24,7 @@ import { useIndicadorUniversidade, useIndicadores, usePizza } from '@/hooks/quer
 import { formatMonthLabel, formatMonthLong } from '@/lib/date'
 import { classifyScore, comNota, motivoSemNota, notaMedia, ordenarRanking } from '@/lib/ecoScore'
 import { downloadCsv } from '@/lib/export'
-import { formatNumber, type Medida } from '@/lib/formatters'
+import { descreverFator, formatEmissao, formatNumber, type Medida } from '@/lib/formatters'
 import { usePeriod } from '@/providers/PeriodProvider'
 import type { IndicadorUniversidade } from '@/lib/types'
 
@@ -69,6 +69,7 @@ export default function Reports() {
         'Água por pessoa (m³/pessoa)',
         'Energia por m² (kWh/m²)',
         'Energia por pessoa (kWh/pessoa)',
+        'Emissão de CO₂ da energia (kg)',
         'Eco Score',
         'Classificação',
         'Situação',
@@ -84,6 +85,7 @@ export default function Reports() {
         item.consumoAguaPerCapita,
         item.consumoLuzPorM2,
         item.consumoLuzPerCapita,
+        item.emissaoKgCo2,
         item.ecoScore,
         item.classificacao,
         motivoSemNota(item)?.label ?? 'Com nota',
@@ -103,10 +105,18 @@ export default function Reports() {
                 '',
                 '',
                 universidade.data.kwhPorPessoa,
+                universidade.data.emissaoKgCo2,
                 '',
                 '',
                 '',
                 universidade.data.demonstracao ? 'Sim' : 'Não'
+              ],
+              // A pegada só vale com o fator e a fonte junto (critério da Fase R).
+              [
+                '',
+                universidade.data.fatorEmissao
+                  ? `Fator de emissão: ${descreverFator(universidade.data.fatorEmissao)}. Fonte: ${universidade.data.fatorEmissao.fonte}`
+                  : 'Fator de emissão: sem fator cadastrado para o ano; emissão não calculada'
               ]
             ]
           : []
@@ -386,6 +396,7 @@ function TabelaDetalhe({
     totalAgua: number
     totalLuz: number
     consumoLuzPerCapita: number | null
+    emissaoKgCo2: number | null
     ecoScore: number | null
   }[]
 }) {
@@ -408,6 +419,7 @@ function TabelaDetalhe({
             <th className="px-4 py-2.5 text-right eyebrow">Água (m³)</th>
             <th className="px-4 py-2.5 text-right eyebrow">Energia (kWh)</th>
             <th className="px-4 py-2.5 text-right eyebrow">kWh/pessoa</th>
+            <th className="px-4 py-2.5 text-right eyebrow">CO₂ da energia</th>
             <th className="px-4 py-2.5 text-right eyebrow">Eco Score</th>
           </tr>
         </thead>
@@ -425,6 +437,9 @@ function TabelaDetalhe({
               <td className="px-4 py-3 text-right tabular-nums">{formatNumber(item.totalLuz, 0)}</td>
               <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
                 {formatNumber(item.consumoLuzPerCapita, 1)}
+              </td>
+              <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-muted-foreground">
+                {formatEmissao(item.emissaoKgCo2)}
               </td>
               <td className="px-4 py-3 text-right font-semibold tabular-nums">
                 {formatNumber(item.ecoScore, 1)}
@@ -445,15 +460,30 @@ function TabelaDetalhe({
               <td className="px-4 py-3 text-right font-semibold tabular-nums">
                 {formatNumber(universidade.kwhPorPessoa, 1)}
               </td>
+              <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">
+                {formatEmissao(universidade.emissaoKgCo2)}
+              </td>
               <td className="px-4 py-3" />
             </tr>
             <tr>
-              <td colSpan={7} className="px-4 pb-3 text-2xs leading-relaxed text-muted-foreground">
+              <td colSpan={8} className="px-4 pb-3 text-2xs leading-relaxed text-muted-foreground">
                 <Explain term="energiaPorPessoa">kWh por pessoa</Explain> da universidade: energia total
                 dividida pela população total, só dos campi que têm os dois números no mês (
                 {universidade.campiConsiderados.length} de {itens.length}).
                 {universidade.campiSemPopulacao.length > 0 &&
                   ` Sem população cadastrada, ficam de fora: ${universidade.campiSemPopulacao.join(', ')}.`}
+              </td>
+            </tr>
+            <tr>
+              <td colSpan={8} className="px-4 pb-3 text-2xs leading-relaxed text-muted-foreground">
+                <Explain term="pegadaCarbono">Pegada de carbono</Explain> da energia de todos os campi:{' '}
+                {universidade.fatorEmissao ? (
+                  <>
+                    kWh × {descreverFator(universidade.fatorEmissao)}. Fonte: {universidade.fatorEmissao.fonte}.
+                  </>
+                ) : (
+                  'sem fator de emissão cadastrado para este ano, então a emissão não é calculada.'
+                )}
               </td>
             </tr>
           </tfoot>
