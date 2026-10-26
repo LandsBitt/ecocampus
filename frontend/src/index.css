@@ -379,6 +379,51 @@
   }
 }
 
+/* Ondas do login: três camadas em ritmos diferentes. Só transform (barato na GPU);
+   com reduzir movimento, ficam paradas como uma imagem. */
+@layer components {
+  .mar {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    /* O conteúdo reserva espaço embaixo (pb do main) para só a onda mais clara
+       passar por trás do texto: as duas escuras ficam abaixo dele. */
+    height: min(40vh, 24rem);
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .mar svg {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 200%;
+    height: 100%;
+    animation: onda 14s linear infinite;
+  }
+  .mar path {
+    fill: hsl(var(--water-fill));
+  }
+  .mar .mar__1 {
+    opacity: 0.18;
+  }
+  .mar .mar__2 {
+    height: 82%;
+    opacity: 0.28;
+    animation-duration: 9s;
+    animation-direction: reverse;
+  }
+  .mar .mar__3 {
+    height: 60%;
+    opacity: 0.5;
+    animation-duration: 6s;
+  }
+  @media (max-width: 640px) {
+    .mar {
+      height: min(22vh, 10rem);
+    }
+  }
+}
+
 @keyframes onda {
   to {
     transform: translateX(-50%);

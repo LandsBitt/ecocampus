@@ -1,32 +1,81 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart3, Droplet, ShieldCheck, Zap } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { FlaskConical } from 'lucide-react'
 
 import { Brand } from './Brand'
 import { ThemeToggle } from './ThemeToggle'
+import { Numero } from '@/components/painel/Numero'
+import { Button } from '@/components/ui/button'
+import { api } from '@/lib/api'
+import { nomeDoMes } from '@/lib/frases'
+import { medidaNumerica } from '@/lib/formatters'
+import { usePeriod } from '@/providers/PeriodProvider'
+import type { IndicadorCampus } from '@/lib/types'
 
-const DESTAQUES = [
-  {
-    icon: Droplet,
-    titulo: 'Água e energia no mesmo lugar',
-    texto: 'Consumo mensal de todos os campi, com histórico e comparação automática.'
-  },
-  {
-    icon: BarChart3,
-    titulo: 'Comparação justa entre campi',
-    texto: 'Os números são ajustados por população e área, então tamanho não distorce o ranking.'
-  },
-  {
-    icon: ShieldCheck,
-    titulo: 'Acesso controlado',
-    texto: 'Cada campus enxerga os próprios dados; a reitoria enxerga o conjunto.'
-  }
-]
+/** Três camadas de onda em SVG: o fundo animado do login, leve e sem biblioteca 3D. */
+function Mar() {
+  const onda = (y: number, amp: number) =>
+    `M0 ${y} C 200 ${y - amp} 400 ${y + amp} 600 ${y} S 1000 ${y - amp} 1200 ${y} S 1400 ${y + amp} 1600 ${y} V 300 H 0 Z`
+  return (
+    <div className="mar" aria-hidden>
+      <svg className="mar__1" viewBox="0 0 1600 300" preserveAspectRatio="none">
+        <path d={onda(120, 60)} />
+      </svg>
+      <svg className="mar__2" viewBox="0 0 1600 300" preserveAspectRatio="none">
+        <path d={onda(150, 60)} />
+      </svg>
+      <svg className="mar__3" viewBox="0 0 1600 300" preserveAspectRatio="none">
+        <path d={onda(170, 40)} />
+      </svg>
+    </div>
+  )
+}
 
 /**
- * Moldura das telas de acesso. A coluna da esquerda existe para dar contexto
- * institucional a quem chega pela primeira vez — em telas pequenas ela some
- * e sobra apenas o formulário.
+ * Água e energia da universidade no mês, pelos dados públicos do ranking.
+ * Se a consulta falhar ou o mês estiver vazio, simplesmente não aparece.
+ */
+function NumerosDoMes() {
+  const { mes } = usePeriod()
+  const ranking = useQuery<IndicadorCampus[]>({
+    queryKey: ['public-ranking', mes],
+    queryFn: () => api.get<IndicadorCampus[]>(`/public/ranking?mes=${mes}`),
+    staleTime: 5 * 60 * 1000
+  })
+  const itens = ranking.data ?? []
+  const agua = medidaNumerica(itens.reduce((s, i) => s + i.totalAgua, 0), 'agua')
+  const luz = medidaNumerica(itens.reduce((s, i) => s + i.totalLuz, 0), 'luz')
+  if (!agua || !luz || (agua.n === 0 && luz.n === 0)) return null
+  const demonstracao = itens.some((i) => i.demonstracao)
+  const mesNome = nomeDoMes(mes, mes)
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-x-8 gap-y-4">
+        <div>
+          <Numero valor={agua.n} casas={agua.casas} unidade={agua.unit} className="text-4xl text-water" classeUnidade="text-base" />
+          <p className="mt-1.5 text-[0.8125rem] text-subtle">de água em {mesNome}</p>
+        </div>
+        <div>
+          <Numero valor={luz.n} casas={luz.casas} unidade={luz.unit} className="text-4xl text-energy" classeUnidade="text-base" />
+          <p className="mt-1.5 text-[0.8125rem] text-subtle">de energia em {mesNome}</p>
+        </div>
+      </div>
+      {demonstracao && (
+        <p className="flex items-center gap-1.5 text-[0.8125rem] text-subtle">
+          <FlaskConical className="size-3.5 text-warning" aria-hidden />
+          Inclui dados de demonstração.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Moldura das telas de acesso (entrar, recuperar senha): ondas de água no
+ * fundo, a frase do produto à esquerda e o formulário à direita. No celular
+ * a frase encolhe e o formulário vem logo depois.
  */
 export function AuthLayout({
   title,
@@ -40,86 +89,50 @@ export function AuthLayout({
   footer?: ReactNode
 }) {
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      {/* Painel institucional */}
-      <div className="relative hidden overflow-hidden bg-brand lg:flex lg:flex-col lg:justify-between lg:p-12">
-        <div className="bg-grid absolute inset-0 opacity-[0.07]" aria-hidden />
-        <div
-          className="absolute -right-24 -top-24 size-96 rounded-full bg-white/10 blur-3xl"
-          aria-hidden
-        />
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
+      <Mar />
 
-        <div className="relative flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center overflow-hidden rounded-lg bg-white/95">
-            <img src="/image/unitau-logo.png" alt="" className="size-9 object-contain" aria-hidden />
-          </span>
-          <div>
-            <p className="font-display text-sm font-bold tracking-tight text-white">ECOCAMPUS</p>
-            <p className="text-2xs text-white/70">Universidade de Taubaté</p>
-          </div>
-        </div>
-
-        <div className="relative max-w-md">
-          <h2 className="font-display text-3xl font-semibold leading-tight text-white">
-            Gestão de consumo de água e energia dos campi
-          </h2>
-          <p className="mt-3 text-sm leading-relaxed text-white/75">
-            Um painel único para acompanhar o consumo mensal, entender o que mudou e agir sobre o
-            que mais pesa.
-          </p>
-
-          <ul className="mt-8 space-y-5">
-            {DESTAQUES.map((item) => (
-              <li key={item.titulo} className="flex gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-white/10 text-white">
-                  <item.icon className="size-4" />
-                </span>
-                <div>
-                  <p className="text-[0.8125rem] font-medium text-white">{item.titulo}</p>
-                  <p className="mt-0.5 text-2xs leading-relaxed text-white/65">{item.texto}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="relative flex items-center gap-4 text-2xs text-white/50">
-          <span className="flex items-center gap-1.5">
-            <Droplet className="size-3" /> m³
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Zap className="size-3" /> kWh
-          </span>
-          <span className="ml-auto">
-            <Link to="/ranking" className="underline-offset-4 hover:text-white/80 hover:underline">
-              Ver ranking público
-            </Link>
-          </span>
-        </div>
-      </div>
-
-      {/* Formulário */}
-      <div className="flex flex-col">
-        <div className="flex items-center justify-between px-6 py-5 lg:justify-end">
-          <Brand className="lg:hidden" />
+      <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 pt-6 sm:px-10">
+        <Brand />
+        <div className="flex items-center gap-2">
+          <Button asChild variant="secondary" size="sm" className="hidden sm:inline-flex">
+            <Link to="/ranking">Ver ranking público</Link>
+          </Button>
           <ThemeToggle />
         </div>
+      </header>
 
-        <div className="flex flex-1 items-center justify-center px-6 pb-12">
-          <div className="w-full max-w-sm animate-rise">
-            <div className="mb-7 space-y-2">
-              <h1 className="font-display text-2xl font-semibold text-foreground">{title}</h1>
-              <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">
-                {description}
-              </p>
-            </div>
-
-            {children}
-
-            {footer && <div className="mt-6">{footer}</div>}
+      <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-wrap items-center gap-10 px-5 pb-24 pt-8 sm:px-10 sm:pb-56 lg:gap-16">
+        <section className="flex min-w-0 flex-[999_1_30rem] flex-col gap-6">
+          <p className="eyebrow">Água e energia dos campi da UNITAU</p>
+          <h2 className="text-balance font-display text-[2.5rem] font-bold leading-[0.95] tracking-[-0.035em] sm:text-6xl lg:text-[5rem]">
+            Cada gota e cada quilowatt, num só lugar.
+          </h2>
+          <p className="hidden max-w-xl text-lg leading-relaxed text-muted-foreground sm:block">
+            Veja quanto o seu campus consumiu no mês, compare de forma justa com os outros e saiba o que mudou,
+            em frases simples.
+          </p>
+          <div className="hidden sm:block">
+            <NumerosDoMes />
           </div>
-        </div>
-      </div>
+        </section>
+
+        <section
+          aria-labelledby="auth-titulo"
+          className="w-full flex-[1_1_22rem] rounded-2xl border border-border bg-card p-7 shadow-lg sm:max-w-md sm:p-8"
+        >
+          <div className="mb-6 space-y-2">
+            <h1 id="auth-titulo" className="font-display text-3xl font-bold tracking-[-0.03em] text-foreground">
+              {title}
+            </h1>
+            <p className="text-[0.9375rem] leading-relaxed text-muted-foreground">{description}</p>
+          </div>
+
+          {children}
+
+          {footer && <div className="mt-6">{footer}</div>}
+        </section>
+      </main>
     </div>
   )
 }
