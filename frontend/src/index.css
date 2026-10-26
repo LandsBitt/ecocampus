@@ -26,7 +26,8 @@
     --foreground: 215 32% 14%;
     --muted: 210 22% 94%;
     --muted-foreground: 215 14% 42%;
-    --subtle-foreground: 215 12% 55%;
+    /* 44,5%: mínimo para 4,5:1 em background e surface-sunken (era 55%, 3,1:1) */
+    --subtle-foreground: 215 12% 44.5%;
 
     /* Marca UNITAU */
     --brand: 206 86% 27%;
@@ -51,7 +52,7 @@
     --success: 158 68% 28%;
     --success-foreground: 0 0% 100%;
     --success-soft: 158 55% 94%;
-    --warning: 32 90% 38%;
+    --warning: 32 90% 34%;
     --warning-foreground: 0 0% 100%;
     --warning-soft: 38 92% 93%;
     --destructive: 0 68% 45%;
@@ -59,11 +60,12 @@
     --destructive-soft: 0 80% 96%;
 
     /* Cores de dado */
-    --water: 199 88% 38%;
+    /* Escurecidas para 4,5:1 também sobre o fundo *-soft dos selos (texto de 11–12px) */
+    --water: 199 88% 34.5%;
     --water-soft: 199 85% 94%;
-    --energy: 32 92% 42%;
+    --energy: 32 92% 33.5%;
     --energy-soft: 36 92% 93%;
-    --eco: 160 76% 29%;
+    --eco: 160 76% 27.5%;
     --eco-soft: 160 60% 94%;
 
     /* Paleta categórica para gráficos (8 campi) */
@@ -123,7 +125,8 @@
     --warning: 38 88% 58%;
     --warning-foreground: 216 40% 8%;
     --warning-soft: 38 60% 15%;
-    --destructive: 0 72% 60%;
+    /* 62,5%: 4,5:1 sobre destructive-soft (era 60%, 4,2:1) */
+    --destructive: 0 72% 62.5%;
     --destructive-foreground: 216 40% 8%;
     --destructive-soft: 0 50% 16%;
 
