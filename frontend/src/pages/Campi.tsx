@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Building2, Check, Info, RotateCcw, Save, Users } from 'lucide-react'
 
 import { Explain } from '@/components/Explain'
+import { FatoresEmissaoCard } from '@/components/FatoresEmissaoCard'
 import { Page } from '@/components/layout/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -276,6 +277,8 @@ export default function Campi() {
           })}
         </div>
       )}
+
+      <FatoresEmissaoCard />
     </Page>
   )
 }

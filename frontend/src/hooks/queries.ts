@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { useAuth } from '@/providers/AuthProvider'
 import type {
   AlertasResponse,
+  FatorEmissao,
   Campus,
   ComparacaoResponse,
   IndicadorCampus,
@@ -120,6 +121,16 @@ export function useSerie(mesFinal: string, meses = 12, enabled = true) {
     staleTime: 5 * 60 * 1000
   })
   return { data: query.data ?? [], isLoading: query.isLoading, isError: query.isError }
+}
+
+/** Fatores de emissão cadastrados, do ano mais antigo ao mais recente (R.2). */
+export function useFatoresEmissao() {
+  const { getToken, claims } = useAuth()
+  return useQuery<FatorEmissao[]>({
+    queryKey: ['fatores'],
+    queryFn: async () => api.get<FatorEmissao[]>('/fatores-emissao', await getToken()),
+    enabled: !!claims
+  })
 }
 
 /** Alerta de pico de cada campus e medida no mês (R.4). */

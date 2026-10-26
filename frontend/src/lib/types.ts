@@ -278,3 +278,12 @@ export interface AlertasResponse {
   /** Picos primeiro, do maior salto para o menor. */
   avaliados: AlertaPico[]
 }
+
+/** Fator médio anual de emissão do SIN, como cadastrado (R.2). */
+export interface FatorEmissao {
+  ano: number
+  /** tCO₂/MWh = kgCO₂/kWh */
+  fator: number
+  provisorio: boolean
+  fonte: string
+}
