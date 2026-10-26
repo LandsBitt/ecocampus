@@ -91,6 +91,21 @@ export function formatMedida(
 }
 
 /** Versão em texto corrido: "12.480 m³". */
+/**
+ * A mesma escolha de unidade e casas de `formatMedida`, mas como número:
+ * é o que o mostrador animado (NumberFlow) precisa para rolar até o valor.
+ */
+export function medidaNumerica(
+  value: number | null | undefined,
+  tipo: Medida
+): { n: number; casas: number; unit: string } | null {
+  if (isBlank(value)) return null
+  const n = Number(value)
+  if (tipo === 'luz' && Math.abs(n) >= 10_000) return { n: n / 1000, casas: 1, unit: 'MWh' }
+  if (tipo === 'agua' && Math.abs(n) >= 1_000_000) return { n: n / 1000, casas: 1, unit: 'mil m³' }
+  return { n, casas: Math.abs(n) < 100 ? 1 : 0, unit: UNIDADES[tipo].curta }
+}
+
 export function formatMedidaInline(value: number | null | undefined, tipo: Medida): string {
   const { value: v, unit } = formatMedida(value, tipo)
   return v === EMPTY ? EMPTY : `${v} ${unit}`

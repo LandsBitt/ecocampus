@@ -321,6 +321,99 @@
   }
 }
 
+/* ---------- Assinaturas da Visão geral ---------- */
+@layer components {
+  /* Medidor de água: o líquido sobe até o consumo e a superfície ondula */
+  .tanque__liquido {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, hsl(var(--water-fill)), hsl(var(--water-fill) / 0.55));
+    transition: height 1.4s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .tanque__onda {
+    position: absolute;
+    left: 0;
+    width: 200%;
+    height: 22px;
+    top: -20px;
+    animation: onda 5s linear infinite;
+  }
+  .tanque__onda path {
+    fill: hsl(var(--water-fill));
+  }
+  .tanque__onda--fundo {
+    top: -16px;
+    opacity: 0.45;
+    animation-duration: 8s;
+    animation-direction: reverse;
+  }
+
+  /* Energia: anéis que pulsam a partir do raio */
+  .pulso__anel {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 2px solid hsl(var(--energy-fill));
+    opacity: 0;
+    animation: pulso 2.4s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+  }
+  .pulso__anel:nth-child(2) {
+    animation-delay: 0.8s;
+  }
+  .pulso__anel:nth-child(3) {
+    animation-delay: 1.6s;
+  }
+  .pulso__raio {
+    filter: drop-shadow(0 0 12px hsl(var(--energy-fill) / 0.45));
+    animation: piscada 2.4s ease-in-out infinite;
+  }
+  .tracado path {
+    fill: none;
+    stroke: hsl(var(--energy-fill));
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 600;
+    animation: tracado 2.4s linear infinite;
+  }
+}
+
+@keyframes onda {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes pulso {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+}
+@keyframes piscada {
+  0%,
+  46%,
+  54%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+@keyframes tracado {
+  from {
+    stroke-dashoffset: 600;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 @property --beam-angle {
   syntax: '<angle>';
   inherits: false;
