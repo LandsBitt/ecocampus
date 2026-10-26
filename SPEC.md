@@ -103,7 +103,14 @@ Revisado em 2026-10-09 com as decisões da [seção 4](#4-decisões-e-pendência
 
 **Escopo atual: só local.** Todo o trabalho usa o Postgres do `docker-compose`. Nada de produção, Render, Vercel ou Neon até Roland avisar; as ações 0.1 a 0.3 e 0.6 ficam suspensas até lá.
 
-**Andamento:** 1.1 a 1.6 e 1.8 concluídas em 2026-10-09; 1.7, 1.9 e 1.10 em 2026-10-14, todas na branch `fase-1`. Faltam 1.11 e 1.12 (esta depende de P6). Testes: `pytest` no backend (147) e `npm test` (vitest) no frontend (36). No banco local a migração 0010 classificou 84 lançamentos de luz como `cpfl_legado` e 73 de água como `manual`; nada foi apagado pela migração. Os 73 manuais eram o seed fictício de `scripts/seed_fake_data.py` e saíram depois com `--wipe` (backup em `backups/ecocampus_local_antes_wipe.sql`). Antes da 0013 o banco local não tinha nenhum manual, então o índice único entrou sem mexer em dados (backup em `backups/ecocampus_local_antes_0013.sql`). Em 2026-10-14 a planilha `Docs/PLANILHA PADRÃO AGUA - TESTE.csv` foi importada para 2026-01 pelo fluxo da API: 39 pontos, 19.242 m³, nenhuma linha ignorada. Estado local: 39 importados de água em 2026-01 e as 84 linhas `cpfl_legado` de luz (2025-06 a 2026-05); nenhum dado real de energia. O teto de consumo e de R$ (10 milhões por lançamento) está em `backend/app/core/limites.py`, com a justificativa.
+**Andamento:** 1.1 a 1.6 e 1.8 concluídas em 2026-10-09; 1.7, 1.9 e 1.10 em 2026-10-14; 1.11 em 2026-10-26, todas na branch `fase-1`. 1.12 suspensa (ver abaixo). Também em 2026-10-26, fora do roteiro original: tela **Usuários** (só `super`), que cria contas no Firebase Auth com e-mail, senha e papel, troca o papel de contas existentes e desativa/reativa; trocar papel ou desativar revoga os tokens. Antes era preciso criar no console do Firebase e rodar `scripts/set_claims.py`. Testes: `pytest` no backend (163) e `npm test` (vitest) no frontend (42). No banco local a migração 0010 classificou 84 lançamentos de luz como `cpfl_legado` e 73 de água como `manual`; nada foi apagado pela migração. Os 73 manuais eram o seed fictício de `scripts/seed_fake_data.py` e saíram depois com `--wipe` (backup em `backups/ecocampus_local_antes_wipe.sql`). Antes da 0013 o banco local não tinha nenhum manual, então o índice único entrou sem mexer em dados (backup em `backups/ecocampus_local_antes_0013.sql`). Em 2026-10-14 a planilha `Docs/PLANILHA PADRÃO AGUA - TESTE.csv` foi importada para 2026-01 pelo fluxo da API: 39 pontos, 19.242 m³, nenhuma linha ignorada. Estado local: 39 importados de água em 2026-01 e as 84 linhas `cpfl_legado` de luz (2025-06 a 2026-05); nenhum dado real de energia. O teto de consumo e de R$ (10 milhões por lançamento) está em `backend/app/core/limites.py`, com a justificativa.
+
+**Sem dados reais (2026-10-26).** Não chegaram nem a planilha da Reitoria (P6) nem população e área dos campi (P7), e a orientadora ainda não respondeu. O projeto segue com o que existe: a única medição real é a água de 2026-01 (39 pontos); todo o resto é demonstração. Consequências:
+
+- **1.12 suspensa.** A Reitoria continua fora do ranking pelo motivo já gravado (1.5), com o consumo no total da universidade. Nada a implementar até o mapeamento chegar.
+- **População e área ficam fictícias**, com a marca "FICTÍCIO" que já existe (`campus.demografia_fonte`, `scripts/seed_fake_data.py`).
+- **Lançamentos de demonstração precisam de marca própria** (novo item R.0). Hoje o seed grava como `manual`, indistinguível de um lançamento real. Sem a marca, o relatório não consegue separar o que foi medido do que foi simulado.
+- **O relatório apresenta o sistema e a metodologia**, com os números de demonstração rotulados como tal, e a água de 2026-01 como o único caso real. É um desvio do plano a relatar com honestidade, junto com os outros (Next.js → FastAPI, só Taubaté).
 
 **Conferência visual pendente:** as telas alteradas em 1.3 a 1.7 e 1.10 ainda não foram abertas num navegador com login. O que os testes cobrem: tabela do ranking e tela de Relatórios renderizadas com campus sem dado, sem cadastro e em revisão, e as unidades das colunas; frases de resumo por medida; botões Editar/Excluir da tabela de lançamentos por papel.
 
@@ -144,8 +151,8 @@ Cada correção entra junto com o teste que a reproduz.
 | 1.8 | ✅ **Feito.** **Importação.** Parser que rejeita formato ambíguo com mensagem por linha; `consumo` obrigatório e `valor_rs` opcional (P2); validar `tipo`, mês e colunas; conferir `ano`/`mes` do arquivo contra o formulário; acusar ponto repetido; recusar negativos; confirmação informa itens ignorados. Se o campus/tipo/mês tem lançamento manual, a prévia avisa "será substituído" e a confirmação apaga o manual explicitamente, na mesma transação (D4). | C5, C6, B5 | 1.3 |
 | 1.9 | ✅ **Feito.** Remover `/public/campus` e o schema `CampusComUnidades` (D9). | B1 | — |
 | 1.10 | ✅ **Feito** (migration 0013). **Lançamento manual (D4, D5).** Validação na API (consumo ≥ 0, mês válido, teto) e `CHECK` no banco. Um manual por campus/tipo/mês (índice único parcial); segundo devolve 409; também 409 se já existe importado para o campus/tipo/mês. Admin de campus edita e exclui apenas manuais do próprio campus; importados só o `super`. Colunas `criado_por` (uid/e-mail do Firebase) e `atualizado_em`. A tela só mostra Editar/Excluir a quem pode. Conflito de índice na edição vira 409, não 500. | C7, C8, B2, B4 | 1.3 |
-| 1.11 | Estado de erro no Dashboard; tela própria para usuário sem papel; tratamento de erro e fim do refresh forçado no `AuthProvider`. Bloco do `/resumo` para o papel campus rotulado "Universidade (referência)" (D11). | F1, F2 | — |
-| 1.12 | **Pontos da Reitoria (D8).** Migration reatribuindo os pontos que pertencem a outra unidade, atualizando também o `campus_id` dos lançamentos já importados desses pontos. Se sobrarem pontos sem dono claro, criar o grupo "Unidades dispersas" (conta no total, fora do ranking). | — | 0.5 |
+| 1.11 | ✅ **Feito.** Estado de erro no Dashboard; tela própria para usuário sem papel; tratamento de erro e fim do refresh forçado no `AuthProvider`. Bloco do `/resumo` para o papel campus rotulado "Universidade (referência)" (D11). | F1, F2 | — |
+| 1.12 | ⏸ **Suspensa** (sem mapeamento, ver "Sem dados reais"). **Pontos da Reitoria (D8).** Migration reatribuindo os pontos que pertencem a outra unidade, atualizando também o `campus_id` dos lançamentos já importados desses pontos. Se sobrarem pontos sem dono claro, criar o grupo "Unidades dispersas" (conta no total, fora do ranking). | — | 0.5 |
 
 **Critérios de aceite**
 
@@ -185,11 +192,21 @@ Só começa com 1.3 a 1.7 prontos: todos estes números dependem de consumo fís
 
 | # | Tarefa | Depende de |
 |---|---|---|
+| R.0 | **Dados de demonstração marcados.** Nova `origem` `demonstracao`, gravada só por `scripts/seed_fake_data.py`. Entra nos cálculos como qualquer consumo, mas as telas, a exportação CSV e o relatório mostram "Demonstração" ao lado do número; mês com qualquer lançamento de demonstração fica marcado inteiro. O seed não grava campus/tipo/mês que já tenha importado (a água de 2026-01 é real e fica). `--wipe` passa a apagar por `origem`. Pelo menos 13 meses de histórico, para R.3 (ano anterior) e R.4 (6 meses de base) terem o que mostrar. | 1.3 |
 | R.1 | kWh por pessoa por campus e da universidade (GreenMetric EC4), na tabela de detalhe e na exportação. | 1.6 |
 | R.2 | Pegada de carbono da energia: kWh × fator médio **anual** do SIN publicado pelo MCTI (GreenMetric EC8). Tabela `fator_emissao` (ano, fator em tCO₂/MWh, `provisorio`, fonte), criada vazia pela migration. Ano sem fator usa o último publicado, marcado "provisório"; sem nenhum fator, a tela mostra "sem fator cadastrado" — nunca zero. Valores para o seed local na [seção 4.3](#43-fatores-de-emissão-para-o-seed-local). | 1.3 |
 | R.3 | Comparação com o mês anterior e com o mesmo mês do ano anterior, por medida. | 1.7 |
 | R.4 | Alerta de pico: consumo do mês > 1,3 × média dos 12 meses anteriores, por campus e tipo, com mínimo de 6 meses de histórico. Limiar numa constante única, coberta por teste. | 1.7 |
 | R.5 | Endpoint de série histórica por medida (antecipa o 4.1), porque R.3 e R.4 precisam dele. | 1.7 |
+
+**R.0 em passos** (mapeado em 2026-10-26; tudo que soma consumo passa por `_campus_totals` em `api/routes/resumo.py`, que indicadores e pizza reaproveitam):
+
+1. **Migration 0014.** Acrescentar `demonstracao` ao `CHECK ck_lancamentos_origem` (hoje `manual`, `importado`, `cpfl_legado`) e ao enum `LancamentoOrigem` em `db/models.py`. Índice único parcial `(campus_id, tipo, mes_referencia) WHERE origem = 'demonstracao'`, como o dos manuais.
+2. **Real substitui demonstração.** Em `lancamentos.py::_exige_mes_livre` e na confirmação da importação (`importar.py`, perto da linha 125, onde o manual já é apagado), um lançamento manual ou importado apaga o de demonstração do mesmo campus/tipo/mês, na mesma transação. A prévia da importação avisa isso. Sem isso, o total dobra.
+3. **API diz o que é simulado.** `_campus_totals` devolve também `demonstracao` (bool: algum lançamento de demonstração na soma). O campo vai para `ResumoCampus`, `IndicadorCampus` e `PizzaItem`. A resposta do `/resumo` ganha `temDemonstracao` no nível do mês.
+4. **Seed.** `scripts/seed_fake_data.py` grava `origem='demonstracao'`, pula campus/tipo/mês que já tenha lançamento real, gera 18 meses por padrão (R.3 precisa de 13 e R.4 de 6 de base), e `--wipe` apaga por `origem`, não mais "manual sem ponto".
+5. **Front.** `LancamentoOrigem` em `lib/types.ts`; selo "Demonstração" na tabela de lançamentos (ao lado do selo do `cpfl_legado`, `LancamentosTable.tsx:172`), no ranking e nos cartões do Dashboard; faixa no topo do Dashboard e de Relatórios quando `temDemonstracao`; coluna "Demonstração" no CSV exportado. `permissoes.ts` já só libera `manual` para o campus, então demonstração não é editável pela tela.
+6. **Testes.** Migration aceita a nova origem; manual e importação sobre mês de demonstração substituem sem dobrar; `_campus_totals` marca o campus e o mês; seed não toca a água real de 2026-01; front mostra o selo.
 
 **Critérios de aceite:** cada indicador tem teste com valores calculados à mão; a pegada de carbono mostra na tela o fator e a fonte usados; comparação anual mostra "sem base" quando não há dado do ano anterior; a exportação CSV traz todos os indicadores usados no relatório, com unidade no cabeçalho.
 
@@ -256,8 +273,8 @@ Antes do relatório, só 3.1 e 3.2. O restante fica para depois.
 | P3 | ✅ Resolvida: nota e ranking exigem população **e** área; indicadores individuais aparecem quando houver o dado. | — | — |
 | P4 | ✅ Resolvida: fator médio anual, um por ano; ano sem fator usa o último publicado, marcado "provisório". Falta só conferir os valores no site do MCTI antes do relatório final (4.3). | Roland | relatório |
 | P5 | ✅ Resolvida: pico = mês > 1,3 × média dos 12 meses anteriores, por campus e tipo, mínimo de 6 meses de histórico. | — | — |
-| P6 | Preencher `Docs/pontos-reitoria-para-reatribuir.csv`. Até lá a Reitoria fica fora do ranking. | Roland + setor | 1.12 |
-| P7 | População e área construída reais dos 8 campi. Até lá, valores fictícios marcados "FICTÍCIO" no seed local. | setor responsável | relatório |
+| P6 | Preencher `Docs/pontos-reitoria-para-reatribuir.csv`. Até lá a Reitoria fica fora do ranking. Sem resposta em 2026-10-26: 1.12 suspensa. | Roland + setor | 1.12 |
+| P7 | População e área construída reais dos 8 campi. Até lá, valores fictícios marcados "FICTÍCIO" no seed local. Sem resposta em 2026-10-26: o relatório sai com dados de demonstração (R.0). | setor responsável | — |
 
 ### 4.3 Fatores de emissão para o seed local
 
