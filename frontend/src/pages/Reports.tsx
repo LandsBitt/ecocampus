@@ -225,7 +225,7 @@ export default function Reports() {
                       quantidade={distribuicaoClasses['Na média']}
                       total={comNotaQtd}
                       descricao="Estão perto da referência"
-                      tone="brand"
+                      tone="warning"
                     />
                     <FaixaCard
                       titulo="Crítico"
@@ -414,11 +414,11 @@ function FaixaCard({
   quantidade: number
   total: number
   descricao: string
-  tone: 'success' | 'brand' | 'destructive'
+  tone: 'success' | 'warning' | 'destructive'
 }) {
   const classes = {
     success: 'border-success/25 bg-success-soft text-success',
-    brand: 'border-brand/25 bg-brand-soft text-brand',
+    warning: 'border-warning/25 bg-warning-soft text-warning',
     destructive: 'border-destructive/25 bg-destructive-soft text-destructive'
   }[tone]
 

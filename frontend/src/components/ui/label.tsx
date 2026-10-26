@@ -10,7 +10,7 @@ const Label = React.forwardRef<
   <LabelPrimitive.Root
     ref={ref}
     className={cn(
-      'flex items-center gap-1.5 text-[0.8125rem] font-medium text-foreground peer-disabled:opacity-70',
+      'flex items-center gap-1.5 text-sm font-semibold text-foreground peer-disabled:opacity-70',
       className
     )}
     {...props}
@@ -40,7 +40,7 @@ function Field({
   className?: string
 }) {
   return (
-    <div className={cn('space-y-1.5', className)}>
+    <div className={cn('space-y-2', className)}>
       {label && (
         <Label htmlFor={htmlFor} hint={hint}>
           {label}
@@ -48,9 +48,9 @@ function Field({
       )}
       {children}
       {error ? (
-        <p className="text-xs text-destructive">{error}</p>
+        <p className="text-[0.8125rem] text-destructive">{error}</p>
       ) : help ? (
-        <p className="text-xs leading-relaxed text-subtle">{help}</p>
+        <p className="text-[0.8125rem] leading-relaxed text-subtle">{help}</p>
       ) : null}
     </div>
   )

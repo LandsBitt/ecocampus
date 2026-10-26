@@ -20,7 +20,7 @@ const SheetOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      'fixed inset-0 z-50 bg-overlay backdrop-blur-[3px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       className
     )}
     {...props}
@@ -37,7 +37,7 @@ const sheetVariants = cva(
         right:
           'inset-y-0 right-0 h-full w-[22rem] max-w-[calc(100vw-2rem)] border-l border-border data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
         bottom:
-          'inset-x-0 bottom-0 max-h-[85vh] rounded-t-xl border-t border-border data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom'
+          'inset-x-0 bottom-0 max-h-[85vh] rounded-t-2xl border-t border-border data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom'
       }
     },
     defaultVariants: { side: 'left' }

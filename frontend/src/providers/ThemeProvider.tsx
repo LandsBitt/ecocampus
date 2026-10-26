@@ -17,10 +17,11 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
+// Sem escolha salva, o padrão é o tema noturno (direção "Mostrador noturno").
 function readStored(): ThemePreference {
-  if (typeof window === 'undefined') return 'system'
+  if (typeof window === 'undefined') return 'dark'
   const stored = window.localStorage.getItem(STORAGE_KEY)
-  return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system'
+  return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'dark'
 }
 
 function systemTheme(): ResolvedTheme {

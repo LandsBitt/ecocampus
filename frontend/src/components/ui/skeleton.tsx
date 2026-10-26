@@ -7,7 +7,7 @@ function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
 /** Esqueleto de tabela — mantém a altura da linha real para evitar salto de layout. */
 function SkeletonTable({ rows = 5, cols = 4 }: { rows?: number; cols?: number }) {
   return (
-    <div className="divide-y divide-border rounded-lg border border-border">
+    <div className="divide-y divide-border rounded-xl border border-border">
       <div className="flex gap-4 bg-surface-sunken px-4 py-3">
         {Array.from({ length: cols }).map((_, i) => (
           <Skeleton key={i} className="h-3 flex-1" />

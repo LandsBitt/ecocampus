@@ -1,72 +1,75 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ==========================================================================
-   ECOCAMPUS — Design tokens
-   Identidade: azul institucional UNITAU (brasão) como cor de marca.
-   Cor de dado (água / energia / eco) só é usada quando carrega significado.
-   Dois temas completos: claro (padrão) e escuro.
+   ECOCAMPUS — "Mostrador noturno"
+   Base verde-quase-preto (padrão, .dark) e areia (claro, :root).
+   Azul UNITAU só na marca e na ação principal. Cor de dado (água / energia /
+   eco) só onde o dado é dela: *-fill para preenchimentos e brilhos, a versão
+   sem sufixo para texto (≥ 4,5:1 nos dois temas).
+   Semáforo do Eco Score: success = Ecológico, warning = Na média, destructive = Crítico.
    ========================================================================== */
 @layer base {
   :root {
-    /* Superfícies */
-    --background: 210 24% 97%;
-    --surface: 0 0% 100%;
-    --surface-raised: 0 0% 100%;
-    --surface-sunken: 210 24% 95%;
-    --card: 0 0% 100%;
-    --card-foreground: 215 32% 14%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 32% 14%;
+    /* Superfícies (areia) */
+    --background: 38.8 39.5% 91.6%;
+    --surface: 40 54.5% 95.7%;
+    --surface-raised: 42.9 100% 98.6%;
+    --surface-sunken: 39.1 39% 88.4%;
+    --card: 40 54.5% 95.7%;
+    --card-foreground: 132 8.8% 11.2%;
+    --popover: 40 54.5% 95.7%;
+    --popover-foreground: 132 8.8% 11.2%;
 
     /* Texto */
-    --foreground: 215 32% 14%;
-    --muted: 210 22% 94%;
-    --muted-foreground: 215 14% 42%;
-    /* 44,5%: mínimo para 4,5:1 em background e surface-sunken (era 55%, 3,1:1) */
-    --subtle-foreground: 215 12% 44.5%;
+    --foreground: 132 8.8% 11.2%;
+    --muted: 39.1 39% 88.4%;
+    --muted-foreground: 54.5 6.9% 31.2%;
+    --subtle-foreground: 47.1 8% 34.1%;
 
     /* Marca UNITAU */
-    --brand: 206 86% 27%;
-    --brand-strong: 206 90% 20%;
+    --brand: 207.5 85.5% 27.1%;
+    --brand-strong: 208.3 86.4% 20.2%;
     --brand-foreground: 0 0% 100%;
-    --brand-soft: 206 80% 95%;
+    --brand-soft: 208.6 42.9% 90.4%;
 
-    --primary: 206 86% 27%;
+    --primary: 207.5 85.5% 27.1%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 22% 94%;
-    --secondary-foreground: 215 32% 20%;
-    --accent: 206 80% 95%;
-    --accent-foreground: 206 86% 27%;
+    --secondary: 40 37.5% 84.3%;
+    --secondary-foreground: 132 8.8% 11.2%;
+    --accent: 40 37.5% 84.3%;
+    --accent-foreground: 132 8.8% 11.2%;
 
-    /* Bordas e foco */
-    --border: 214 20% 89%;
-    --border-strong: 214 18% 80%;
-    --input: 214 20% 89%;
-    --ring: 206 86% 42%;
+    /* Bordas e foco (input e border-strong: 3:1 para borda de controle) */
+    --border: 38 30% 80.4%;
+    --border-strong: 38.3 19.7% 46.9%;
+    --input: 38.3 19.7% 46.9%;
+    --ring: 207.5 85.5% 27.1%;
 
-    /* Semânticas */
-    --success: 158 68% 28%;
+    /* Semáforo */
+    --success: 108.8 57.1% 27.5%;
     --success-foreground: 0 0% 100%;
-    --success-soft: 158 55% 94%;
-    --warning: 32 90% 34%;
+    --success-soft: 94.3 36.8% 88.8%;
+    --warning: 44.3 100% 23.9%;
     --warning-foreground: 0 0% 100%;
-    --warning-soft: 38 92% 93%;
-    --destructive: 0 68% 45%;
+    --warning-soft: 46 66.2% 86.1%;
+    --destructive: 3.2 71.3% 41%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-soft: 0 80% 96%;
+    --destructive-soft: 10 62.5% 90.6%;
 
-    /* Cores de dado */
-    /* Escurecidas para 4,5:1 também sobre o fundo *-soft dos selos (texto de 11–12px) */
-    --water: 199 88% 34.5%;
-    --water-soft: 199 85% 94%;
-    --energy: 32 92% 33.5%;
-    --energy-soft: 36 92% 93%;
-    --eco: 160 76% 27.5%;
-    --eco-soft: 160 60% 94%;
+    /* Cores de dado: texto, fundo suave e preenchimento vivo */
+    --water: 184.6 83.9% 24.3%;
+    --water-soft: 174 33.3% 88.2%;
+    --water-fill: 177.9 75.1% 37.8%;
+    --energy: 26.1 87.3% 31%;
+    --energy-soft: 31.5 66.7% 88.2%;
+    --energy-fill: 30 87.2% 54.1%;
+    --eco: 108.8 57.1% 27.5%;
+    --eco-soft: 94.3 36.8% 88.8%;
+    --eco-fill: 107.8 46.5% 50.2%;
 
     /* Paleta categórica para gráficos (8 campi) */
     --chart-1: 206 86% 38%;
@@ -78,64 +81,72 @@
     --chart-7: 350 62% 52%;
     --chart-8: 42 72% 45%;
 
-    --radius: 0.625rem;
+    --radius: 1rem;
 
-    --shadow-xs: 0 1px 2px 0 hsl(215 30% 20% / 0.05);
-    --shadow-sm: 0 1px 3px 0 hsl(215 30% 20% / 0.07), 0 1px 2px -1px hsl(215 30% 20% / 0.05);
-    --shadow-md: 0 4px 12px -2px hsl(215 30% 20% / 0.08), 0 2px 4px -2px hsl(215 30% 20% / 0.05);
-    --shadow-lg: 0 12px 28px -8px hsl(215 30% 20% / 0.12), 0 4px 8px -4px hsl(215 30% 20% / 0.06);
-    --shadow-xl: 0 24px 56px -16px hsl(215 30% 20% / 0.18), 0 8px 16px -8px hsl(215 30% 20% / 0.08);
+    /* Grão do fundo, sombras e brilhos */
+    --grain: 32 40% 20% / 0.035;
+    --shadow-xs: 0 1px 2px 0 hsl(32 40% 20% / 0.06);
+    --shadow-sm: 0 1px 0 hsl(0 0% 100% / 0.7) inset, 0 2px 6px -2px hsl(32 40% 20% / 0.1);
+    --shadow-md: 0 1px 0 hsl(0 0% 100% / 0.7) inset, 0 18px 40px -26px hsl(32 45% 20% / 0.35);
+    --shadow-lg: 0 24px 48px -20px hsl(32 45% 20% / 0.35), 0 4px 10px -4px hsl(32 40% 20% / 0.1);
+    --shadow-xl: 0 30px 60px -24px hsl(32 45% 20% / 0.45), 0 8px 16px -8px hsl(32 40% 20% / 0.12);
+    --glass: 40 54.5% 95.7% / 0.78;
+    --overlay: 36 38% 12% / 0.38;
+    --spot: 177.9 75.1% 37.8% / 0.1;
   }
 
   .dark {
-    --background: 216 34% 7%;
-    --surface: 216 28% 10%;
-    --surface-raised: 216 26% 13%;
-    --surface-sunken: 216 36% 5%;
-    --card: 216 28% 10%;
-    --card-foreground: 210 28% 95%;
-    --popover: 216 28% 11%;
-    --popover-foreground: 210 28% 95%;
+    /* Superfícies (noturno) */
+    --background: 160 23.1% 5.1%;
+    --surface: 157.5 21.1% 7.5%;
+    --surface-raised: 155 18.8% 12.5%;
+    --surface-sunken: 156 20% 9.8%;
+    --card: 157.5 21.1% 7.5%;
+    --card-foreground: 142.5 22.2% 92.9%;
+    --popover: 156 20% 9.8%;
+    --popover-foreground: 142.5 22.2% 92.9%;
 
-    --foreground: 210 28% 95%;
-    --muted: 216 22% 16%;
-    --muted-foreground: 214 14% 66%;
-    --subtle-foreground: 214 12% 55%;
+    --foreground: 142.5 22.2% 92.9%;
+    --muted: 156 20% 9.8%;
+    --muted-foreground: 150 10.8% 67.5%;
+    --subtle-foreground: 148.4 8.5% 56.3%;
 
-    --brand: 205 88% 60%;
-    --brand-strong: 205 92% 70%;
-    --brand-foreground: 216 40% 8%;
-    --brand-soft: 206 60% 16%;
+    --brand: 206 82.4% 62.2%;
+    --brand-strong: 206.2 83.2% 72%;
+    --brand-foreground: 208.9 77.1% 6.9%;
+    --brand-soft: 205.5 58.8% 13.3%;
 
-    --primary: 205 88% 60%;
-    --primary-foreground: 216 40% 8%;
-    --secondary: 216 22% 17%;
-    --secondary-foreground: 210 28% 92%;
-    --accent: 206 55% 17%;
-    --accent-foreground: 205 88% 72%;
+    --primary: 206 82.4% 62.2%;
+    --primary-foreground: 208.9 77.1% 6.9%;
+    --secondary: 155 18.8% 12.5%;
+    --secondary-foreground: 142.5 22.2% 92.9%;
+    --accent: 155 18.8% 12.5%;
+    --accent-foreground: 142.5 22.2% 92.9%;
 
-    --border: 216 20% 20%;
-    --border-strong: 216 18% 28%;
-    --input: 216 20% 22%;
-    --ring: 205 88% 58%;
+    --border: 152 17.2% 17.1%;
+    --border-strong: 140.8 13.1% 38.8%;
+    --input: 140.8 13.1% 38.8%;
+    --ring: 104.6 79% 72%;
 
-    --success: 158 58% 48%;
-    --success-foreground: 216 40% 8%;
-    --success-soft: 158 45% 15%;
-    --warning: 38 88% 58%;
-    --warning-foreground: 216 40% 8%;
-    --warning-soft: 38 60% 15%;
-    /* 62,5%: 4,5:1 sobre destructive-soft (era 60%, 4,2:1) */
-    --destructive: 0 72% 62.5%;
-    --destructive-foreground: 216 40% 8%;
-    --destructive-soft: 0 50% 16%;
+    --success: 104.6 79% 72%;
+    --success-foreground: 160 23.1% 5.1%;
+    --success-soft: 131.4 33.3% 12.4%;
+    --warning: 47.8 86.5% 62.2%;
+    --warning-foreground: 160 23.1% 5.1%;
+    --warning-soft: 48 42.4% 11.6%;
+    --destructive: 4.2 100% 72%;
+    --destructive-foreground: 160 23.1% 5.1%;
+    --destructive-soft: 6.9 39.4% 12.9%;
 
-    --water: 199 86% 58%;
-    --water-soft: 199 60% 16%;
-    --energy: 36 92% 58%;
-    --energy-soft: 36 60% 15%;
-    --eco: 160 62% 48%;
-    --eco-soft: 160 45% 14%;
+    --water: 178.2 66% 50.4%;
+    --water-soft: 178 53.6% 11%;
+    --water-fill: 178.2 66% 50.4%;
+    --energy: 31 100% 65.1%;
+    --energy-soft: 32 48.4% 12.2%;
+    --energy-fill: 31 100% 65.1%;
+    --eco: 104.6 79% 72%;
+    --eco-soft: 131.4 33.3% 12.4%;
+    --eco-fill: 104.6 79% 72%;
 
     --chart-1: 205 86% 60%;
     --chart-2: 172 62% 50%;
@@ -146,11 +157,15 @@
     --chart-7: 350 72% 66%;
     --chart-8: 45 78% 60%;
 
-    --shadow-xs: 0 1px 2px 0 hsl(216 60% 2% / 0.4);
-    --shadow-sm: 0 1px 3px 0 hsl(216 60% 2% / 0.5), 0 1px 2px -1px hsl(216 60% 2% / 0.4);
-    --shadow-md: 0 4px 12px -2px hsl(216 60% 2% / 0.55), 0 2px 4px -2px hsl(216 60% 2% / 0.4);
-    --shadow-lg: 0 12px 28px -8px hsl(216 60% 2% / 0.65), 0 4px 8px -4px hsl(216 60% 2% / 0.45);
-    --shadow-xl: 0 24px 56px -16px hsl(216 60% 2% / 0.75), 0 8px 16px -8px hsl(216 60% 2% / 0.5);
+    --grain: 0 0% 100% / 0.028;
+    --shadow-xs: 0 1px 2px 0 hsl(160 40% 2% / 0.5);
+    --shadow-sm: 0 1px 0 hsl(0 0% 100% / 0.03) inset, 0 2px 8px -2px hsl(160 40% 2% / 0.6);
+    --shadow-md: 0 1px 0 hsl(0 0% 100% / 0.03) inset, 0 24px 48px -24px hsl(160 40% 2% / 0.7);
+    --shadow-lg: 0 24px 48px -16px hsl(160 40% 2% / 0.75), 0 4px 10px -4px hsl(160 40% 2% / 0.5);
+    --shadow-xl: 0 32px 64px -20px hsl(160 40% 2% / 0.8), 0 8px 16px -8px hsl(160 40% 2% / 0.55);
+    --glass: 156 20% 9.8% / 0.74;
+    --overlay: 160 25% 3% / 0.62;
+    --spot: 104.6 79% 72% / 0.08;
   }
 
   * {
@@ -164,7 +179,13 @@
   html,
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: 'cv05' 1, 'ss01' 1, 'calt' 1;
+    font-feature-settings: 'ss01' 1, 'calt' 1;
+  }
+
+  /* Grão sutil: textura de papel/tela sem custo de imagem */
+  body {
+    background-image: radial-gradient(hsl(var(--grain)) 1px, transparent 1.2px);
+    background-size: 3px 3px;
   }
 
   body,
@@ -173,15 +194,16 @@
   }
 
   h1, h2, h3, h4 {
-    @apply font-display tracking-[-0.011em];
+    @apply font-display tracking-[-0.02em];
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
   }
 
   ::selection {
-    background: hsl(var(--brand) / 0.22);
+    background: hsl(var(--brand) / 0.28);
   }
 
   /* Números tabulares em qualquer lugar que mostre medida */
@@ -199,13 +221,13 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border-strong));
+    background: hsl(var(--border-strong) / 0.6);
     border: 3px solid transparent;
     background-clip: content-box;
     border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
+    background: hsl(var(--muted-foreground) / 0.6);
     background-clip: content-box;
   }
 
@@ -221,13 +243,13 @@
 }
 
 @layer components {
-  /* Superfície de vidro usada só na topbar (profundidade sem enfeite) */
+  /* Vidro: só em overlays e na barra superior */
   .glass {
-    background: hsl(var(--surface) / 0.82);
-    backdrop-filter: saturate(180%) blur(12px);
+    background: hsl(var(--glass));
+    backdrop-filter: saturate(150%) blur(18px);
   }
 
-  /* Fundo sutil de grade — dá textura sem competir com os dados */
+  /* Fundo sutil de grade — usado no login */
   .bg-grid {
     background-image:
       linear-gradient(to right, hsl(var(--border) / 0.55) 1px, transparent 1px),
@@ -248,15 +270,66 @@
     background: linear-gradient(
       90deg,
       transparent,
-      hsl(var(--foreground) / 0.06),
+      hsl(var(--foreground) / 0.07),
       transparent
     );
     animation: shimmer 1.6s infinite;
   }
 
-  /* Rótulo de seção — usado em cabeçalhos de card e legendas */
+  /* Rótulo de seção — sobretítulos e cabeçalhos de tabela */
   .eyebrow {
-    @apply text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground;
+    @apply text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
+  /* Número de mostrador: grande, tabular, apertado */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'ss01' 1;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+
+  /* Spotlight: a posição vem do mouse (--mx/--my no style do card) */
+  .spotlight::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: radial-gradient(420px circle at var(--mx, 50%) var(--my, -40%), hsl(var(--spot)), transparent 62%);
+  }
+
+  /* Feixe na borda: só no card principal de cada tela */
+  .beam::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    background: conic-gradient(
+      from var(--beam-angle),
+      transparent 0 70%,
+      hsl(var(--eco-fill)) 80%,
+      hsl(var(--water-fill)) 88%,
+      transparent 96%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: beam 6s linear infinite;
+  }
+}
+
+@property --beam-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes beam {
+  to {
+    --beam-angle: 360deg;
   }
 }
 

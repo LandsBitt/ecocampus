@@ -11,9 +11,9 @@ export function classifyScore(score: number): Classificacao {
   return 'Crítico'
 }
 
-type BadgeVariant = 'success' | 'brand' | 'destructive'
-/** `brand` é a faixa do meio: estar na média não é alerta, então não usa amarelo. */
-export type ScoreTone = 'success' | 'brand' | 'destructive'
+type BadgeVariant = 'success' | 'warning' | 'destructive'
+/** Semáforo: verde Ecológico, amarelo Na média, vermelho Crítico (sempre com a palavra junto). */
+export type ScoreTone = 'success' | 'warning' | 'destructive'
 
 interface ClassificacaoStyle {
   label: string
@@ -39,11 +39,11 @@ export const classificacaoStyles: Record<Classificacao, ClassificacaoStyle> = {
   'Na média': {
     label: 'Na média',
     meaning: 'Consome perto da referência da universidade.',
-    badge: 'brand',
-    tone: 'brand',
-    text: 'text-brand',
-    bg: 'bg-brand-soft',
-    border: 'border-brand/25'
+    badge: 'warning',
+    tone: 'warning',
+    text: 'text-warning',
+    bg: 'bg-warning-soft',
+    border: 'border-warning/25'
   },
   Crítico: {
     label: 'Crítico',
@@ -59,7 +59,7 @@ export const classificacaoStyles: Record<Classificacao, ClassificacaoStyle> = {
 /** Classes de preenchimento por tom — fonte única para barras e medidores. */
 export const toneFill: Record<ScoreTone, { bg: string; stroke: string }> = {
   success: { bg: 'bg-success', stroke: 'stroke-success' },
-  brand: { bg: 'bg-brand', stroke: 'stroke-brand' },
+  warning: { bg: 'bg-warning', stroke: 'stroke-warning' },
   destructive: { bg: 'bg-destructive', stroke: 'stroke-destructive' }
 }
 
