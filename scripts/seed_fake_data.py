@@ -38,7 +38,7 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / "backend" / ".env")
 
-from sqlalchemy import delete, select, update  # noqa: E402
+from sqlalchemy import delete, func, select, update  # noqa: E402
 
 from app.db.models import Campus, FatorEmissao, Lancamento, LancamentoOrigem, LancamentoTipo  # noqa: E402
 from app.db.session import SessionLocal, engine  # noqa: E402
@@ -47,6 +47,8 @@ FONTE_FICTICIA = "FICTÍCIO"
 
 # Perfil FICTÍCIO por campus: população, área (m²) e consumo mensal médio
 # (luz em kWh, água em m³). Serve só para o ranking funcionar em desenvolvimento.
+# Onde já existe consumo real do campus, a demonstração usa a média real (ver
+# `_bases_reais`); o perfil só vale para o que nunca foi medido.
 PERFIL = {
     "Campus da Juta":          {"pop": 2200, "area": 12000, "luz": 10500, "agua": 480},
     "Campus do Itaim":         {"pop": 1800, "area": 18000, "luz": 18500, "agua": 850},
@@ -128,6 +130,35 @@ def seed_demografia(db) -> dict[str, Campus]:
     return nome_to_campus
 
 
+def _bases_reais(db) -> dict[tuple[int, LancamentoTipo], float]:
+    """Média mensal do consumo real (manual ou importado) por campus e tipo.
+
+    Sem isso a demonstração fica fora da escala do dado medido: a água real de
+    2026-01 deu 19.242 m³ contra uns 2.600 m³/mês do perfil, e o mês real virava
+    um "pico" falso em todos os campi.
+    """
+    por_mes = (
+        select(
+            Lancamento.campus_id,
+            Lancamento.tipo,
+            Lancamento.mes_referencia,
+            func.sum(Lancamento.consumo).label("total"),
+        )
+        .where(
+            Lancamento.origem.in_([LancamentoOrigem.manual.value, LancamentoOrigem.importado.value]),
+            Lancamento.consumo.isnot(None),
+        )
+        .group_by(Lancamento.campus_id, Lancamento.tipo, Lancamento.mes_referencia)
+        .subquery()
+    )
+    linhas = db.execute(
+        select(por_mes.c.campus_id, por_mes.c.tipo, func.avg(por_mes.c.total)).group_by(
+            por_mes.c.campus_id, por_mes.c.tipo
+        )
+    ).all()
+    return {(cid, tipo): float(media) for cid, tipo, media in linhas}
+
+
 def seed_lancamentos(db, nome_to_campus: dict[str, Campus], meses: int) -> None:
     rng = random.Random(42)  # determinístico
 
@@ -141,6 +172,7 @@ def seed_lancamentos(db, nome_to_campus: dict[str, Campus], meses: int) -> None:
             )
         ).all()
     )
+    bases = _bases_reais(db)
     novos = []
     pulados = 0
     for nome, perfil in PERFIL.items():
@@ -149,8 +181,8 @@ def seed_lancamentos(db, nome_to_campus: dict[str, Campus], meses: int) -> None:
             continue
         for mes in lista_meses:
             # Variação ±15% pra não ficar plano
-            luz = perfil["luz"] * rng.uniform(0.85, 1.15)
-            agua = perfil["agua"] * rng.uniform(0.85, 1.15)
+            luz = bases.get((c.id, LancamentoTipo.luz), perfil["luz"]) * rng.uniform(0.85, 1.15)
+            agua = bases.get((c.id, LancamentoTipo.agua), perfil["agua"]) * rng.uniform(0.85, 1.15)
             for tipo, consumo in ((LancamentoTipo.luz, luz), (LancamentoTipo.agua, agua)):
                 if (c.id, tipo, mes) in ocupados:
                     pulados += 1
@@ -166,6 +198,8 @@ def seed_lancamentos(db, nome_to_campus: dict[str, Campus], meses: int) -> None:
 
     db.add_all(novos)
     db.commit()
+    if bases:
+        print(f"[seed] {len(bases)} campus/tipo calibrados pela média do consumo real.")
     print(f"[seed] {len(novos)} lançamentos de demonstração criados "
           f"({len(PERFIL)} campi × {meses} meses × 2 tipos; {pulados} já tinham lançamento e foram pulados).")
 

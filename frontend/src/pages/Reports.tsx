@@ -467,11 +467,11 @@ function TabelaDetalhe({
           <tr className="border-b border-border">
             <th className="px-4 py-2.5 text-left eyebrow">Campus</th>
             <th className="px-4 py-2.5 text-right eyebrow">População</th>
-            <th className="px-4 py-2.5 text-right eyebrow">Área (m²)</th>
-            <th className="px-4 py-2.5 text-right eyebrow">Água (m³)</th>
-            <th className="px-4 py-2.5 text-right eyebrow">Energia (kWh)</th>
-            <th className="px-4 py-2.5 text-right eyebrow">kWh/pessoa</th>
-            <th className="px-4 py-2.5 text-right eyebrow">CO₂ da energia</th>
+            <th className="px-4 py-2.5 text-right eyebrow">Área (<span className="normal-case">m²</span>)</th>
+            <th className="px-4 py-2.5 text-right eyebrow">Água (<span className="normal-case">m³</span>)</th>
+            <th className="px-4 py-2.5 text-right eyebrow">Energia (<span className="normal-case">kWh</span>)</th>
+            <th className="px-4 py-2.5 text-right eyebrow"><span className="normal-case">kWh/pessoa</span></th>
+            <th className="px-4 py-2.5 text-right eyebrow"><span className="normal-case">CO₂</span> da energia</th>
             <th className="px-4 py-2.5 text-right eyebrow">Eco Score</th>
           </tr>
         </thead>
@@ -597,7 +597,7 @@ function TabelaComparacao({
             </th>
             {medidas.map((m) => (
               <th key={m} colSpan={3} className="px-4 pt-2.5 text-center eyebrow">
-                {UNIDADES[m].nome} ({UNIDADES[m].curta})
+                {UNIDADES[m].nome} (<span className="normal-case">{UNIDADES[m].curta}</span>)
               </th>
             ))}
           </tr>
@@ -605,8 +605,8 @@ function TabelaComparacao({
             {medidas.map((m) => (
               <Fragment key={m}>
                 <th className="px-4 py-2 text-right eyebrow">No mês</th>
-                <th className="px-4 py-2 text-right eyebrow">vs. {formatMonthLabel(dados.mesAnterior)}</th>
-                <th className="px-4 py-2 text-right eyebrow">vs. {formatMonthLabel(dados.anoAnterior)}</th>
+                <th className="px-4 py-2 text-right eyebrow normal-case">vs. {formatMonthLabel(dados.mesAnterior)}</th>
+                <th className="px-4 py-2 text-right eyebrow normal-case">vs. {formatMonthLabel(dados.anoAnterior)}</th>
               </Fragment>
             ))}
           </tr>

@@ -51,3 +51,21 @@ def test_wipe_apaga_so_demonstracao(db, lancar):
     assert _contagem(db, origem="demonstracao") == 0
     assert _contagem(db, origem="manual") == 1
     assert _contagem(db, origem="cpfl_legado") == 1
+
+
+def test_demonstracao_segue_a_escala_do_consumo_real(db, lancar):
+    # Sem calibrar, a demonstração ficaria ~7× abaixo da água real e o mês real viraria "pico".
+    seed = _seed()
+    mes_real = seed._ultimos_meses(3)[0]
+    lancar(1, "agua", 10000, mes=mes_real, origem="importado")
+
+    campi = {c.nome: c for c in db.scalars(select(Campus)).all()}
+    seed.seed_lancamentos(db, campi, meses=3)
+
+    simulados = db.scalars(
+        select(Lancamento.consumo).where(
+            Lancamento.campus_id == 1, Lancamento.tipo == "agua", Lancamento.origem == "demonstracao"
+        )
+    ).all()
+    assert len(simulados) == 2
+    assert all(8500 <= float(v) <= 11500 for v in simulados)   # ±15% em torno da média real

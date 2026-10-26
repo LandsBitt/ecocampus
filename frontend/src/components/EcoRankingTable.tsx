@@ -92,7 +92,7 @@ export function EcoRankingTable({
               direction={sort.direction}
               onSort={() => toggle('agua')}
             >
-              Água (m³/pessoa)
+              Água (<span className="normal-case">m³/pessoa</span>)
             </SortableHead>
             <SortableHead
               className="hidden md:table-cell"
@@ -101,7 +101,7 @@ export function EcoRankingTable({
               direction={sort.direction}
               onSort={() => toggle('luz')}
             >
-              Energia (kWh/m²)
+              Energia (<span className="normal-case">kWh/m²</span>)
             </SortableHead>
             <SortableHead
               className="hidden lg:table-cell"
@@ -110,7 +110,7 @@ export function EcoRankingTable({
               direction={sort.direction}
               onSort={() => toggle('luzPessoa')}
             >
-              Energia (kWh/pessoa)
+              Energia (<span className="normal-case">kWh/pessoa</span>)
             </SortableHead>
             <SortableHead
               className="w-44"

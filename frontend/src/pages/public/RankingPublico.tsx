@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Award, Info, LogIn, PieChart, Trophy } from 'lucide-react'
 
+import { DemonstracaoAviso } from '@/components/DemonstracaoAviso'
 import { Explain } from '@/components/Explain'
 import { EcoRankingTable } from '@/components/EcoRankingTable'
 import { CampusDistribution, SeletorMedida } from '@/components/charts/CampusDistribution'
@@ -61,6 +62,8 @@ export default function RankingPublico() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
+        {/* Página aberta a qualquer pessoa: número simulado precisa do aviso antes de tudo (R.0). */}
+        {itens.some((item) => item.demonstracao) && <DemonstracaoAviso className="mb-6" />}
         <section className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl">
             <p className="eyebrow">Universidade de Taubaté · {formatMonthLong(mes)}</p>

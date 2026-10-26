@@ -27,7 +27,7 @@ import {
 } from '@/hooks/queries'
 import { formatMonthLabel, formatMonthLong, previousMonth } from '@/lib/date'
 import { comNota, motivoSemNota, notaMedia, styleForScore, toneFill } from '@/lib/ecoScore'
-import { formatMedida, litrosPorDiaPorPessoa, variacao, type Medida } from '@/lib/formatters'
+import { formatMedida, formatNumber, litrosPorDiaPorPessoa, variacao, type Medida } from '@/lib/formatters'
 import { buildInsights } from '@/lib/insights'
 import { useAuth } from '@/providers/AuthProvider'
 import { usePeriod } from '@/providers/PeriodProvider'
@@ -195,7 +195,7 @@ export default function Dashboard() {
         />
         <KpiCard
           label={isSuper ? 'Eco Score médio' : 'Eco Score do campus'}
-          value={score !== null ? score.toFixed(1) : '—'}
+          value={score !== null ? formatNumber(score, 1) : '—'}
           unit="/ 100"
           icon={Gauge}
           accent="eco"
@@ -222,7 +222,7 @@ export default function Dashboard() {
           // consumo por pessoa — é o número que ele consegue comparar e influenciar.
           <KpiCard
             label="Água por pessoa"
-            value={meuCampus?.consumoAguaPerCapita?.toFixed(2) ?? '—'}
+            value={formatNumber(meuCampus?.consumoAguaPerCapita, 2)}
             unit="m³/pessoa"
             icon={Users}
             accent="brand"
@@ -342,7 +342,7 @@ export default function Dashboard() {
                       <Explain term="aguaPorPessoa">Água por pessoa</Explain>
                     </dt>
                     <dd className="mt-1 font-display text-lg font-semibold tabular-nums">
-                      {meuCampus.consumoAguaPerCapita?.toFixed(2) ?? '—'}
+                      {formatNumber(meuCampus.consumoAguaPerCapita, 2)}
                       <span className="ml-1 text-xs font-normal text-muted-foreground">m³/pessoa</span>
                     </dd>
                   </div>
@@ -351,7 +351,7 @@ export default function Dashboard() {
                       <Explain term="energiaPorM2">Energia por m²</Explain>
                     </dt>
                     <dd className="mt-1 font-display text-lg font-semibold tabular-nums">
-                      {meuCampus.consumoLuzPorM2?.toFixed(2) ?? '—'}
+                      {formatNumber(meuCampus.consumoLuzPorM2, 2)}
                       <span className="ml-1 text-xs font-normal text-muted-foreground">kWh/m²</span>
                     </dd>
                   </div>
@@ -360,7 +360,7 @@ export default function Dashboard() {
                       <Explain term="energiaPorPessoa">Energia por pessoa</Explain>
                     </dt>
                     <dd className="mt-1 font-display text-lg font-semibold tabular-nums">
-                      {meuCampus.consumoLuzPerCapita?.toFixed(1) ?? '—'}
+                      {formatNumber(meuCampus.consumoLuzPerCapita, 1)}
                       <span className="ml-1 text-xs font-normal text-muted-foreground">kWh/pessoa</span>
                     </dd>
                   </div>
@@ -468,7 +468,7 @@ function Grupo({
                 />
               </div>
               <span className="w-9 shrink-0 text-right text-[0.8125rem] font-semibold tabular-nums">
-                {item.ecoScore.toFixed(1)}
+                {formatNumber(item.ecoScore, 1)}
               </span>
             </li>
           )
