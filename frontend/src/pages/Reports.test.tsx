@@ -15,6 +15,7 @@ vi.mock('@/hooks/queries', () => ({
   useIndicadores: () => ({ data: indicadores, isLoading: false, isError: false, refetch: vi.fn() }),
   useIndicadorUniversidade: () => ({ data: universidade, isLoading: false, isError: false }),
   useComparacao: () => ({ data: comparacao, isError: false, refetch: vi.fn() }),
+  useAlertasPico: () => ({ data: undefined }),
   usePizza: () => ({ data: [], isLoading: false, isError: false })
 }))
 

@@ -74,6 +74,12 @@ export const glossary = {
     detail:
       'Energia do mês (kWh) multiplicada pelo fator médio anual de emissão da rede elétrica brasileira, publicado pelo MCTI. Ano ainda sem fator publicado usa o do ano anterior, marcado como provisório. Água não entra nesta conta.'
   },
+  pico: {
+    label: 'Pico de consumo',
+    short: 'Mês em que um campus gastou bem mais que o normal dele.',
+    detail:
+      'Há pico quando o consumo do mês passa de 1,3 vez (30% acima) a média dos 12 meses anteriores do mesmo campus, em água ou em energia. A média usa só os meses com registro, e são precisos pelo menos 6 deles; com menos, o sistema não avalia.'
+  },
   demonstracao: {
     label: 'Demonstração',
     short: 'Dado simulado, não medido. Serve para mostrar como o sistema funciona enquanto o consumo real não chega.',

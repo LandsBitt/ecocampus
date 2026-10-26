@@ -251,3 +251,30 @@ export interface ComparacaoResponse {
   /** Um bloco por campus; vazio para o papel campus. */
   campi: ComparacaoBloco[]
 }
+
+export type SituacaoPico = 'pico' | 'normal' | 'historico_insuficiente'
+
+/** Um campus e uma medida contra o próprio histórico (R.4). */
+export interface AlertaPico {
+  campusId: number
+  nome: string
+  medida: 'agua' | 'luz'
+  situacao: SituacaoPico
+  atual: number
+  /** Média dos meses com dado na janela; nula com histórico insuficiente. */
+  media: number | null
+  mesesNaMedia: number
+  /** atual ÷ média (1,45 = 45% acima). */
+  razao: number | null
+  demonstracao: boolean
+}
+
+export interface AlertasResponse {
+  mes: string
+  /** Pico = mês acima de `limiar` × média dos `janelaMeses` anteriores. */
+  limiar: number
+  janelaMeses: number
+  historicoMinimo: number
+  /** Picos primeiro, do maior salto para o menor. */
+  avaliados: AlertaPico[]
+}

@@ -54,3 +54,33 @@ class ComparacaoOut(BaseModel):
     campi: list[ComparacaoBloco] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class AlertaPico(BaseModel):
+    """Um campus e uma medida avaliados contra o próprio histórico (SPEC R.4)."""
+
+    campus_id: int = Field(..., alias="campusId")
+    nome: str
+    medida: str  # "agua" | "luz"
+    # pico: acima do limiar; normal: avaliado e dentro; historico_insuficiente: menos meses que o mínimo
+    situacao: str
+    atual: float
+    # Média dos meses com dado na janela; nula quando o histórico é insuficiente.
+    media: float | None = None
+    meses_na_media: int = Field(0, alias="mesesNaMedia")
+    # atual ÷ média (1,45 = 45% acima). Nula sem média ou com média zero.
+    razao: float | None = None
+    demonstracao: bool = False
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AlertasOut(BaseModel):
+    mes: str
+    limiar: float
+    janela_meses: int = Field(..., alias="janelaMeses")
+    historico_minimo: int = Field(..., alias="historicoMinimo")
+    # Todos os campus × medida com consumo no mês, picos primeiro.
+    avaliados: list[AlertaPico]
+
+    model_config = ConfigDict(populate_by_name=True)

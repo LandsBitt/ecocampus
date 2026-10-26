@@ -1,7 +1,7 @@
 import { formatDelta, formatMedidaInline, UNIDADES, variacao, type Medida } from './formatters'
 import { formatMonthLong } from './date'
 import { comNota } from './ecoScore'
-import type { IndicadorCampus } from './types'
+import type { AlertaPico, IndicadorCampus } from './types'
 
 export type InsightTone = 'positive' | 'negative' | 'neutral' | 'warning'
 
@@ -34,8 +34,10 @@ export function buildInsights(params: {
   escopo: 'universidade' | 'campus'
   /** Contas importadas só com R$, sem consumo físico: ficam fora dos números. */
   pontosSemConsumo?: number
+  /** Avaliação de pico do mês (R.4); só os de situação "pico" viram frase. */
+  picos?: AlertaPico[]
 }): Insight[] {
-  const { mes, atual, anterior, indicadores = [], escopo, pontosSemConsumo = 0 } = params
+  const { mes, atual, anterior, indicadores = [], escopo, pontosSemConsumo = 0, picos = [] } = params
   if (!atual) return []
 
   const insights: Insight[] = []
@@ -131,5 +133,29 @@ export function buildInsights(params: {
     }
   }
 
-  return [...insights, ...avisoSemConsumo]
+  return [...frasesDePico(picos, escopo), ...insights, ...avisoSemConsumo]
+}
+
+/** Até três picos viram uma frase cada; mais que isso, uma frase só para não tomar o painel. */
+function frasesDePico(avaliados: AlertaPico[], escopo: 'universidade' | 'campus'): Insight[] {
+  const picos = avaliados.filter((a) => a.situacao === 'pico')
+  if (picos.length > 3) {
+    return [
+      {
+        id: 'picos',
+        tone: 'warning',
+        text: `${picos.length} consumos ficaram bem acima da média dos últimos 12 meses neste mês. Veja quais em Relatórios.`
+      }
+    ]
+  }
+  return picos.map((p) => {
+    const nome = UNIDADES[p.medida].nome.toLowerCase()
+    const acima = p.razao !== null ? `${formatDelta((p.razao - 1) * 100).replace('+', '')} acima` : 'muito acima'
+    const onde = escopo === 'universidade' ? ` em ${p.nome}` : ''
+    return {
+      id: `pico-${p.campusId}-${p.medida}`,
+      tone: 'warning' as const,
+      text: `Pico de ${nome}${onde}: o consumo do mês ficou ${acima} da média dos últimos 12 meses.`
+    }
+  })
 }

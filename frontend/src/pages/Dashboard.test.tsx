@@ -34,6 +34,7 @@ vi.mock('@/hooks/queries', () => ({
   }),
   useSerie: () => ({ data: [], isLoading: false, isError: false }),
   useComparacao: () => ({ data: comparacao }),
+  useAlertasPico: () => ({ data: undefined }),
   useLancamentos: () => ({ data: [], isLoading: false }),
   useCampusList: () => ({ data: [{ id: 3, nome: 'Campus C' }] }),
   usePizza: () => ({ data: [], isLoading: false })

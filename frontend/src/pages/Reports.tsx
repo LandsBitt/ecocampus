@@ -20,13 +20,19 @@ import {
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/sonner'
-import { useComparacao, useIndicadorUniversidade, useIndicadores, usePizza } from '@/hooks/queries'
+import { useAlertasPico, useComparacao, useIndicadorUniversidade, useIndicadores, usePizza } from '@/hooks/queries'
 import { formatMonthLabel, formatMonthLong } from '@/lib/date'
 import { classifyScore, comNota, motivoSemNota, notaMedia, ordenarRanking } from '@/lib/ecoScore'
 import { downloadCsv } from '@/lib/export'
 import { descreverFator, formatDelta, formatEmissao, formatNumber, UNIDADES, type Medida } from '@/lib/formatters'
 import { usePeriod } from '@/providers/PeriodProvider'
-import type { ComparacaoBloco, ComparacaoMedida, ComparacaoResponse, IndicadorUniversidade } from '@/lib/types'
+import type {
+  AlertaPico,
+  ComparacaoBloco,
+  ComparacaoMedida,
+  ComparacaoResponse,
+  IndicadorUniversidade
+} from '@/lib/types'
 
 export default function Reports() {
   const { mes } = usePeriod()
@@ -36,6 +42,7 @@ export default function Reports() {
   const indicadores = useIndicadores(mes)
   const universidade = useIndicadorUniversidade(mes)
   const comparacao = useComparacao(mes)
+  const alertas = useAlertasPico(mes)
   const pizza = usePizza(mes)
 
   const ranking = useMemo(() => ordenarRanking(indicadores.data ?? []), [indicadores.data])
@@ -78,7 +85,9 @@ export default function Reports() {
         'Água vs mês anterior (%)',
         'Água vs ano anterior (%)',
         'Energia vs mês anterior (%)',
-        'Energia vs ano anterior (%)'
+        'Energia vs ano anterior (%)',
+        'Pico de água',
+        'Pico de energia'
       ],
       ranking.map((item, index) => [
         item.ecoScore !== null ? index + 1 : '',
@@ -97,7 +106,9 @@ export default function Reports() {
         // Dado simulado nunca sai do sistema sem a marca (SPEC R.0).
         item.demonstracao ? 'Sim' : 'Não',
         // R.3: vazio = sem base para comparar (mês sem lançamento), nunca 0.
-        ...variacoesCsv(comparacao.data?.campi.find((c) => c.campusId === item.campusId))
+        ...variacoesCsv(comparacao.data?.campi.find((c) => c.campusId === item.campusId)),
+        situacaoPicoCsv(alertas.data?.avaliados, item.campusId, 'agua'),
+        situacaoPicoCsv(alertas.data?.avaliados, item.campusId, 'luz')
       ]).concat(
         // Linha da universidade: só o kWh por pessoa (R.1) e o que entra nele.
         universidade.data
@@ -632,4 +643,13 @@ function LinhaComparacao({ bloco, medidas }: { bloco: ComparacaoBloco; medidas: 
       ))}
     </tr>
   )
+}
+
+/** "Sim (+45,0%)", "Não", "Histórico insuficiente" ou vazio quando não houve consumo no mês. */
+function situacaoPicoCsv(avaliados: AlertaPico[] | undefined, campusId: number, medida: Medida): string {
+  const alerta = avaliados?.find((a) => a.campusId === campusId && a.medida === medida)
+  if (!alerta) return ''
+  if (alerta.situacao === 'historico_insuficiente') return 'Histórico insuficiente'
+  if (alerta.situacao === 'normal') return 'Não'
+  return alerta.razao !== null ? `Sim (${formatDelta((alerta.razao - 1) * 100)})` : 'Sim'
 }

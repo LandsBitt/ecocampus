@@ -13,7 +13,8 @@ from sqlalchemy.orm import Session
 
 from app.api.routes.resumo import _CONTA_NOS_INDICADORES
 from app.db.models import Campus, Lancamento, LancamentoOrigem, LancamentoTipo
-from app.schemas.serie import ComparacaoBloco, ComparacaoMedida, PontoSerie
+from app.core.alertas import HISTORICO_MINIMO, JANELA_MESES, LIMIAR_PICO
+from app.schemas.serie import AlertaPico, ComparacaoBloco, ComparacaoMedida, PontoSerie
 
 MEDIDAS = ("agua", "luz")
 
@@ -166,3 +167,44 @@ def comparacao(db: Session, mes: str, campus_id: int | None = None) -> tuple[Com
         _bloco(c.id, c.nome, meses, {m: t for (cid, m), t in totais.items() if cid == c.id}) for c in campi
     ]
     return _bloco(None, "Universidade", meses, _por_mes(totais)), por_campus
+
+
+def picos(db: Session, mes: str, campus_id: int | None = None) -> list[AlertaPico]:
+    """Alerta de pico (R.4) de cada campus e medida com consumo no mês. Regra em app/core/alertas.py."""
+    janela = meses_ate(deslocar_mes(mes, -1), JANELA_MESES)
+    totais = totais_por_campus_e_mes(db, [*janela, mes], campus_id)
+    nomes = dict(db.execute(select(Campus.id, Campus.nome)).all())
+
+    avaliados: list[AlertaPico] = []
+    for cid in sorted({c for c, _ in totais}):
+        for medida in MEDIDAS:
+            atual_t = totais.get((cid, mes), Totais())
+            atual = atual_t.valor(medida)
+            if atual is None:
+                continue  # sem consumo no mês: nada a avaliar
+            historico = [(m, totais[(cid, m)]) for m in janela if (cid, m) in totais]
+            valores = [t.valor(medida) for _, t in historico if t.valor(medida) is not None]
+            demonstracao = atual_t.demonstracao(medida) or any(t.demonstracao(medida) for _, t in historico)
+
+            if len(valores) < HISTORICO_MINIMO:
+                situacao, media, razao = "historico_insuficiente", None, None
+            else:
+                media = sum(valores) / len(valores)
+                razao = atual / media if media > 0 else None
+                situacao = "pico" if atual > LIMIAR_PICO * media else "normal"
+
+            avaliados.append(
+                AlertaPico(
+                    campusId=cid,
+                    nome=nomes.get(cid, f"Campus {cid}"),
+                    medida=medida,
+                    situacao=situacao,
+                    atual=atual,
+                    media=media,
+                    mesesNaMedia=len(valores),
+                    razao=razao,
+                    demonstracao=demonstracao,
+                )
+            )
+    # Picos primeiro, do maior salto para o menor; depois a ordem de campus e medida.
+    return sorted(avaliados, key=lambda a: (a.situacao != "pico", -(a.razao or 0) if a.situacao == "pico" else 0))

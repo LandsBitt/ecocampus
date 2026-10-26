@@ -16,6 +16,7 @@ import { Card, CardContent, CardToolbar } from '@/components/ui/card'
 import { EmptyState, ErrorState } from '@/components/ui/empty-state'
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
 import {
+  useAlertasPico,
   useCampusList,
   useComparacao,
   useIndicadores,
@@ -45,6 +46,7 @@ export default function Dashboard() {
   const indicadores = useIndicadores(mes)
   const historico = useSerie(mes, 12)
   const comparacao = useComparacao(mes)
+  const alertas = useAlertasPico(mes)
   const lancamentos = useLancamentos({ mes })
   const campi = useCampusList()
   const pizza = usePizza(mes, isSuper)
@@ -81,9 +83,10 @@ export default function Dashboard() {
         anterior,
         indicadores: indicadores.data ?? [],
         escopo: isSuper ? 'universidade' : 'campus',
-        pontosSemConsumo: resumo.data?.pontosSemConsumo ?? 0
+        pontosSemConsumo: resumo.data?.pontosSemConsumo ?? 0,
+        picos: alertas.data?.avaliados
       }),
-    [mes, atual, anterior, indicadores.data, isSuper, resumo.data?.pontosSemConsumo]
+    [mes, atual, anterior, indicadores.data, isSuper, resumo.data?.pontosSemConsumo, alertas.data]
   )
 
   const serieAgua = historico.data.map((ponto) => ponto.agua)

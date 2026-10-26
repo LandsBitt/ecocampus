@@ -1,14 +1,15 @@
-"""Série histórica (SPEC R.5) e comparação mensal e anual (SPEC R.3)."""
+"""Série histórica (SPEC R.5), comparação mensal e anual (SPEC R.3) e alerta de pico (SPEC R.4)."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.alertas import HISTORICO_MINIMO, JANELA_MESES, LIMIAR_PICO
 from app.core.limites import MES_PATTERN
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.schemas.auth import UserClaims
-from app.schemas.serie import ComparacaoOut, PontoSerie
+from app.schemas.serie import AlertasOut, ComparacaoOut, PontoSerie
 from app.services import serie as servico
 
 router = APIRouter()
@@ -43,4 +44,19 @@ def comparacao(
         anoAnterior=servico.deslocar_mes(mes, -12),
         escopo=escopo,
         campi=campi,
+    )
+
+
+@router.get("/alertas/picos", response_model=AlertasOut)
+def alertas_de_pico(
+    mes: str = Query(..., pattern=MES_PATTERN),
+    db: Session = Depends(get_db),
+    user: UserClaims = Depends(get_current_user),
+):
+    return AlertasOut(
+        mes=mes,
+        limiar=LIMIAR_PICO,
+        janelaMeses=JANELA_MESES,
+        historicoMinimo=HISTORICO_MINIMO,
+        avaliados=servico.picos(db, mes, _campus_do_escopo(user, None)),
     )

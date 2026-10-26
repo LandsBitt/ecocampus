@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useAuth } from '@/providers/AuthProvider'
 import type {
+  AlertasResponse,
   Campus,
   ComparacaoResponse,
   IndicadorCampus,
@@ -119,6 +120,16 @@ export function useSerie(mesFinal: string, meses = 12, enabled = true) {
     staleTime: 5 * 60 * 1000
   })
   return { data: query.data ?? [], isLoading: query.isLoading, isError: query.isError }
+}
+
+/** Alerta de pico de cada campus e medida no mês (R.4). */
+export function useAlertasPico(mes: string, enabled = true) {
+  const { getToken, claims } = useAuth()
+  return useQuery<AlertasResponse>({
+    queryKey: ['alertas', mes],
+    queryFn: async () => api.get<AlertasResponse>(`/alertas/picos?mes=${mes}`, await getToken()),
+    enabled: enabled && !!claims
+  })
 }
 
 /** Comparação com o mês anterior e com o mesmo mês do ano anterior, por medida (R.3). */
