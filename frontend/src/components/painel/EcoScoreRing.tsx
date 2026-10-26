@@ -21,7 +21,8 @@ export function EcoScoreRing({ score, tamanho = 248 }: { score: number | null; t
 
   return (
     <div className="relative shrink-0" style={{ width: tamanho, height: tamanho }}>
-      <svg width={tamanho} height={tamanho} viewBox={`0 0 ${tamanho} ${tamanho}`} aria-hidden>
+      {/* overflow visível: o brilho do arco passa da caixa do SVG em vez de sair cortado em quadrado */}
+      <svg width={tamanho} height={tamanho} viewBox={`0 0 ${tamanho} ${tamanho}`} className="overflow-visible" aria-hidden>
         <defs>
           <linearGradient id={gradiente} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor={cor} />
