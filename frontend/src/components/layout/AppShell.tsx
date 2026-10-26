@@ -1,41 +1,29 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useOutlet } from 'react-router-dom'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 
 import { CommandPalette } from './CommandPalette'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { useCampusList } from '@/hooks/queries'
-import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/AuthProvider'
 
-const COLLAPSE_KEY = 'ecocampus:sidebar-collapsed'
-
 /** Telas cujo conteúdo não depende do mês selecionado. */
-const SEM_PERIODO = ['/perfil', '/ajuda', '/campi', '/importar']
+const SEM_PERIODO = ['/perfil', '/ajuda', '/campi', '/importar', '/usuarios']
+
+/** Curva da casa (tailwind `ease-smooth`). */
+const EASE = [0.32, 0.72, 0, 1] as const
 
 export function AppShell() {
   const { claims } = useAuth()
   const location = useLocation()
+  const outlet = useOutlet()
+  const reduzir = useReducedMotion()
   const campusQuery = useCampusList()
 
-  const [collapsed, setCollapsed] = useState(
-    () => typeof window !== 'undefined' && window.localStorage.getItem(COLLAPSE_KEY) === '1'
-  )
   const [mobileOpen, setMobileOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
-
-  const toggleCollapse = useCallback(() => {
-    setCollapsed((value) => {
-      const next = !value
-      try {
-        window.localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0')
-      } catch {
-        /* modo privado: preferência dura só esta sessão */
-      }
-      return next
-    })
-  }, [])
 
   // Atalho global da paleta de comandos.
   useEffect(() => {
@@ -58,19 +46,9 @@ export function AppShell() {
       : null
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <aside
-        className={cn(
-          'sticky top-0 hidden h-screen shrink-0 border-r border-border transition-[width] duration-200 ease-smooth lg:block',
-          collapsed ? 'w-[4.25rem]' : 'w-60'
-        )}
-      >
-        <Sidebar
-          role={claims?.role}
-          campusNome={campusNome}
-          collapsed={collapsed}
-          onToggleCollapse={toggleCollapse}
-        />
+    <div className="flex min-h-screen">
+      <aside className="sticky top-0 hidden h-screen w-[6.5rem] shrink-0 border-r border-border lg:block">
+        <Sidebar role={claims?.role} campusNome={campusNome} />
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -93,7 +71,18 @@ export function AppShell() {
           showPeriod={!SEM_PERIODO.includes(location.pathname)}
         />
         <main className="flex-1">
-          <Outlet />
+          {/* Troca de tela: entra subindo 8 px em 240 ms; sem movimento, só aparece. */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={reduzir ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduzir ? undefined : { opacity: 0, transition: { duration: 0.12 } }}
+              transition={{ duration: 0.24, ease: EASE }}
+            >
+              {outlet}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 

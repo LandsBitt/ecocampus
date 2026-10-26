@@ -141,7 +141,7 @@ function LinhaDeVariacao({ delta, base }: { delta: number | null; base: string }
     >
       <span
         className={cn(
-          'flex w-fit cursor-help items-center gap-1 text-xs font-medium',
+          'flex w-fit cursor-help items-center gap-1 whitespace-nowrap text-xs font-medium',
           trend.tone === 'success' && 'text-success',
           trend.tone === 'destructive' && 'text-destructive',
           trend.tone === 'muted' && 'text-muted-foreground'

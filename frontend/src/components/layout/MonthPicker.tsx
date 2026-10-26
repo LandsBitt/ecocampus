@@ -24,7 +24,7 @@ export function MonthPicker({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'flex h-9 items-center rounded-lg border border-border bg-surface shadow-xs',
+        'flex h-11 items-center rounded-full border border-border bg-surface-sunken',
         className
       )}
     >
@@ -33,7 +33,7 @@ export function MonthPicker({ className }: { className?: string }) {
           type="button"
           onClick={() => step(-1)}
           aria-label="Mês anterior"
-          className="flex h-full w-8 items-center justify-center rounded-l-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          className="flex h-full w-10 items-center justify-center rounded-l-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
           <ChevronLeft className="size-4" />
         </button>
@@ -43,9 +43,9 @@ export function MonthPicker({ className }: { className?: string }) {
         <button
           type="button"
           onClick={() => inputRef.current?.showPicker?.()}
-          className="flex h-full items-center gap-1.5 px-3 text-[0.8125rem] font-medium tabular-nums transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          className="flex h-full items-center gap-2 px-3.5 text-sm font-semibold tabular-nums transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
-          <CalendarDays className="size-3.5 text-subtle" />
+          <CalendarDays className="size-4 text-muted-foreground" />
           {formatMonthLabel(mes)}
         </button>
         {/* Input nativo por cima: dá o calendário do sistema sem UI própria. */}
@@ -66,7 +66,7 @@ export function MonthPicker({ className }: { className?: string }) {
           onClick={() => step(1)}
           disabled={proximoBloqueado}
           aria-label="Próximo mês"
-          className="flex h-full w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          className="flex h-full w-10 items-center justify-center rounded-r-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
           <ChevronRight className="size-4" />
         </button>
@@ -79,7 +79,7 @@ export function MonthPicker({ className }: { className?: string }) {
             size="icon-sm"
             onClick={reset}
             aria-label="Voltar para o mês atual"
-            className="mx-0.5 h-7 w-7 rounded-md"
+            className="mr-1 h-9 w-9"
           >
             <RotateCcw />
           </Button>
