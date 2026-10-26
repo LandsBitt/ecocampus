@@ -12,7 +12,7 @@ import { EcoScoreGauge } from '@/components/charts/EcoScoreGauge'
 import { Page, SectionHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardToolbar } from '@/components/ui/card'
-import { EmptyState } from '@/components/ui/empty-state'
+import { EmptyState, ErrorState } from '@/components/ui/empty-state'
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
 import {
   useCampusList,
@@ -86,32 +86,62 @@ export default function Dashboard() {
   const serieAgua = historico.data.map((ponto) => ponto.agua)
   const serieLuz = historico.data.map((ponto) => ponto.luz)
 
-  const carregando = resumo.isLoading || !atual
+  const carregando = resumo.isLoading
   const agua = formatMedida(atual?.agua ?? 0, 'agua')
   const luz = formatMedida(atual?.luz ?? 0, 'luz')
+
+  // O campus vê o próprio consumo e, ao lado, o total da universidade só como referência (D11).
+  const universidade = !isSuper ? resumo.data?.totalGeral ?? null : null
+  const referencia = (medida: Medida) => {
+    if (!universidade) return undefined
+    const total = formatMedida(universidade[medida], medida)
+    return `Universidade (referência): ${total.value} ${total.unit}`
+  }
+
+  // Sem /resumo ou /indicadores a tela não tem o que mostrar: melhor dizer que falhou
+  // do que deixar os cartões carregando para sempre.
+  const falhou = resumo.isError || indicadores.isError
+  const tentarDeNovo = () => {
+    if (resumo.isError) resumo.refetch()
+    if (indicadores.isError) indicadores.refetch()
+  }
 
   const nomeCampus = campi.data?.find((c) => c.id === claims?.campusId)?.nome
   const escopoLabel = isSuper ? 'Todos os campi' : nomeCampus ?? 'Meu campus'
 
+  const cabecalho = {
+    eyebrow: `${escopoLabel} · ${formatMonthLabel(mes)}`,
+    title: 'Visão geral',
+    description: isSuper
+      ? 'Como a universidade consumiu água e energia no mês selecionado, e como isso se compara com o mês anterior.'
+      : 'Como o seu campus consumiu água e energia no mês selecionado.',
+    showPeriod: true,
+    actions: (
+      <Button asChild variant="secondary">
+        <Link to="/lancamentos">
+          <Plus />
+          Novo lançamento
+        </Link>
+      </Button>
+    )
+  }
+
+  if (falhou) {
+    return (
+      <Page {...cabecalho}>
+        <ErrorState
+          action={
+            <Button variant="secondary" size="sm" onClick={tentarDeNovo}>
+              Tentar novamente
+            </Button>
+          }
+        />
+      </Page>
+    )
+  }
+
   return (
-    <Page
-      eyebrow={`${escopoLabel} · ${formatMonthLabel(mes)}`}
-      title="Visão geral"
-      description={
-        isSuper
-          ? 'Como a universidade consumiu água e energia no mês selecionado, e como isso se compara com o mês anterior.'
-          : 'Como o seu campus consumiu água e energia no mês selecionado.'
-      }
-      showPeriod
-      actions={
-        <Button asChild variant="secondary">
-          <Link to="/lancamentos">
-            <Plus />
-            Novo lançamento
-          </Link>
-        </Button>
-      }
-    >
+    <Page {...cabecalho}>
       <InsightPanel insights={insights} loading={carregando} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -128,7 +158,7 @@ export default function Dashboard() {
           footnote={
             isSuper
               ? `Somatório de ${indicadores.data?.length ?? 0} campi no mês`
-              : 'Consumo total do campus no mês'
+              : referencia('agua')
           }
         />
         <KpiCard
@@ -141,6 +171,7 @@ export default function Dashboard() {
           series={serieLuz}
           term="kwh"
           loading={carregando}
+          footnote={referencia('luz')}
         />
         <KpiCard
           label={isSuper ? 'Eco Score médio' : 'Eco Score do campus'}
