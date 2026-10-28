@@ -20,7 +20,7 @@ NOME_TIPO = {LancamentoTipo.agua: "água", LancamentoTipo.luz: "energia"}
 def _validate_campus_id(db: Session, value: int | None) -> None:
     if value is None or db.get(Campus, value) is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="campusId inexistente",
         )
 
@@ -180,7 +180,7 @@ def update_lancamento(
     _exige_permissao(user, item)
     if item.origem == LancamentoOrigem.demonstracao.value:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Lançamento de demonstração não se edita. Registre o consumo real: ele substitui a demonstração do mês.",
         )
 
@@ -197,7 +197,7 @@ def update_lancamento(
     # desencontraria do ponto (achado B4). Corrige-se pela importação.
     if item.ponto_medicao_id is not None and (campus_id != item.campus_id or tipo != item.tipo):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Lançamento importado segue o ponto de medição: campus e tipo não podem ser trocados.",
         )
     if campus_id != item.campus_id:

@@ -151,7 +151,7 @@ def preview_csv(
     conteudo = file.file.read(UPLOAD_MAXIMO_BYTES + 1)
     if len(conteudo) > UPLOAD_MAXIMO_BYTES:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=(
                 f"O arquivo passa de {UPLOAD_MAXIMO_BYTES // 1_000_000} MB. "
                 "A planilha modelo tem poucos KB: confira se é o CSV certo."
@@ -165,7 +165,7 @@ def preview_csv(
     faltando = [colunas[c] for c in ("ident", "consumo") if colunas[c] not in cabecalho]
     if faltando:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"O arquivo não parece ser a planilha de {NOME_TIPO[tipo]}: "
                 f"falta(m) a(s) coluna(s) {', '.join(faltando)}."

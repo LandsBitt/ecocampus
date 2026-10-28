@@ -46,7 +46,7 @@ def _para_saida(registro) -> UsuarioOut:
 
 def _exige_campus(db: Session, campus_id: int | None) -> None:
     if campus_id is not None and db.get(Campus, campus_id) is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Campus não encontrado.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Campus não encontrado.")
 
 
 @router.get("/usuarios", response_model=list[UsuarioOut])

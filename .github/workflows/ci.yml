@@ -44,6 +44,16 @@ jobs:
           cache-dependency-path: backend/requirements*.txt
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest -q
+      # Fumaça do jeito de produção (Linux, Gunicorn + worker do Uvicorn): o app sobe e responde.
+      - name: Sobe com Gunicorn e responde /health
+        env:
+          DATABASE_URL: postgresql+psycopg://ecocampus:dev@localhost:5432/ecocampus
+          FIREBASE_PROJECT_ID: ecocampus-ci
+        run: |
+          gunicorn app.main:app -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8000 --daemon --pid gunicorn.pid
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:8000/health && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8000/health
+          kill "$(cat gunicorn.pid)"
 
   frontend:
     name: Frontend (lint, tipos, testes, build)
