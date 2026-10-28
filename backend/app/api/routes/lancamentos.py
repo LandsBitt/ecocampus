@@ -117,6 +117,8 @@ def list_lancamentos(
     campus_id: int | None = Query(default=None, alias="campusId"),
     mes: str | None = None,
     tipo: LancamentoTipo | None = None,
+    # Só os mais recentes: o Painel mostra quatro e baixava o mês inteiro (achado F3).
+    limite: int | None = Query(default=None, ge=1, le=500),
     db: Session = Depends(get_db),
     user: UserClaims = Depends(get_current_user),
 ):
@@ -129,6 +131,8 @@ def list_lancamentos(
         stmt = stmt.where(Lancamento.mes_referencia == mes)
     if tipo:
         stmt = stmt.where(Lancamento.tipo == tipo)
+    if limite:
+        stmt = stmt.limit(limite)
 
     items = db.scalars(stmt).all()
     return [_to_lancamento_out(item) for item in items]

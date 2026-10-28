@@ -94,19 +94,22 @@ interface LancamentosFilter {
   mes?: string
   tipo?: LancamentoTipo | 'all'
   campusId?: string | number | 'all'
+  /** Só os mais recentes (o Painel mostra quatro). */
+  limite?: number
 }
 
 export function useLancamentos(filter: LancamentosFilter, enabled = true) {
   const { getToken, claims } = useAuth()
-  const { mes, tipo = 'all', campusId = 'all' } = filter
+  const { mes, tipo = 'all', campusId = 'all', limite } = filter
 
   return useQuery<Lancamento[]>({
-    queryKey: ['lancamentos', mes ?? null, tipo, campusId],
+    queryKey: ['lancamentos', mes ?? null, tipo, campusId, limite ?? null],
     queryFn: async () => {
       const params = new URLSearchParams()
       if (mes) params.set('mes', mes)
       if (tipo !== 'all') params.set('tipo', tipo)
       if (campusId !== 'all') params.set('campusId', String(campusId))
+      if (limite) params.set('limite', String(limite))
       const qs = params.toString()
       return api.get<Lancamento[]>(`/lancamentos${qs ? `?${qs}` : ''}`, await getToken())
     },
