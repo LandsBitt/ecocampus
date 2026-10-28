@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from app.core.eco_score import classify_score, compute_eco_score
+from app.core.eco_score import arredondar_nota, classify_score, compute_eco_score
 from app.schemas.carbono import FatorAplicado
 from app.schemas.indicadores import IndicadorCampus, IndicadorUniversidade
 from app.services.carbono import emissao_kg
@@ -84,7 +84,9 @@ def calcular_indicadores(rows: Iterable, fator: FatorAplicado | None = None) -> 
                 score_luz = compute_eco_score(luz_por_m2, ref_luz)
             parciais = [s for s in (score_agua, score_luz) if s is not None]
             if parciais:
-                eco_score = sum(parciais) / len(parciais)
+                # Média das parciais sem arredondar; só o resultado é arredondado (3.6).
+                eco_score = arredondar_nota(sum(parciais) / len(parciais))
+            score_agua, score_luz = arredondar_nota(score_agua), arredondar_nota(score_luz)
 
         output.append(
             IndicadorCampus(

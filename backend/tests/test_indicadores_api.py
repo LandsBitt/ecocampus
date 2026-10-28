@@ -65,12 +65,12 @@ def test_valores_por_campus(como, tres_campi):
     assert campi[1]["consumoAguaPerCapita"] == pytest.approx(0.5)
     assert campi[1]["consumoLuzPorM2"] == pytest.approx(1.0)
     assert campi[1]["consumoLuzPerCapita"] == pytest.approx(10.0)
-    assert campi[1]["ecoScore"] == pytest.approx(66.667, abs=0.01)
+    assert campi[1]["ecoScore"] == 66.7  # arredondada para uma casa (SPEC 3.6)
     assert campi[1]["classificacao"] == "Na média"
     assert campi[1]["situacao"] == "ok"
 
     # 116,7% da referência → nota 33,33
-    assert campi[2]["ecoScore"] == pytest.approx(33.333, abs=0.01)
+    assert campi[2]["ecoScore"] == 33.3
     assert campi[2]["classificacao"] == "Crítico"
 
     # Exatamente na referência → 50
@@ -113,7 +113,7 @@ def test_mes_sem_lancamentos_nao_tem_nota_em_lugar_nenhum(client, como, cadastra
 def test_campus_ve_so_a_propria_linha_com_a_referencia_de_todos(como, tres_campi):
     itens = como("campus", 2).get(f"/indicadores?mes={MES}").json()
     assert [item["campusId"] for item in itens] == [2]
-    assert itens[0]["ecoScore"] == pytest.approx(33.333, abs=0.01)
+    assert itens[0]["ecoScore"] == 33.3
 
 
 def test_filtro_de_mes(como, tres_campi, lancar):

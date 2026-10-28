@@ -519,7 +519,8 @@ function RankingCompacto({ itens }: { itens: IndicadorCampus[] }) {
     <ol className="space-y-3">
       {linhas.map(({ item, pos }) => {
         const nota = item.ecoScore ?? 0
-        const style = styleForScore(nota)
+        // Faixa de cada campus vem da API; o front só classifica a média, que ele mesmo calcula.
+        const style = item.classificacao ? classificacaoStyles[item.classificacao] : styleForScore(nota)
         return (
           <li key={item.campusId} className="grid grid-cols-[1.75rem_minmax(0,1fr)_3rem_3rem] items-center gap-2.5 sm:grid-cols-[2rem_minmax(0,1fr)_minmax(4rem,9rem)_3.5rem] sm:gap-3">
             <span className="num text-lg font-semibold text-subtle">{pos}º</span>

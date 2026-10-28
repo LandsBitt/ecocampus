@@ -1,11 +1,13 @@
 """Fórmula do Eco Score, faixas e regras de quem recebe nota (sem banco)."""
 from __future__ import annotations
 
+import re
 from collections import namedtuple
+from pathlib import Path
 
 import pytest
 
-from app.core.eco_score import classify_score, compute_eco_score
+from app.core.eco_score import CONFIG, arredondar_nota, classify_score, compute_eco_score
 from app.services.indicadores import calcular_indicadores, ordenar_ranking
 
 Totais = namedtuple(
@@ -252,3 +254,23 @@ def test_ranking_poe_quem_nao_tem_nota_no_fim():
 
 def test_lista_vazia():
     assert calcular_indicadores([]) == []
+
+
+def test_nota_classificada_como_aparece_na_tela():
+    # 69,96 aparece como "70,0": a faixa tem de ser a de 70, não a de 69,96 (SPEC 3.6).
+    assert arredondar_nota(69.96) == 70.0
+    assert classify_score(arredondar_nota(69.96)) == "Ecológico"
+    assert arredondar_nota(None) is None
+
+
+def test_faixas_do_front_iguais_as_da_api():
+    """O front ainda classifica a média da universidade e desenha as faixas no medidor (C12)."""
+    ts = Path(__file__).resolve().parents[2] / "frontend" / "src" / "lib" / "ecoScore.ts"
+    if not ts.exists():
+        pytest.skip("frontend fora deste checkout")
+    texto = ts.read_text(encoding="utf-8")
+    eco = re.search(r"ecoThreshold:\s*(\d+)", texto)
+    atencao = re.search(r"attentionThreshold:\s*(\d+)", texto)
+    assert eco and atencao, "ECO_CONFIG mudou de forma em frontend/src/lib/ecoScore.ts"
+    assert int(eco.group(1)) == CONFIG.eco_threshold
+    assert int(atencao.group(1)) == CONFIG.attention_threshold

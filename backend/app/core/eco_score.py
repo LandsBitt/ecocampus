@@ -34,6 +34,14 @@ def compute_eco_score(total: float, average: float, config: EcoScoreConfig = CON
     return _clamp(score, 0.0, 100.0)
 
 
+CASAS_DA_NOTA = 1
+
+
+def arredondar_nota(score: float | None) -> float | None:
+    """A nota sai da API como aparece na tela (uma casa); a classificação usa este valor."""
+    return round(score, CASAS_DA_NOTA) if score is not None else None
+
+
 def classify_score(score: float, config: EcoScoreConfig = CONFIG) -> str:
     if score >= config.eco_threshold:
         return ECOLOGICO
