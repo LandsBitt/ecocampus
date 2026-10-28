@@ -153,3 +153,18 @@ def test_super_nao_se_rebaixa_nem_se_desativa(como, fb):
 
 def test_usuario_inexistente_vira_404(como, fb):
     assert como("super").patch("/usuarios/nao-existe", json={"desativado": True}).status_code == 404
+
+
+def test_revogar_tira_o_token_do_cache_na_hora(como, fb):
+    """SPEC 4.2: o token conferido fica em cache; revogar não pode esperar o prazo dele."""
+    from app.core import security
+
+    conta = fb.create_user(email="zeca@unitau.br", password="x" * 8)
+    security._tokens_conferidos["tok-zeca"] = (float("inf"), {"uid": conta.uid})
+    security._tokens_conferidos["tok-outro"] = (float("inf"), {"uid": "outro"})
+    try:
+        como("super").patch(f"/usuarios/{conta.uid}", json={"desativado": True})
+        assert "tok-zeca" not in security._tokens_conferidos
+        assert "tok-outro" in security._tokens_conferidos
+    finally:
+        security._tokens_conferidos.clear()

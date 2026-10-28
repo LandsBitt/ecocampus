@@ -10,7 +10,7 @@ from firebase_admin import auth
 from firebase_admin.auth import EmailAlreadyExistsError, UserNotFoundError
 from sqlalchemy.orm import Session
 
-from app.core.security import init_firebase, require_super
+from app.core.security import esquecer_usuario, init_firebase, require_super
 from app.db.models import Campus
 from app.db.session import get_db
 from app.schemas.auth import UserClaims
@@ -106,4 +106,5 @@ def atualizar_usuario(
     if payload.role is not None or payload.desativado:
         # Tokens já emitidos carregam o papel antigo; revogar obriga a entrar de novo.
         fb.revoke_refresh_tokens(uid)
+        esquecer_usuario(uid)
     return _para_saida(fb.get_user(uid))
