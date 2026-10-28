@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type QueryClient } from '@tanstack/react-query'
 
 import { api } from '@/lib/api'
 import { useAuth } from '@/providers/AuthProvider'
@@ -24,6 +24,15 @@ import type {
  * invalidação por prefixo (ex.: ['resumo']) atinja todos os meses em cache
  * depois de um lançamento ou importação.
  */
+
+/** Tudo que é calculado a partir do consumo: refazer depois de lançar, editar, excluir ou importar. */
+const DEPENDEM_DO_CONSUMO = ['lancamentos', 'resumo', 'indicadores', 'pizza', 'serie', 'comparacao', 'alertas']
+
+export function invalidarConsumo(queryClient: QueryClient) {
+  for (const chave of DEPENDEM_DO_CONSUMO) {
+    queryClient.invalidateQueries({ queryKey: [chave] })
+  }
+}
 
 export function useCampusList() {
   const { getToken, claims } = useAuth()

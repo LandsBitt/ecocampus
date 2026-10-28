@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/select'
 import { SkeletonTable } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/sonner'
-import { useCampusList, useLancamentos } from '@/hooks/queries'
+import { invalidarConsumo, useCampusList, useLancamentos } from '@/hooks/queries'
 import { ApiError, api, detalheDoErro } from '@/lib/api'
 import { formatMonthLabel, formatMonthLong } from '@/lib/date'
 import { downloadCsv } from '@/lib/export'
@@ -75,15 +75,7 @@ export default function Lancamentos() {
     )
   }, [lancamentos.data, busca, nomePorId])
 
-  const invalidar = () => {
-    queryClient.invalidateQueries({ queryKey: ['lancamentos'] })
-    queryClient.invalidateQueries({ queryKey: ['resumo'] })
-    queryClient.invalidateQueries({ queryKey: ['indicadores'] })
-    queryClient.invalidateQueries({ queryKey: ['pizza'] })
-    queryClient.invalidateQueries({ queryKey: ['serie'] })
-    queryClient.invalidateQueries({ queryKey: ['comparacao'] })
-    queryClient.invalidateQueries({ queryKey: ['alertas'] })
-  }
+  const invalidar = () => invalidarConsumo(queryClient)
 
   const salvar = useMutation({
     mutationFn: async (payload: LancamentoInput & { id?: number }) => {

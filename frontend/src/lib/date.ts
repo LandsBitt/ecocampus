@@ -71,15 +71,3 @@ export function formatMonthLong(value: string): string {
 }
 
 /** Os N meses terminando em `endMonth`, do mais antigo para o mais recente. */
-export function monthRange(endMonth: string, count: number): string[] {
-  return Array.from({ length: count }, (_, i) => shiftMonth(endMonth, -(count - 1 - i)))
-}
-
-/** Mesmo mês do ano anterior — base de comparação sazonal. */
-export function sameMonthLastYear(value: string): string {
-  return shiftMonth(value, -12)
-}
-
-export function isFutureMonth(value: string): boolean {
-  return value > getCurrentMonth()
-}

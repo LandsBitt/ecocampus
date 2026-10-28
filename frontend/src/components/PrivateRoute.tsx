@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Loader2, ShieldAlert, UserX, WifiOff, type LucideIcon } from 'lucide-react'
 
 import { Brand } from '@/components/layout/Brand'
@@ -81,7 +81,7 @@ export function PrivateRoute({ roles }: PrivateRouteProps) {
         description="Seu acesso é de administrador de campus, então esta tela não está disponível. Se você precisa dela, peça a liberação à administração do sistema."
         actions={
           <Button asChild>
-            <a href="/dashboard">Voltar para a visão geral</a>
+            <Link to="/dashboard">Voltar para a visão geral</Link>
           </Button>
         }
       />

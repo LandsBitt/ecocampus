@@ -25,8 +25,9 @@ import {
   useResumo,
   useSerie
 } from '@/hooks/queries'
+import { useRanking } from '@/hooks/useRanking'
 import { formatMonthLabel, formatMonthLong, previousMonth } from '@/lib/date'
-import { classificacaoStyles, comNota, consumoTrend, motivoSemNota, notaMedia, styleForScore, toneFill } from '@/lib/ecoScore'
+import { classificacaoStyles, consumoTrend, motivoSemNota, styleForScore, toneFill } from '@/lib/ecoScore'
 import { fraseComoTexto, fraseDoMes, nomeDoMes } from '@/lib/frases'
 import {
   formatDelta,
@@ -77,8 +78,7 @@ export default function Dashboard() {
 
   const meuCampus = useMemo(() => (isSuper ? null : indicadores.data?.[0] ?? null), [indicadores.data, isSuper])
 
-  // Média só de quem tem nota: campus sem dado ou sem cadastro não entra.
-  const scoreMedio = useMemo(() => notaMedia(indicadores.data ?? []), [indicadores.data])
+  const { avaliados, media: scoreMedio } = useRanking(indicadores.data)
   const score = isSuper ? scoreMedio : meuCampus?.ecoScore ?? null
 
   // Só os avisos (picos, campus sem cadastro, contas sem consumo) sobem para a tela:
@@ -178,7 +178,7 @@ export default function Dashboard() {
   const luz = medidaNumerica(atual?.luz, 'luz')
   const comRegistro = (indicadores.data ?? []).filter((i) => i.temDados).length
   const totalCampi = indicadores.data?.length ?? 0
-  const comNotaQtd = comNota(indicadores.data ?? []).length
+  const comNotaQtd = avaliados.length
 
   return (
     <Page {...cabecalho}>
@@ -371,7 +371,7 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : (
-              <RankingCompacto itens={comNota(indicadores.data ?? [])} />
+              <RankingCompacto itens={avaliados} />
             )}
           </BentoCard>
         ) : (

@@ -99,7 +99,3 @@ export const GROUP_LABELS: Record<NavItem['group'], string> = {
 export function visibleNav(role: Role | undefined): NavItem[] {
   return NAV_ITEMS.filter((item) => !item.roles || (role && item.roles.includes(role)))
 }
-
-export function navItemFor(pathname: string): NavItem | undefined {
-  return NAV_ITEMS.find((item) => item.to === pathname)
-}

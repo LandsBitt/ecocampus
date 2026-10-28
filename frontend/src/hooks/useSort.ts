@@ -30,8 +30,9 @@ export function useSort<T, K extends string>(
       const va = get(a)
       const vb = get(b)
       // Valores ausentes vão sempre para o fim, independentemente da direção.
-      if (va === null || va === undefined) return 1
-      if (vb === null || vb === undefined) return -1
+      const semA = va === null || va === undefined
+      const semB = vb === null || vb === undefined
+      if (semA || semB) return semA && semB ? 0 : semA ? 1 : -1
       if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * factor
       return String(va).localeCompare(String(vb), 'pt-BR') * factor
     })
