@@ -240,8 +240,8 @@ Antes do relatório, só 3.1 e 3.2. O restante fica para depois.
 
 ### Fase 5 — Melhorias opcionais
 
-- ESLint no front e CI (GitHub Actions) rodando `pytest`, `vitest`, `tsc` e lint.
-- Atualizar FastAPI/Starlette e demais dependências, com a suíte como proteção.
+- ✅ **Feito** (2026-10-28). ESLint 10 no front (`npm run lint`, zero avisos) e CI no GitHub Actions (`.github/workflows/ci.yml`): pytest com Postgres 16, fumaça com Gunicorn + worker do Uvicorn chamando `/health`, lint, tipos, vitest e build, em todo PR e push na `main`. O lint apontou estado corrigido dentro de efeito em 4 componentes (refeito durante a renderização) e um teste de Relatórios que não conferia nada (`\b` virou backspace na regex). ESLint no front e CI (GitHub Actions) rodando `pytest`, `vitest`, `tsc` e lint.
+- ✅ **Feito** (2026-10-28). Backend: FastAPI 0.143.1 (Starlette 1.8.0), SQLAlchemy 2.1.4, Alembic 1.20.0, psycopg 3.3.6, firebase-admin 7.7.0, Uvicorn 0.54.0, Gunicorn 26.2.0 e demais; testes de rota passaram a listar pelo OpenAPI. Front: tudo dentro da mesma versão principal. **Ficam para PRs próprios:** React 19, React Router 7, Recharts 3, Zod 4, Tailwind 4, TypeScript 7, Firebase 13, lucide 1.x, motion 14, sonner 2, tailwind-merge 3, @hookform/resolvers 6; e o `httpx2` no cliente de testes (Starlette avisa que o `httpx` está depreciado ali). Regra usada: versão mais nova com pelo menos duas semanas de publicação. Atualizar FastAPI/Starlette e demais dependências, com a suíte como proteção.
 - Metas institucionais e comentários no lançamento (ideias de `MarkDown/coisas_para_relatar.md`).
 - Cadastro de pontos de medição pela interface, para resolver "linhas ignoradas" sem migration.
 
