@@ -153,7 +153,7 @@ export default function Reports() {
       actions={
         <Button variant="secondary" onClick={exportar} disabled={ranking.length === 0}>
           <Download />
-          <span className="hidden sm:inline">Exportar ranking</span>
+          <span className="sr-only sm:not-sr-only">Exportar ranking</span>
         </Button>
       }
     >
@@ -167,7 +167,12 @@ export default function Reports() {
         />
       ) : (
         <>
-          {indicadores.data?.some((item) => item.demonstracao) && <DemonstracaoAviso />}
+          {/* Enquanto carrega, o aviso ocupa o lugar invisível para a página não pular depois. */}
+          {indicadores.isLoading ? (
+            <DemonstracaoAviso className="invisible" />
+          ) : (
+            indicadores.data?.some((item) => item.demonstracao) && <DemonstracaoAviso />
+          )}
           <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
             <Card>
               <CardToolbar

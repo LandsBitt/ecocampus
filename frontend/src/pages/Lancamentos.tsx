@@ -159,7 +159,7 @@ export default function Lancamentos() {
         <>
           <Button variant="secondary" onClick={exportar} disabled={visiveis.length === 0}>
             <Download />
-            <span className="hidden sm:inline">Exportar CSV</span>
+            <span className="sr-only sm:not-sr-only">Exportar CSV</span>
           </Button>
           <Button
             onClick={() => {

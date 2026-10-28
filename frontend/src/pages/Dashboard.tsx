@@ -182,7 +182,8 @@ export default function Dashboard() {
 
   return (
     <Page {...cabecalho}>
-      {temDemonstracao && <DemonstracaoAviso />}
+      {/* Enquanto carrega, o aviso ocupa o lugar invisível para o bento não pular depois. */}
+      {carregando ? <DemonstracaoAviso className="invisible" /> : temDemonstracao && <DemonstracaoAviso />}
 
       {avisos.length > 0 && (
         <div className="rounded-xl border border-warning/40 bg-warning-soft/60 px-5 py-4">

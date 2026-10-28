@@ -208,15 +208,16 @@ function Linha({
   ajuda?: string
 }) {
   return (
-    <div className="flex gap-3">
-      <Icone className="mt-0.5 size-4 shrink-0 text-subtle" />
-      <div className="min-w-0 flex-1">
-        <dt className="text-2xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
-          {rotulo}
-        </dt>
-        <dd className="mt-1">{valor}</dd>
+    // Dentro de <dl> o grupo só pode ter <dt>/<dd>: ícone vai no rótulo, ajuda no valor.
+    <div className="relative min-w-0 pl-7">
+      <dt className="text-2xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+        <Icone className="absolute left-0 top-0.5 size-4 text-subtle" aria-hidden />
+        {rotulo}
+      </dt>
+      <dd className="mt-1">
+        {valor}
         {ajuda && <p className="mt-1 text-2xs leading-relaxed text-subtle">{ajuda}</p>}
-      </div>
+      </dd>
     </div>
   )
 }
