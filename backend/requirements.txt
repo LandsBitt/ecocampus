@@ -6,4 +6,6 @@ alembic==1.13.2
 psycopg[binary]==3.2.13
 pydantic-settings==2.3.4
 firebase-admin==6.5.0
+# Upload da importação (File/Form): o FastAPI 0.112+ deixa de instalá-lo junto.
+python-multipart==0.0.27
 python-dotenv==1.0.1
