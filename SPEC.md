@@ -230,11 +230,13 @@ Antes do relatório, só 3.1 e 3.2. O restante fica para depois.
 | # | Tarefa | Achados |
 |---|---|---|
 | 4.1 | ✅ **Adiantado com a R.5.** Dashboard passa a usar o endpoint de série (R.5) no lugar das 12 chamadas. | F3 |
-| 4.2 | Validação de token sem chamada de rede por request (`check_revoked=False` ou cache curto por token). | B3 |
-| 4.3 | Importação em lote: carregar os pontos do tipo uma vez; upsert em uma instrução; limite de tamanho do upload. | B6 |
-| 4.4 | `Cache-Control` nos endpoints públicos; limite de linhas em "Últimos lançamentos". | F3 |
+| 4.2 | ✅ **Feito** (2026-10-28). Cache curto por token: a revogação continua conferida (`check_revoked=True`), mas o resultado vale 5 minutos por token, nunca além do vencimento dele, com teto de 1000 tokens. A tela Usuários esquece o usuário ao revogar (vale na hora no mesmo processo; noutro processo, em até 5 minutos). Medido: cada conferência custava ~280 ms de ida ao Firebase em toda requisição autenticada. Ainda não testado com token real. Validação de token sem chamada de rede por request (`check_revoked=False` ou cache curto por token). | B3 |
+| 4.3 | ✅ **Feito** (2026-10-28). Prévia carrega os pontos do tipo uma vez (com o campus) e conta manuais e demonstração numa consulta; confirmação faz um único `INSERT … ON CONFLICT` e um único `DELETE`. Upload acima de 1 MB → 413. Importação em lote: carregar os pontos do tipo uma vez; upsert em uma instrução; limite de tamanho do upload. | B6 |
+| 4.4 | ✅ **Feito** (2026-10-28). `Cache-Control: public, max-age=300` em `/public/ranking` e `/public/pizza`; `/lancamentos?limite=` e o Painel pede só os 4 que mostra; o Painel deixou de chamar o `/resumo` do mês anterior (usa a comparação). `Cache-Control` nos endpoints públicos; limite de linhas em "Últimos lançamentos". | F3 |
 
 **Critérios de aceite:** abrir o Dashboard gera no máximo 6 requests à API (hoje cerca de 17); prévia e confirmação de uma planilha com 72 pontos executam no máximo 3 consultas cada; tempos medidos antes e depois registrados no PR.
+
+**Medido em 2026-10-28:** planilha real de água (39 pontos): prévia de 49 para 2 consultas, confirmação de 80 para 3 (travado em `test_desempenho_importacao.py`, que também cobre energia e reimportação). Painel: 6 consultas próprias (resumo, indicadores, série, comparação, alertas, últimos lançamentos), eram 8; mais a lista de campi do layout, compartilhada e em cache por 10 minutos.
 
 ### Fase 5 — Melhorias opcionais
 
