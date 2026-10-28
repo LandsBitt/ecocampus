@@ -14,7 +14,6 @@ from app.schemas.lancamento import LancamentoCreate, LancamentoOut, LancamentoUp
 
 router = APIRouter()
 
-ALLOWED_TIPOS = {LancamentoTipo.agua, LancamentoTipo.luz}
 NOME_TIPO = {LancamentoTipo.agua: "água", LancamentoTipo.luz: "energia"}
 
 
@@ -141,9 +140,6 @@ def create_lancamento(
     db: Session = Depends(get_db),
     user: UserClaims = Depends(get_current_user),
 ):
-    if payload.tipo not in ALLOWED_TIPOS:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Tipo inválido")
-
     campus_id = payload.campus_id
     if user.role == "campus":
         campus_id = user.campusId
@@ -200,8 +196,6 @@ def update_lancamento(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Lançamento importado segue o ponto de medição: campus e tipo não podem ser trocados.",
         )
-    if tipo not in ALLOWED_TIPOS:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Tipo inválido")
     if campus_id != item.campus_id:
         _validate_campus_id(db, campus_id)
     if (campus_id, tipo, mes) != (item.campus_id, item.tipo, item.mes_referencia):
