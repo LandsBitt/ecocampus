@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { CommandPalette } from './CommandPalette'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { useCampusList } from '@/hooks/queries'
 import { useAuth } from '@/providers/AuthProvider'
 
@@ -54,6 +54,9 @@ export function AppShell() {
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" hideClose className="p-0">
+          {/* Só para leitor de tela: a gaveta precisa de nome e descrição (Radix). */}
+          <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
+          <SheetDescription className="sr-only">Telas do EcoCampus</SheetDescription>
           <Sidebar
             role={claims?.role}
             campusNome={campusNome}
