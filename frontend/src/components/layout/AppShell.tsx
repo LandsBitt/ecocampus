@@ -22,7 +22,11 @@ export function AppShell() {
   const reduzir = useReducedMotion()
   const campusQuery = useCampusList()
 
-  const [mobileOpen, setMobileOpen] = useState(false)
+  // O menu móvel lembra em que rota foi aberto: trocar de rota fecha sozinho,
+  // sem efeito que corrige o estado depois de desenhar.
+  const [menuAbertoEm, setMenuAbertoEm] = useState<string | null>(null)
+  const mobileOpen = menuAbertoEm === location.pathname
+  const setMobileOpen = (aberto: boolean) => setMenuAbertoEm(aberto ? location.pathname : null)
   const [commandOpen, setCommandOpen] = useState(false)
 
   // Atalho global da paleta de comandos.
@@ -36,9 +40,6 @@ export function AppShell() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
-
-  // Trocar de rota fecha o menu móvel.
-  useEffect(() => setMobileOpen(false), [location.pathname])
 
   const campusNome =
     claims?.role === 'campus'

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Leaf, Pencil, Plus } from 'lucide-react'
 
@@ -22,29 +22,10 @@ import { SkeletonTable } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/sonner'
 import { useFatoresEmissao } from '@/hooks/queries'
 import { api, detalheDoErro } from '@/lib/api'
+import { errosDoFator, type RascunhoFator as Rascunho } from '@/lib/fatores'
 import { formatNumber } from '@/lib/formatters'
 import { useAuth } from '@/providers/AuthProvider'
 import type { FatorEmissao } from '@/lib/types'
-
-interface Rascunho {
-  ano: string
-  fator: string
-  provisorio: boolean
-  fonte: string
-}
-
-/** O que o formulário recusa antes de ir à API (que valida de novo: 2000–2099, 0 < fator < 2). */
-export function errosDoFator(r: Rascunho): Partial<Record<keyof Rascunho, string>> {
-  const erros: Partial<Record<keyof Rascunho, string>> = {}
-  const ano = Number(r.ano)
-  if (!Number.isInteger(ano) || ano < 2000 || ano > 2099) erros.ano = 'Informe um ano entre 2000 e 2099'
-  const fator = Number(r.fator.replace(',', '.'))
-  if (!r.fator.trim() || !Number.isFinite(fator) || fator <= 0 || fator >= 2) {
-    erros.fator = 'Informe o fator em tCO₂/MWh, por exemplo 0,0461'
-  }
-  if (r.fonte.trim().length < 3) erros.fonte = 'Diga de onde veio o valor'
-  return erros
-}
 
 /**
  * Fatores médios anuais de emissão da rede elétrica (SPEC R.2). Sem um fator
@@ -192,25 +173,29 @@ function FatorDialog({
   salvando: boolean
   onSalvar: (f: FatorEmissao) => void
 }) {
-  const vazio: Rascunho = { ano: String(anoSugerido), fator: '', provisorio: false, fonte: '' }
-  const [rascunho, setRascunho] = useState<Rascunho>(vazio)
+  const inicial = (): Rascunho =>
+    editando
+      ? {
+          ano: String(editando.ano),
+          fator: String(editando.fator).replace('.', ','),
+          provisorio: editando.provisorio,
+          fonte: editando.fonte
+        }
+      : { ano: String(anoSugerido), fator: '', provisorio: false, fonte: '' }
+  const [rascunho, setRascunho] = useState<Rascunho>(inicial)
   const [tentou, setTentou] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
-    setTentou(false)
-    setRascunho(
-      editando
-        ? {
-            ano: String(editando.ano),
-            fator: String(editando.fator).replace('.', ','),
-            provisorio: editando.provisorio,
-            fonte: editando.fonte
-          }
-        : vazio
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editando?.ano])
+  // Cada abertura (de um ano diferente, ou de "novo") recomeça o formulário.
+  // Ajustado durante a renderização, não num efeito que redesenha depois.
+  const abertura = open ? `aberto-${editando?.ano ?? 'novo'}` : 'fechado'
+  const [aberturaAntes, setAberturaAntes] = useState(abertura)
+  if (abertura !== aberturaAntes) {
+    setAberturaAntes(abertura)
+    if (open) {
+      setTentou(false)
+      setRascunho(inicial())
+    }
+  }
 
   const erros = errosDoFator(rascunho)
   const mostrar = (campo: keyof Rascunho) => (tentou ? erros[campo] : undefined)

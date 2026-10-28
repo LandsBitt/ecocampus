@@ -13,7 +13,8 @@ function escapeCell(value: unknown): string {
 
 export function toCsv(headers: string[], rows: unknown[][]): string {
   const lines = [headers.join(';'), ...rows.map((row) => row.map(escapeCell).join(';'))]
-  return `﻿${lines.join('\r\n')}`
+  // BOM: o Excel só abre o CSV com acentos certos se o arquivo começar com ele.
+  return `\uFEFF${lines.join('\r\n')}`
 }
 
 export function downloadCsv(filename: string, headers: string[], rows: unknown[][]): void {
