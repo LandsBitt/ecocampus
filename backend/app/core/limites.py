@@ -20,6 +20,11 @@ MES_PATTERN = r"^20\d{2}-(0[1-9]|1[0-2])$"
 # limite da coluna, Numeric(12, 3), que antes estourava como erro 500.
 CONSUMO_MAXIMO = Decimal("10000000")
 
+# Tamanho máximo da planilha enviada na importação. As planilhas modelo têm uns
+# 3 KB com os 72 pontos; 1 MB sobra centenas de vezes e impede que um arquivo
+# errado seja lido inteiro na memória do servidor (achado B6).
+UPLOAD_MAXIMO_BYTES = 1_000_000
+
 # Teto da fatura de um lançamento, em R$. Mesmo raciocínio: nenhuma conta mensal
 # de água ou luz de um campus chega perto de R$ 10 milhões, e a coluna é Numeric(12, 2).
 VALOR_RS_MAXIMO = Decimal("10000000")
