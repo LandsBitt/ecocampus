@@ -6,6 +6,7 @@ import {
   LifeBuoy,
   Trophy,
   UserCircle2,
+  UsersRound,
   type LucideIcon
 } from 'lucide-react'
 
@@ -62,6 +63,14 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Campi',
     description: 'População e área usadas na comparação justa',
     icon: Building2,
+    roles: ['super'],
+    group: 'dados'
+  },
+  {
+    to: '/usuarios',
+    label: 'Usuários',
+    description: 'Quem acessa o sistema e o que cada um vê',
+    icon: UsersRound,
     roles: ['super'],
     group: 'dados'
   },

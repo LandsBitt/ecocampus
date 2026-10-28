@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
-import { PieChart as PieIcon } from 'lucide-react'
+import { Droplet, PieChart as PieIcon, Zap } from 'lucide-react'
 
 import { TooltipCard } from './ChartTooltip'
 import { useChartColors } from './chart-theme'
 import { EmptyState } from '@/components/ui/empty-state'
-import { formatNumber, formatPercent } from '@/lib/formatters'
+import { Segmented } from '@/components/ui/segmented'
+import { formatMedida, formatMedidaInline, formatPercent, type Medida } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import type { PizzaItem } from '@/lib/types'
 
 interface CampusDistributionProps {
   data: PizzaItem[]
+  /** Água (m³) ou energia (kWh): cada pizza mostra uma medida só, nunca a soma. */
+  medida: Medida
   /** Campus destacado — os demais são esmaecidos. */
   highlightedId?: number | null
   height?: number
@@ -23,32 +26,36 @@ interface CampusDistributionProps {
  * de uma lista ordenada com valor e percentual — quem precisa do número
  * exato lê na lista; quem quer a proporção olha o anel.
  */
-export function CampusDistribution({ data, highlightedId, height = 260 }: CampusDistributionProps) {
+export function CampusDistribution({ data, medida, highlightedId, height = 260 }: CampusDistributionProps) {
   const colors = useChartColors()
   const [hovered, setHovered] = useState<number | null>(null)
 
   const { items, total } = useMemo(() => {
-    const positivos = data.filter((d) => d.total > 0)
-    const total = positivos.reduce((sum, d) => sum + d.total, 0)
-    const items = [...positivos]
-      .sort((a, b) => b.total - a.total)
+    const positivos = data
+      .map((d) => ({ campusId: d.campusId, nome: d.nome, valor: d[medida] }))
+      .filter((d) => d.valor > 0)
+    const total = positivos.reduce((sum, d) => sum + d.valor, 0)
+    const items = positivos
+      .sort((a, b) => b.valor - a.valor)
       .map((item, index) => ({
         ...item,
-        share: total > 0 ? (item.total / total) * 100 : 0,
+        share: total > 0 ? (item.valor / total) * 100 : 0,
         color: colors.categorical[index % colors.categorical.length]
       }))
     return { items, total }
-  }, [data, colors])
+  }, [data, medida, colors])
 
   if (items.length === 0) {
     return (
       <EmptyState
         icon={PieIcon}
-        title="Sem consumo registrado neste mês"
+        title={`Sem consumo de ${medida === 'agua' ? 'água' : 'energia'} registrado neste mês`}
         description="Assim que houver lançamentos no período, a divisão entre os campi aparece aqui."
       />
     )
   }
+
+  const totalFormatado = formatMedida(total, medida)
 
   const active = hovered ?? highlightedId ?? null
 
@@ -59,7 +66,7 @@ export function CampusDistribution({ data, highlightedId, height = 260 }: Campus
           <PieChart>
             <Pie
               data={items}
-              dataKey="total"
+              dataKey="valor"
               nameKey="nome"
               innerRadius="64%"
               outerRadius="94%"
@@ -87,7 +94,7 @@ export function CampusDistribution({ data, highlightedId, height = 260 }: Campus
                   <TooltipCard
                     title={item.nome}
                     rows={[
-                      { label: 'Consumo', value: formatNumber(item.total), color: item.color },
+                      { label: 'Consumo', value: formatMedidaInline(item.valor, medida), color: item.color },
                       { label: 'Participação', value: formatPercent(item.share) }
                     ]}
                   />
@@ -101,8 +108,9 @@ export function CampusDistribution({ data, highlightedId, height = 260 }: Campus
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <span className="eyebrow">Total</span>
           <span className="font-display text-xl font-semibold tabular-nums">
-            {formatNumber(total, 0)}
+            {totalFormatado.value}
           </span>
+          <span className="text-2xs text-muted-foreground">{totalFormatado.unit}</span>
           <span className="text-2xs text-subtle">{items.length} campi</span>
         </div>
       </div>
@@ -133,12 +141,27 @@ export function CampusDistribution({ data, highlightedId, height = 260 }: Campus
                 {formatPercent(item.share, 1)}
               </span>
               <span className="hidden w-24 shrink-0 text-right text-xs tabular-nums text-muted-foreground sm:block">
-                {formatNumber(item.total, 0)}
+                {formatMedidaInline(item.valor, medida)}
               </span>
             </div>
           </li>
         ))}
       </ul>
     </div>
+  )
+}
+
+/** Escolha entre água e energia para os gráficos que mostram uma medida por vez. */
+export function SeletorMedida({ value, onChange }: { value: Medida; onChange: (medida: Medida) => void }) {
+  return (
+    <Segmented
+      aria-label="Medida do gráfico"
+      value={value}
+      onChange={onChange}
+      options={[
+        { value: 'agua', label: 'Água', icon: Droplet },
+        { value: 'luz', label: 'Energia', icon: Zap }
+      ]}
+    />
   )
 }

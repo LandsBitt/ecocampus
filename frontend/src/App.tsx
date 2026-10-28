@@ -5,22 +5,24 @@ import { PrivateRoute } from '@/components/PrivateRoute'
 import { RouteFallback } from '@/components/RouteFallback'
 import { AppShell } from '@/components/layout/AppShell'
 import Login from '@/pages/Login'
+import RankingPublico from '@/pages/public/RankingPublico'
 
 /**
  * Cada tela é carregada sob demanda. Isso mantém a tela de login leve —
  * ela não precisa de gráficos nem das tabelas — e faz o resto do sistema
- * chegar em pedaços conforme a navegação.
+ * chegar em pedaços conforme a navegação. Login e ranking público ficam no
+ * pacote principal: são as portas de entrada e não podem esperar uma 2ª leva.
  */
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Lancamentos = lazy(() => import('@/pages/Lancamentos'))
 const Reports = lazy(() => import('@/pages/Reports'))
 const Campi = lazy(() => import('@/pages/Campi'))
 const Importar = lazy(() => import('@/pages/Importar'))
+const Usuarios = lazy(() => import('@/pages/Usuarios'))
 const Ajuda = lazy(() => import('@/pages/Ajuda'))
 const Profile = lazy(() => import('@/pages/Profile'))
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
-const RankingPublico = lazy(() => import('@/pages/public/RankingPublico'))
 
 export default function App() {
   return (
@@ -47,6 +49,7 @@ export default function App() {
             <Route path="/relatorios" element={<Reports />} />
             <Route path="/campi" element={<Campi />} />
             <Route path="/importar" element={<Importar />} />
+            <Route path="/usuarios" element={<Usuarios />} />
           </Route>
         </Route>
 

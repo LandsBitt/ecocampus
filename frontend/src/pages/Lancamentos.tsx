@@ -27,10 +27,11 @@ import {
 import { SkeletonTable } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/sonner'
 import { useCampusList, useLancamentos } from '@/hooks/queries'
-import { ApiError, api } from '@/lib/api'
+import { ApiError, api, detalheDoErro } from '@/lib/api'
 import { formatMonthLabel, formatMonthLong } from '@/lib/date'
 import { downloadCsv } from '@/lib/export'
 import { UNIDADES } from '@/lib/formatters'
+import { podeAlterarLancamento } from '@/lib/permissoes'
 import { useAuth } from '@/providers/AuthProvider'
 import { usePeriod } from '@/providers/PeriodProvider'
 import type { Lancamento, LancamentoInput } from '@/lib/types'
@@ -79,6 +80,9 @@ export default function Lancamentos() {
     queryClient.invalidateQueries({ queryKey: ['resumo'] })
     queryClient.invalidateQueries({ queryKey: ['indicadores'] })
     queryClient.invalidateQueries({ queryKey: ['pizza'] })
+    queryClient.invalidateQueries({ queryKey: ['serie'] })
+    queryClient.invalidateQueries({ queryKey: ['comparacao'] })
+    queryClient.invalidateQueries({ queryKey: ['alertas'] })
   }
 
   const salvar = useMutation({
@@ -97,12 +101,16 @@ export default function Lancamentos() {
       setEditando(null)
     },
     onError: (error: Error) => {
-      // 409 é o caso comum: já existe lançamento do mesmo tipo no mesmo mês.
-      const conflito = error instanceof ApiError && error.status === 409
+      // 409: já existe manual (ou importado) do mesmo campus, tipo e mês; 403: sem
+      // permissão; 422: valor fora do limite. A API explica cada caso em `detail`.
+      const status = error instanceof ApiError ? error.status : null
+      const explicado = status === 409 || status === 403 || status === 422
       toast.error('Não foi possível salvar', {
-        description: conflito
-          ? 'Já existe um lançamento deste tipo para este campus e mês. Edite o registro existente em vez de criar outro.'
-          : 'Verifique os dados informados e tente novamente.'
+        description:
+          (explicado && detalheDoErro(error)) ||
+          (status === 409
+            ? 'Já existe um lançamento deste tipo para este campus e mês. Edite o registro existente em vez de criar outro.'
+            : 'Verifique os dados informados e tente novamente.')
       })
     }
   })
@@ -114,19 +122,22 @@ export default function Lancamentos() {
       invalidar()
       setParaExcluir(null)
     },
-    onError: () => toast.error('Falha ao excluir o lançamento.')
+    onError: (error: Error) =>
+      toast.error('Falha ao excluir o lançamento.', { description: detalheDoErro(error) ?? undefined })
   })
 
   const exportar = () => {
     downloadCsv(
       `lancamentos-${periodo === 'mes' ? mes : 'todos'}`,
-      ['Mês', 'Campus', 'Tipo', 'Consumo', 'Unidade'],
+      ['Mês', 'Campus', 'Tipo', 'Consumo', 'Unidade', 'Fatura (R$)', 'Origem'],
       visiveis.map((item) => [
         formatMonthLabel(item.mesReferencia),
         nomePorId.get(item.campusId) ?? `Campus ${item.campusId}`,
         item.tipo === 'agua' ? 'Água' : 'Energia',
-        item.valor,
-        UNIDADES[item.tipo].curta
+        item.consumo,
+        UNIDADES[item.tipo].curta,
+        item.valorRs,
+        item.origem
       ])
     )
     toast.success('Arquivo CSV gerado.')
@@ -148,7 +159,7 @@ export default function Lancamentos() {
         <>
           <Button variant="secondary" onClick={exportar} disabled={visiveis.length === 0}>
             <Download />
-            <span className="hidden sm:inline">Exportar CSV</span>
+            <span className="sr-only sm:not-sr-only">Exportar CSV</span>
           </Button>
           <Button
             onClick={() => {
@@ -245,6 +256,7 @@ export default function Lancamentos() {
             setFormOpen(true)
           }}
           onDelete={setParaExcluir}
+          podeAlterar={(item) => podeAlterarLancamento(claims, item)}
           emptyAction={
             <Button
               size="sm"
@@ -277,7 +289,7 @@ export default function Lancamentos() {
       />
 
       <Dialog open={!!paraExcluir} onOpenChange={(open) => !open && setParaExcluir(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Excluir este lançamento?</DialogTitle>
             <DialogDescription>

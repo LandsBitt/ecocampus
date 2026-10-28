@@ -1,9 +1,7 @@
 import { NavLink } from 'react-router-dom'
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
 import { Brand } from './Brand'
 import { Badge } from '@/components/ui/badge'
-import { Hint } from '@/components/ui/tooltip'
 import { GROUP_LABELS, visibleNav, type NavItem } from '@/lib/navigation'
 import { cn } from '@/lib/utils'
 import type { Role } from '@/lib/types'
@@ -11,65 +9,45 @@ import type { Role } from '@/lib/types'
 interface SidebarProps {
   role: Role | undefined
   campusNome?: string | null
-  collapsed?: boolean
-  onToggleCollapse?: () => void
-  /** No painel móvel não há colapso nem tooltips. */
-  variant?: 'desktop' | 'mobile'
+  /** `rail`: trilho estreito do desktop (ícone + rótulo). `mobile`: lista completa no painel. */
+  variant?: 'rail' | 'mobile'
   onNavigate?: () => void
 }
 
-export function Sidebar({
-  role,
-  campusNome,
-  collapsed = false,
-  onToggleCollapse,
-  variant = 'desktop',
-  onNavigate
-}: SidebarProps) {
+function grupos(role: Role | undefined) {
   const items = visibleNav(role)
-  const isMobile = variant === 'mobile'
-  const isCollapsed = !isMobile && collapsed
-
-  const groups = (['analise', 'dados', 'conta'] as const)
+  return (['analise', 'dados', 'conta'] as const)
     .map((group) => ({ group, items: items.filter((item) => item.group === group) }))
     .filter((entry) => entry.items.length > 0)
+}
 
+export function Sidebar({ role, campusNome, variant = 'rail', onNavigate }: SidebarProps) {
+  return variant === 'mobile' ? (
+    <ListaMovel role={role} campusNome={campusNome} onNavigate={onNavigate} />
+  ) : (
+    <Trilho role={role} campusNome={campusNome} />
+  )
+}
+
+/**
+ * Trilho do desktop: o rótulo fica sempre visível embaixo do ícone, porque
+ * quem usa é leigo e ícone sozinho não diz para onde leva.
+ */
+function Trilho({ role, campusNome }: { role: Role | undefined; campusNome?: string | null }) {
   return (
-    <div className="flex h-full min-h-0 flex-col bg-surface">
-      <div
-        className={cn(
-          'flex h-14 shrink-0 items-center border-b border-border',
-          isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
-        )}
-      >
-        <Brand compact={isCollapsed} />
-        {!isCollapsed && onToggleCollapse && (
-          <Hint content="Recolher menu">
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              aria-label="Recolher menu"
-              className="rounded-md p-1.5 text-subtle transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <PanelLeftClose className="size-4" />
-            </button>
-          </Hint>
-        )}
+    <div className="flex h-full min-h-0 flex-col items-center bg-surface/60">
+      <div className="flex h-20 shrink-0 items-center justify-center">
+        <Brand compact />
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
-        {groups.map(({ group, items: groupItems }, index) => (
-          <div key={group} className={cn(index > 0 && 'mt-5')}>
-            {!isCollapsed && <p className="px-3 pb-1.5 eyebrow">{GROUP_LABELS[group]}</p>}
-            {isCollapsed && index > 0 && <div className="mx-2 mb-2 h-px bg-border" />}
-            <ul className="space-y-0.5">
-              {groupItems.map((item) => (
+      <nav aria-label="Principal" className="no-scrollbar min-h-0 w-full flex-1 overflow-y-auto px-3 pb-4">
+        {grupos(role).map(({ group, items }, index) => (
+          <div key={group} className={cn(index > 0 && 'mt-3 border-t border-border pt-3')}>
+            <p className="sr-only">{GROUP_LABELS[group]}</p>
+            <ul className="space-y-1">
+              {items.map((item) => (
                 <li key={item.to}>
-                  <SidebarLink
-                    item={item}
-                    collapsed={isCollapsed}
-                    onNavigate={onNavigate}
-                  />
+                  <ItemTrilho item={item} />
                 </li>
               ))}
             </ul>
@@ -77,85 +55,104 @@ export function Sidebar({
         ))}
       </nav>
 
-      <div className={cn('shrink-0 border-t border-border', isCollapsed ? 'p-2' : 'p-3')}>
-        {isCollapsed ? (
-          onToggleCollapse && (
-            <Hint content="Expandir menu" side="right">
-              <button
-                type="button"
-                onClick={onToggleCollapse}
-                aria-label="Expandir menu"
-                className="flex w-full items-center justify-center rounded-md p-2 text-subtle transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <PanelLeftOpen className="size-4" />
-              </button>
-            </Hint>
-          )
-        ) : (
-          <div className="rounded-lg border border-border bg-surface-sunken px-3 py-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-2xs font-medium text-muted-foreground">Seu acesso</p>
-              <Badge variant={role === 'super' ? 'brand' : 'default'} size="sm">
-                {role === 'super' ? 'Reitoria' : 'Campus'}
-              </Badge>
-            </div>
-            <p className="mt-1 truncate text-[0.8125rem] font-medium text-foreground">
-              {role === 'super' ? 'Todos os campi' : campusNome || 'Campus vinculado'}
-            </p>
-          </div>
-        )}
+      <div className="shrink-0 px-3 pb-5 text-center">
+        <Badge variant={role === 'super' ? 'brand' : 'default'} size="sm" className="max-w-[5.5rem]">
+          <span className="truncate">{role === 'super' ? 'Reitoria' : campusNome || 'Campus'}</span>
+        </Badge>
       </div>
     </div>
   )
 }
 
-function SidebarLink({
-  item,
-  collapsed,
-  onNavigate
-}: {
-  item: NavItem
-  collapsed: boolean
-  onNavigate?: () => void
-}) {
+function ItemTrilho({ item }: { item: NavItem }) {
   const Icon = item.icon
-
-  const link = (
+  return (
     <NavLink
       to={item.to}
-      onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'group relative flex items-center gap-3 rounded-md text-[0.8125rem] font-medium transition-colors',
-          collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2',
+          'flex flex-col items-center gap-1.5 rounded-lg px-1 py-2.5 text-center text-[0.6875rem] font-semibold leading-tight transition-colors',
           isActive
-            ? 'bg-accent text-accent-foreground'
+            ? 'bg-surface-sunken text-foreground shadow-[inset_0_0_0_1px_hsl(var(--border))]'
             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
         )
       }
     >
       {({ isActive }) => (
         <>
-          {/* Marcador de item ativo: barra fina na borda esquerda. */}
-          <span
-            aria-hidden
-            className={cn(
-              'absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-brand transition-opacity',
-              isActive ? 'opacity-100' : 'opacity-0'
-            )}
-          />
-          <Icon className="size-4 shrink-0" />
-          {!collapsed && <span className="truncate">{item.label}</span>}
+          <Icon className={cn('size-[22px] shrink-0', isActive && 'text-brand')} aria-hidden />
+          <span className="line-clamp-2">{item.label}</span>
         </>
       )}
     </NavLink>
   )
+}
 
-  if (!collapsed) return link
-
+/** Painel do celular: a lista completa, com grupos e rótulos por extenso. */
+function ListaMovel({
+  role,
+  campusNome,
+  onNavigate
+}: {
+  role: Role | undefined
+  campusNome?: string | null
+  onNavigate?: () => void
+}) {
   return (
-    <Hint side="right" content={<span className="font-medium">{item.label}</span>}>
-      {link}
-    </Hint>
+    <div className="flex h-full min-h-0 flex-col bg-surface">
+      <div className="flex h-16 shrink-0 items-center border-b border-border px-5">
+        <Brand />
+      </div>
+
+      <nav aria-label="Principal" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+        {grupos(role).map(({ group, items }, index) => (
+          <div key={group} className={cn(index > 0 && 'mt-5')}>
+            <p className="px-3 pb-2 eyebrow">{GROUP_LABELS[group]}</p>
+            <ul className="space-y-1">
+              {items.map((item) => {
+                const Icon = item.icon
+                return (
+                  <li key={item.to}>
+                    <NavLink
+                      to={item.to}
+                      onClick={onNavigate}
+                      className={({ isActive }) =>
+                        cn(
+                          'flex min-h-11 items-center gap-3 rounded-full px-4 text-[0.9375rem] font-semibold transition-colors',
+                          isActive
+                            ? 'bg-surface-sunken text-foreground shadow-[inset_0_0_0_1px_hsl(var(--border))]'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        )
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Icon className={cn('size-5 shrink-0', isActive && 'text-brand')} aria-hidden />
+                          <span className="truncate">{item.label}</span>
+                        </>
+                      )}
+                    </NavLink>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+
+      <div className="shrink-0 border-t border-border p-4">
+        <div className="rounded-lg border border-border bg-surface-sunken px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-muted-foreground">Seu acesso</p>
+            <Badge variant={role === 'super' ? 'brand' : 'default'} size="sm">
+              {role === 'super' ? 'Reitoria' : 'Campus'}
+            </Badge>
+          </div>
+          <p className="mt-1 truncate text-sm font-semibold text-foreground">
+            {role === 'super' ? 'Todos os campi' : campusNome || 'Campus vinculado'}
+          </p>
+        </div>
+      </div>
+    </div>
   )
 }

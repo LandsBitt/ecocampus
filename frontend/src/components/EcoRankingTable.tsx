@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
-import { AlertTriangle, Trophy } from 'lucide-react'
+import { Trophy } from 'lucide-react'
 
-import { Explain } from '@/components/Explain'
 import { EcoScoreBar } from '@/components/charts/EcoScoreGauge'
 import { Badge, Dot } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -15,13 +14,14 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { Hint } from '@/components/ui/tooltip'
+import { DemonstracaoSelo } from '@/components/DemonstracaoAviso'
 import { useSort } from '@/hooks/useSort'
-import { classificacaoStyles } from '@/lib/ecoScore'
+import { classificacaoStyles, comNota, motivoSemNota } from '@/lib/ecoScore'
 import { formatNumber } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import type { IndicadorCampus } from '@/lib/types'
 
-type SortKey = 'nome' | 'agua' | 'luz' | 'score'
+type SortKey = 'nome' | 'agua' | 'luz' | 'luzPessoa' | 'score'
 
 interface EcoRankingTableProps {
   items: IndicadorCampus[]
@@ -38,16 +38,18 @@ export function EcoRankingTable({
 }: EcoRankingTableProps) {
   // A posição é sempre pelo score, mesmo quando a tabela está ordenada
   // por outra coluna — senão "1º lugar" mudaria de significado.
-  const posicoes = useMemo(() => {
-    const ordenado = [...items].sort((a, b) => b.ecoScore - a.ecoScore)
-    return new Map(ordenado.map((item, index) => [item.campusId, index + 1]))
-  }, [items])
+  // Campus sem nota não tem posição.
+  const posicoes = useMemo(
+    () => new Map(comNota(items).map((item, index) => [item.campusId, index + 1])),
+    [items]
+  )
 
   const accessors = useMemo(
     () => ({
       nome: (item: IndicadorCampus) => item.nome,
       agua: (item: IndicadorCampus) => item.consumoAguaPerCapita,
       luz: (item: IndicadorCampus) => item.consumoLuzPorM2,
+      luzPessoa: (item: IndicadorCampus) => item.consumoLuzPerCapita,
       score: (item: IndicadorCampus) => item.ecoScore
     }),
     []
@@ -57,7 +59,7 @@ export function EcoRankingTable({
     items,
     accessors,
     { key: 'score', direction: 'desc' },
-    { agua: 'asc', luz: 'asc', score: 'desc' }
+    { agua: 'asc', luz: 'asc', luzPessoa: 'asc', score: 'desc' }
   )
 
   if (items.length === 0) {
@@ -90,7 +92,7 @@ export function EcoRankingTable({
               direction={sort.direction}
               onSort={() => toggle('agua')}
             >
-              Água/pessoa
+              Água (<span className="normal-case">m³/pessoa</span>)
             </SortableHead>
             <SortableHead
               className="hidden md:table-cell"
@@ -99,7 +101,16 @@ export function EcoRankingTable({
               direction={sort.direction}
               onSort={() => toggle('luz')}
             >
-              Energia/m²
+              Energia (<span className="normal-case">kWh/m²</span>)
+            </SortableHead>
+            <SortableHead
+              className="hidden lg:table-cell"
+              align="right"
+              active={sort.key === 'luzPessoa'}
+              direction={sort.direction}
+              onSort={() => toggle('luzPessoa')}
+            >
+              Energia (<span className="normal-case">kWh/pessoa</span>)
             </SortableHead>
             <SortableHead
               className="w-44"
@@ -116,8 +127,9 @@ export function EcoRankingTable({
 
         <TableBody>
           {sorted.map((item) => {
-            const posicao = posicoes.get(item.campusId) ?? 0
-            const style = classificacaoStyles[item.classificacao]
+            const posicao = posicoes.get(item.campusId) ?? null
+            const style = item.classificacao ? classificacaoStyles[item.classificacao] : null
+            const semNota = motivoSemNota(item)
             const destaque = highlightId === item.campusId
 
             return (
@@ -133,16 +145,10 @@ export function EcoRankingTable({
 
                 <TableCell>
                   <div className="flex min-w-0 flex-col">
-                    <span className="truncate font-medium text-foreground">{item.nome}</span>
-                    {!item.normalizado && (
-                      <Explain
-                        term="semDadosDemograficos"
-                        className="mt-0.5 inline-flex items-center gap-1 text-2xs text-warning"
-                      >
-                        <AlertTriangle className="size-3" />
-                        nota não comparável
-                      </Explain>
-                    )}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate font-medium text-foreground">{item.nome}</span>
+                      {item.demonstracao && <DemonstracaoSelo />}
+                    </span>
                     {/* Em telas estreitas as colunas do meio somem; o dado volta aqui. */}
                     <span className="mt-1 text-2xs tabular-nums text-subtle md:hidden">
                       {formatNumber(item.consumoAguaPerCapita, 2)} m³/pessoa ·{' '}
@@ -157,18 +163,31 @@ export function EcoRankingTable({
                 <TableCell className="hidden text-right tabular-nums text-muted-foreground md:table-cell">
                   {formatNumber(item.consumoLuzPorM2, 2)}
                 </TableCell>
+                <TableCell className="hidden text-right tabular-nums text-muted-foreground lg:table-cell">
+                  {formatNumber(item.consumoLuzPerCapita, 1)}
+                </TableCell>
 
                 <TableCell>
                   <EcoScoreBar score={item.ecoScore} />
                 </TableCell>
 
                 <TableCell>
-                  <Hint content={style.meaning}>
-                    <Badge variant={style.badge} size="sm" className="cursor-help">
-                      <Dot />
-                      {item.classificacao}
-                    </Badge>
-                  </Hint>
+                  {style ? (
+                    <Hint content={style.meaning}>
+                      <Badge variant={style.badge} size="sm" className="cursor-help">
+                        <Dot />
+                        {item.classificacao}
+                      </Badge>
+                    </Hint>
+                  ) : (
+                    semNota && (
+                      <Hint content={semNota.meaning}>
+                        <Badge variant="outline" size="sm" className="cursor-help">
+                          {semNota.label}
+                        </Badge>
+                      </Hint>
+                    )
+                  )}
                 </TableCell>
               </TableRow>
             )
@@ -179,8 +198,11 @@ export function EcoRankingTable({
   )
 }
 
-/** 1º, 2º e 3º recebem destaque; o resto é apenas o número. */
-function PodiumMark({ posicao }: { posicao: number }) {
+/** 1º, 2º e 3º recebem destaque; o resto é apenas o número. Sem nota, sem posição. */
+function PodiumMark({ posicao }: { posicao: number | null }) {
+  if (posicao === null) {
+    return <span className="text-xs text-subtle">—</span>
+  }
   if (posicao > 3) {
     return <span className="text-xs tabular-nums text-subtle">{posicao}</span>
   }

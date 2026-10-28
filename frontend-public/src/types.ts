@@ -3,7 +3,6 @@ export interface IndicadorCampus {
   nome: string
   populacao: number
   areaConstruidaM2: number
-  total: number
   totalAgua: number
   totalLuz: number
   consumoAguaPerCapita: number | null
@@ -18,5 +17,8 @@ export interface IndicadorCampus {
 export interface PizzaItem {
   campusId: number
   nome: string
-  total: number
+  /** m³ */
+  agua: number
+  /** kWh */
+  luz: number
 }

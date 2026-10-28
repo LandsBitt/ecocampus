@@ -28,3 +28,7 @@ Thumbs.db
 
 MarkDown/*
 
+
+# Backups locais do banco
+backups/
+cpfl_legado_backup_*.csv

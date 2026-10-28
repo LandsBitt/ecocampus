@@ -56,12 +56,12 @@ export default function Login() {
 
   return (
     <AuthLayout
-      title="Entrar no ECOCAMPUS"
+      title="Entrar"
       description="Use o e-mail institucional cadastrado pela administração do sistema."
       footer={
-        <p className="text-center text-2xs leading-relaxed text-subtle">
+        <p className="text-center text-[0.8125rem] leading-relaxed text-subtle">
           Acesso restrito a servidores autorizados da UNITAU. O ranking dos campi também está{' '}
-          <Link to="/ranking" className="text-brand underline-offset-4 hover:underline">
+          <Link to="/ranking" className="text-brand underline underline-offset-4">
             disponível publicamente
           </Link>
           .
@@ -90,7 +90,7 @@ export default function Login() {
           hint={
             <Link
               to="/recuperar-senha"
-              className="ml-auto text-xs font-normal text-brand underline-offset-4 hover:underline"
+              className="ml-auto text-[0.8125rem] font-semibold text-brand underline-offset-4 hover:underline"
             >
               Esqueci minha senha
             </Link>
@@ -105,13 +105,13 @@ export default function Login() {
               value={senha}
               onChange={(event) => setSenha(event.target.value)}
               invalid={!!erro}
-              className="pr-10"
+              className="pr-12"
             />
             <button
               type="button"
               onClick={() => setMostrarSenha((valor) => !valor)}
               aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-subtle transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               {mostrarSenha ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
@@ -121,7 +121,7 @@ export default function Login() {
         {erro && (
           <p
             role="alert"
-            className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive-soft px-3 py-2.5 text-xs leading-relaxed text-destructive"
+            className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive-soft px-3.5 py-3 text-[0.8125rem] leading-relaxed text-destructive"
           >
             <AlertCircle className="mt-px size-4 shrink-0" />
             {erro}

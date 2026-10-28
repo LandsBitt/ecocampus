@@ -12,22 +12,29 @@ export function Brand({
   className?: string
 }) {
   return (
-    <div className={cn('flex items-center gap-2.5', className)}>
-      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-brand">
+    <div className={cn('flex items-center gap-3', className)}>
+      <span
+        className={cn(
+          'flex shrink-0 items-center justify-center overflow-hidden rounded-[13px] bg-brand',
+          compact ? 'size-12' : 'size-11'
+        )}
+      >
         <img
-          src="/image/unitau-logo.png"
-          alt=""
-          className="size-8 object-contain"
-          aria-hidden
+          src="/image/unitau-logo-96.png"
+          width={96}
+          height={96}
+          alt={compact ? 'EcoCampus · UNITAU' : ''}
+          className={compact ? 'size-11 object-contain' : 'size-10 object-contain'}
+          aria-hidden={compact ? undefined : true}
         />
       </span>
       {!compact && (
         <span className="min-w-0">
-          <span className="block font-display text-sm font-bold leading-none tracking-tight text-foreground">
-            ECOCAMPUS
+          <span className="block font-display text-lg font-bold leading-none tracking-[-0.02em] text-foreground">
+            EcoCampus
           </span>
-          <span className="mt-1 block truncate text-2xs leading-none text-muted-foreground">
-            UNITAU · Gestão de consumo
+          <span className="mt-1 block truncate text-xs leading-none text-muted-foreground">
+            Universidade de Taubaté
           </span>
         </span>
       )}

@@ -15,7 +15,7 @@ export default function NotFound() {
         <Brand className="justify-center" />
 
         <div className="space-y-2">
-          <p className="font-display text-6xl font-bold leading-none text-muted">404</p>
+          <p className="font-display text-6xl font-bold leading-none text-subtle">404</p>
           <h1 className="font-display text-xl font-semibold text-foreground">
             Esta página não existe
           </h1>

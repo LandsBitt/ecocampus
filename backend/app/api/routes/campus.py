@@ -33,10 +33,20 @@ def update_campus(
     if campus is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Campus não encontrado")
 
-    if payload.populacao is not None:
+    mudou = False
+    if payload.populacao is not None and payload.populacao != campus.populacao:
         campus.populacao = payload.populacao
-    if payload.area_construida_m2 is not None:
+        mudou = True
+    if payload.area_construida_m2 is not None and payload.area_construida_m2 != campus.area_construida_m2:
         campus.area_construida_m2 = payload.area_construida_m2
+        mudou = True
+
+    # Número alterado sem fonte informada deixa de carregar a fonte antiga:
+    # um valor digitado por cima de um dado "FICTÍCIO" não é mais fictício.
+    if mudou or payload.demografia_fonte is not None:
+        campus.demografia_fonte = payload.demografia_fonte
+    if mudou or payload.demografia_referencia is not None:
+        campus.demografia_referencia = payload.demografia_referencia
 
     db.commit()
     db.refresh(campus)

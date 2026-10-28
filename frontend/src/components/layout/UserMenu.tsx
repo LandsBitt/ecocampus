@@ -25,11 +25,11 @@ export function UserMenu({ campusNome }: { campusNome?: string | null }) {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="h-9 gap-2 px-1.5 pr-2.5"
+          className="h-11 gap-2 px-1.5 pr-3"
           aria-label="Menu da conta"
         >
           <Avatar name={user?.email} size="sm" />
-          <span className="hidden max-w-[10rem] truncate text-[0.8125rem] font-medium text-foreground lg:inline">
+          <span className="hidden max-w-[10rem] truncate text-sm font-semibold text-foreground lg:inline">
             {user?.email?.split('@')[0] ?? 'Usuário'}
           </span>
         </Button>

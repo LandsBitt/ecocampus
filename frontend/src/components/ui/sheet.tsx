@@ -3,6 +3,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { X } from 'lucide-react'
 
+import { useDevolverFoco } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
 /**
@@ -20,7 +21,7 @@ const SheetOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      'fixed inset-0 z-50 bg-overlay backdrop-blur-[3px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       className
     )}
     {...props}
@@ -37,7 +38,7 @@ const sheetVariants = cva(
         right:
           'inset-y-0 right-0 h-full w-[22rem] max-w-[calc(100vw-2rem)] border-l border-border data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
         bottom:
-          'inset-x-0 bottom-0 max-h-[85vh] rounded-t-xl border-t border-border data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom'
+          'inset-x-0 bottom-0 max-h-[85vh] rounded-t-2xl border-t border-border data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom'
       }
     },
     defaultVariants: { side: 'left' }
@@ -53,24 +54,28 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   SheetContentProps
->(({ side = 'left', className, children, hideClose, ...props }, ref) => (
-  <DialogPrimitive.Portal>
-    <SheetOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(sheetVariants({ side }), className)}
-      {...props}
-    >
-      {children}
-      {!hideClose && (
-        <DialogPrimitive.Close className="absolute right-3 top-3 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <X className="size-4" />
-          <span className="sr-only">Fechar</span>
-        </DialogPrimitive.Close>
-      )}
-    </DialogPrimitive.Content>
-  </DialogPrimitive.Portal>
-))
+>(({ side = 'left', className, children, hideClose, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) => {
+  const foco = useDevolverFoco({ onOpenAutoFocus, onCloseAutoFocus })
+  return (
+    <DialogPrimitive.Portal>
+      <SheetOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(sheetVariants({ side }), className)}
+        {...foco}
+        {...props}
+      >
+        {children}
+        {!hideClose && (
+          <DialogPrimitive.Close className="absolute right-3 top-3 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <X className="size-4" />
+            <span className="sr-only">Fechar</span>
+          </DialogPrimitive.Close>
+        )}
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Portal>
+  )
+})
 SheetContent.displayName = DialogPrimitive.Content.displayName
 
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

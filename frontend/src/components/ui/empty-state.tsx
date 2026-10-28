@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react'
+import { AlertTriangle, type LucideIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -27,18 +27,18 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-lg border border-dashed border-border text-center',
+        'flex flex-col items-center justify-center rounded-xl border border-dashed border-border text-center',
         size === 'sm' ? 'gap-2 px-5 py-8' : 'gap-3 px-6 py-12',
         className
       )}
     >
       {Icon && (
-        <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <Icon className="size-5" />
+        <span className="flex size-14 items-center justify-center rounded-full border border-border bg-surface-sunken text-muted-foreground">
+          <Icon className="size-6" aria-hidden />
         </span>
       )}
       <div className="space-y-1">
-        <p className="font-display text-sm font-semibold text-foreground">{title}</p>
+        <p className="font-display text-lg font-bold tracking-[-0.02em] text-foreground">{title}</p>
         {description && (
           <p className="mx-auto max-w-sm text-[0.8125rem] leading-relaxed text-muted-foreground">
             {description}
@@ -65,17 +65,20 @@ export function ErrorState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-destructive/40 bg-destructive-soft/50 px-6 py-10 text-center',
+        'flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-destructive/40 bg-destructive-soft/50 px-6 py-10 text-center',
         className
       )}
     >
+      <span className="flex size-14 items-center justify-center rounded-full bg-destructive-soft text-destructive">
+        <AlertTriangle className="size-6" aria-hidden />
+      </span>
       <div className="space-y-1">
-        <p className="font-display text-sm font-semibold text-destructive">{title}</p>
+        <p className="font-display text-lg font-bold tracking-[-0.02em] text-destructive">{title}</p>
         <p className="mx-auto max-w-sm text-[0.8125rem] leading-relaxed text-muted-foreground">
           {description}
         </p>
       </div>
-      {action}
+      {action && <div className="mt-1">{action}</div>}
     </div>
   )
 }

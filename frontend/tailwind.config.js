@@ -71,29 +71,36 @@ export default {
           foreground: 'hsl(var(--popover-foreground))'
         },
 
-        /* Data colors — meaning-carrying, never decorative */
+        /* Data colors — meaning-carrying, never decorative.
+           DEFAULT é a versão para texto (≥ 4,5:1); fill é o preenchimento vivo. */
         water: {
           DEFAULT: 'hsl(var(--water))',
-          soft: 'hsl(var(--water-soft))'
+          soft: 'hsl(var(--water-soft))',
+          fill: 'hsl(var(--water-fill))'
         },
         energy: {
           DEFAULT: 'hsl(var(--energy))',
-          soft: 'hsl(var(--energy-soft))'
+          soft: 'hsl(var(--energy-soft))',
+          fill: 'hsl(var(--energy-fill))'
         },
         eco: {
           DEFAULT: 'hsl(var(--eco))',
-          soft: 'hsl(var(--eco-soft))'
-        }
+          soft: 'hsl(var(--eco-soft))',
+          fill: 'hsl(var(--eco-fill))'
+        },
+        glass: 'hsl(var(--glass))',
+        overlay: 'hsl(var(--overlay))'
       },
       borderRadius: {
-        xl: 'calc(var(--radius) + 4px)',
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 3px)',
-        sm: 'calc(var(--radius) - 6px)'
+        '2xl': '2rem',
+        xl: '1.5rem',
+        lg: '1.125rem',
+        md: '0.875rem',
+        sm: '0.625rem'
       },
       fontFamily: {
-        display: ['"Inter Tight"', '"Inter"', 'system-ui', 'sans-serif'],
-        sans: ['"Inter"', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['"Bricolage Grotesque"', '"Inter Tight"', 'system-ui', 'sans-serif'],
+        sans: ['"Inter Tight"', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace']
       },
       fontSize: {
@@ -105,7 +112,12 @@ export default {
         md: 'var(--shadow-md)',
         lg: 'var(--shadow-lg)',
         xl: 'var(--shadow-xl)',
-        focus: '0 0 0 3px hsl(var(--ring) / 0.28)'
+        focus: '0 0 0 4px hsl(var(--ring) / 0.22)',
+        /* Brilho em volta do dado em destaque — nunca de enfeite */
+        'glow-water': '0 0 0 1px hsl(var(--water-fill)), 0 0 32px hsl(var(--water-fill) / 0.32)',
+        'glow-energy': '0 0 0 1px hsl(var(--energy-fill)), 0 0 32px hsl(var(--energy-fill) / 0.32)',
+        'glow-eco': '0 0 0 1px hsl(var(--eco-fill)), 0 0 32px hsl(var(--eco-fill) / 0.28)',
+        'glow-brand': '0 10px 30px -12px hsl(var(--brand))'
       },
       transitionTimingFunction: {
         smooth: 'cubic-bezier(0.32, 0.72, 0, 1)'

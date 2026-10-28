@@ -16,6 +16,17 @@ export class ApiError extends Error {
   }
 }
 
+/** Mensagem que o servidor mandou junto com o erro, quando é uma explicação legível. */
+export function detalheDoErro(error: unknown): string | null {
+  if (!(error instanceof ApiError)) return null
+  try {
+    const corpo = JSON.parse(error.message) as { detail?: unknown }
+    return typeof corpo.detail === 'string' ? corpo.detail : null
+  } catch {
+    return null
+  }
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, token, signal } = options
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }

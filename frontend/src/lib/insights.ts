@@ -1,6 +1,7 @@
-import { formatDelta, formatMedidaInline, variacao } from './formatters'
+import { formatDelta, formatMedidaInline, UNIDADES, variacao, type Medida } from './formatters'
 import { formatMonthLong } from './date'
-import type { IndicadorCampus } from './types'
+import { comNota } from './ecoScore'
+import type { AlertaPico, IndicadorCampus } from './types'
 
 export type InsightTone = 'positive' | 'negative' | 'neutral' | 'warning'
 
@@ -11,11 +12,13 @@ export interface Insight {
   text: string
 }
 
+/** Consumo físico: água em m³, energia em kWh. Nunca somados. */
 interface ResumoValores {
   agua: number
   luz: number
-  total: number
 }
+
+const MEDIDAS: Medida[] = ['agua', 'luz']
 
 /**
  * Traduz os números do mês em frases que qualquer pessoa entende.
@@ -29,80 +32,75 @@ export function buildInsights(params: {
   anterior?: ResumoValores | null
   indicadores?: IndicadorCampus[]
   escopo: 'universidade' | 'campus'
+  /** Contas importadas só com R$, sem consumo físico: ficam fora dos números. */
+  pontosSemConsumo?: number
+  /** Avaliação de pico do mês (R.4); só os de situação "pico" viram frase. */
+  picos?: AlertaPico[]
 }): Insight[] {
-  const { mes, atual, anterior, indicadores = [], escopo } = params
+  const { mes, atual, anterior, indicadores = [], escopo, pontosSemConsumo = 0, picos = [] } = params
   if (!atual) return []
 
   const insights: Insight[] = []
+  const avisoSemConsumo: Insight[] =
+    pontosSemConsumo > 0
+      ? [
+          {
+            id: 'sem-consumo',
+            tone: 'warning',
+            text:
+              pontosSemConsumo === 1
+                ? '1 ponto de medição foi importado sem consumo neste mês e não entra nos números abaixo.'
+                : `${pontosSemConsumo} pontos de medição foram importados sem consumo neste mês e não entram nos números abaixo.`
+          }
+        ]
+      : []
   const sujeito = escopo === 'universidade' ? 'A universidade' : 'O campus'
 
-  const semDados = atual.total === 0
+  const semDados = atual.agua === 0 && atual.luz === 0
   if (semDados) {
     return [
       {
         id: 'sem-dados',
         tone: 'neutral',
         text: `Ainda não há consumo registrado para ${formatMonthLong(mes)}. Registre em Lançamentos ou importe a planilha da concessionária.`
-      }
+      },
+      ...avisoSemConsumo
     ]
   }
 
-  // 1. Movimento em relação ao mês anterior — o dado que mais interessa.
-  const deltaTotal = variacao(atual.total, anterior?.total)
-  if (deltaTotal !== null) {
-    if (Math.abs(deltaTotal) < 0.5) {
+  // 1. Movimento de cada medida em relação ao mês anterior. Água (m³) e
+  // energia (kWh) não se somam, então cada uma tem a própria frase.
+  for (const medida of MEDIDAS) {
+    const delta = variacao(atual[medida], anterior?.[medida])
+    if (delta === null) continue
+    const nome = UNIDADES[medida].nome.toLowerCase()
+    if (Math.abs(delta) < 0.5) {
       insights.push({
-        id: 'total',
+        id: medida,
         tone: 'neutral',
-        text: `${sujeito} manteve o consumo praticamente igual ao mês anterior.`
-      })
-    } else if (deltaTotal < 0) {
-      insights.push({
-        id: 'total',
-        tone: 'positive',
-        text: `${sujeito} consumiu ${formatDelta(Math.abs(deltaTotal)).replace('+', '')} a menos que no mês anterior.`
+        text: `${sujeito} manteve o consumo de ${nome} praticamente igual ao mês anterior.`
       })
     } else {
+      const quanto = formatDelta(Math.abs(delta)).replace('+', '')
       insights.push({
-        id: 'total',
-        tone: 'negative',
-        text: `${sujeito} consumiu ${formatDelta(deltaTotal).replace('+', '')} a mais que no mês anterior.`
+        id: medida,
+        tone: delta < 0 ? 'positive' : 'negative',
+        text: `${sujeito} consumiu ${quanto} ${delta < 0 ? 'menos' : 'mais'} ${nome} que no mês anterior.`
       })
     }
   }
 
-  // 2. Qual das duas medidas puxou a variação.
-  const deltaAgua = variacao(atual.agua, anterior?.agua)
-  const deltaLuz = variacao(atual.luz, anterior?.luz)
-  if (deltaAgua !== null && deltaLuz !== null) {
-    const piorAgua = deltaAgua > deltaLuz
-    const pior = piorAgua ? deltaAgua : deltaLuz
-    const nome = piorAgua ? 'a água' : 'a energia'
-    if (pior > 2) {
-      insights.push({
-        id: 'driver',
-        tone: 'negative',
-        text: `A alta veio principalmente de ${nome} (${formatDelta(pior)} no mês).`
-      })
-    } else if (pior < -2) {
-      insights.push({
-        id: 'driver',
-        tone: 'positive',
-        text: `A queda foi puxada por ${piorAgua ? 'a energia' : 'a água'} e ${nome} também caiu (${formatDelta(pior)}).`
-      })
-    }
-  }
-
-  // 3. Volume do mês, em unidade legível.
+  // 2. Volume do mês, em unidade legível.
   insights.push({
     id: 'volume',
     tone: 'neutral',
-    text: `No total: ${formatMedidaInline(atual.agua, 'agua')} de água e ${formatMedidaInline(atual.luz, 'luz')} de energia.`
+    text: `No mês: ${formatMedidaInline(atual.agua, 'agua')} de água e ${formatMedidaInline(atual.luz, 'luz')} de energia.`
   })
 
-  // 4. Destaques do ranking (só faz sentido comparando campi).
+  // 3. Destaques do ranking (só faz sentido comparando campi).
   if (escopo === 'universidade' && indicadores.length > 1) {
-    const ordenado = [...indicadores].sort((a, b) => b.ecoScore - a.ecoScore)
+    // Só quem tem nota disputa posição.
+    const ordenado = comNota(indicadores)
     const melhor = ordenado[0]
     const pior = ordenado[ordenado.length - 1]
     if (melhor && pior && melhor.campusId !== pior.campusId) {
@@ -113,18 +111,51 @@ export function buildInsights(params: {
       })
     }
 
-    const semDemografia = indicadores.filter((i) => !i.normalizado)
-    if (semDemografia.length > 0) {
+    const semCadastro = indicadores.filter((i) => i.situacao === 'sem_cadastro')
+    if (semCadastro.length > 0) {
       insights.push({
-        id: 'sem-demografia',
+        id: 'sem-cadastro',
         tone: 'warning',
         text:
-          semDemografia.length === 1
-            ? `${semDemografia[0].nome} ainda não tem população e área cadastradas, então sua nota não é comparável às demais.`
-            : `${semDemografia.length} campi ainda não têm população e área cadastradas, então suas notas não são comparáveis às demais.`
+          semCadastro.length === 1
+            ? `${semCadastro[0].nome} ainda não tem população e área cadastradas, então está fora do ranking.`
+            : `${semCadastro.length} campi ainda não têm população e área cadastradas, então estão fora do ranking.`
+      })
+    }
+
+    const emRevisao = indicadores.filter((i) => i.situacao === 'em_revisao')
+    if (emRevisao.length > 0) {
+      insights.push({
+        id: 'em-revisao',
+        tone: 'neutral',
+        text: `${emRevisao.map((i) => i.nome).join(', ')} ${emRevisao.length === 1 ? 'está' : 'estão'} fora do ranking por enquanto; o consumo continua contando no total da universidade.`
       })
     }
   }
 
-  return insights
+  return [...frasesDePico(picos, escopo), ...insights, ...avisoSemConsumo]
+}
+
+/** Até três picos viram uma frase cada; mais que isso, uma frase só para não tomar o painel. */
+function frasesDePico(avaliados: AlertaPico[], escopo: 'universidade' | 'campus'): Insight[] {
+  const picos = avaliados.filter((a) => a.situacao === 'pico')
+  if (picos.length > 3) {
+    return [
+      {
+        id: 'picos',
+        tone: 'warning',
+        text: `${picos.length} consumos ficaram bem acima da média dos últimos 12 meses neste mês. Veja quais em Relatórios.`
+      }
+    ]
+  }
+  return picos.map((p) => {
+    const nome = UNIDADES[p.medida].nome.toLowerCase()
+    const acima = p.razao !== null ? `${formatDelta((p.razao - 1) * 100).replace('+', '')} acima` : 'muito acima'
+    const onde = escopo === 'universidade' ? ` em ${p.nome}` : ''
+    return {
+      id: `pico-${p.campusId}-${p.medida}`,
+      tone: 'warning' as const,
+      text: `Pico de ${nome}${onde}: o consumo do mês ficou ${acima} da média dos últimos 12 meses.`
+    }
+  })
 }

@@ -22,6 +22,11 @@ interface KpiCardProps {
   accent?: KpiAccent
   /** Variação percentual contra o mês anterior. Queda é tratada como melhora. */
   delta?: number | null
+  /**
+   * Variação contra o mesmo mês do ano anterior (R.3). `delta` nulo vira "sem base":
+   * o ano anterior não tem lançamento para comparar.
+   */
+  anual?: { delta: number | null; rotulo: string }
   /** Frase de apoio: o que esse número quer dizer. */
   footnote?: React.ReactNode
   /** Série para o micrográfico. Menos de 2 pontos oculta o gráfico. */
@@ -53,6 +58,7 @@ export function KpiCard({
   icon: Icon,
   accent = 'neutral',
   delta,
+  anual,
   footnote,
   series,
   term,
@@ -61,7 +67,6 @@ export function KpiCard({
 }: KpiCardProps) {
   const colors = useChartColors()
   const styles = accentStyles[accent]
-  const trend = consumoTrend(delta ?? null)
 
   if (loading) {
     return (
@@ -75,9 +80,6 @@ export function KpiCard({
       </Card>
     )
   }
-
-  const TrendIcon =
-    trend?.direction === 'up' ? ArrowUpRight : trend?.direction === 'down' ? ArrowDownRight : Minus
 
   return (
     <Card className={cn('relative overflow-hidden p-5', className)}>
@@ -102,28 +104,13 @@ export function KpiCard({
 
       <div className="mt-3 flex items-end justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          {trend && (
-            <Hint
-              content={
-                trend.direction === 'flat'
-                  ? 'Praticamente o mesmo consumo do mês anterior.'
-                  : `Em relação ao mês anterior, ${trend.reading}. Aqui, consumir menos é melhor.`
-              }
-            >
-              <span
-                className={cn(
-                  'inline-flex cursor-help items-center gap-1 text-xs font-medium',
-                  trend.tone === 'success' && 'text-success',
-                  trend.tone === 'destructive' && 'text-destructive',
-                  trend.tone === 'muted' && 'text-muted-foreground'
-                )}
-              >
-                <TrendIcon className="size-3.5" />
-                {formatDelta(delta)}
-                <span className="font-normal text-subtle">vs. mês anterior</span>
-              </span>
-            </Hint>
-          )}
+          <LinhaDeVariacao delta={delta ?? null} base="mês anterior" />
+          {anual &&
+            (anual.delta === null ? (
+              <p className="text-xs text-subtle">Sem base em {anual.rotulo}</p>
+            ) : (
+              <LinhaDeVariacao delta={anual.delta} base={anual.rotulo} />
+            ))}
           {footnote && (
             <p className="text-2xs leading-relaxed text-subtle">{footnote}</p>
           )}
@@ -136,5 +123,34 @@ export function KpiCard({
         )}
       </div>
     </Card>
+  )
+}
+
+/** "↓ 12,0% vs. mês anterior", com a cor dizendo se foi bom (cair é bom). */
+function LinhaDeVariacao({ delta, base }: { delta: number | null; base: string }) {
+  const trend = consumoTrend(delta)
+  if (!trend) return null
+  const TrendIcon = trend.direction === 'up' ? ArrowUpRight : trend.direction === 'down' ? ArrowDownRight : Minus
+  return (
+    <Hint
+      content={
+        trend.direction === 'flat'
+          ? `Praticamente o mesmo consumo de ${base}.`
+          : `Em relação a ${base}, ${trend.reading}. Aqui, consumir menos é melhor.`
+      }
+    >
+      <span
+        className={cn(
+          'flex w-fit cursor-help items-center gap-1 whitespace-nowrap text-xs font-medium',
+          trend.tone === 'success' && 'text-success',
+          trend.tone === 'destructive' && 'text-destructive',
+          trend.tone === 'muted' && 'text-muted-foreground'
+        )}
+      >
+        <TrendIcon className="size-3.5" />
+        {formatDelta(delta)}
+        <span className="font-normal text-subtle">vs. {base}</span>
+      </span>
+    </Hint>
   )
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
+  Info,
   ArrowRight,
   CheckCircle2,
   Download,
@@ -30,7 +31,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { api } from '@/lib/api'
+import { api, detalheDoErro } from '@/lib/api'
 import { formatMonthLong, getCurrentMonth } from '@/lib/date'
 import { formatCurrency, formatNumber } from '@/lib/formatters'
 import { useAuth } from '@/providers/AuthProvider'
@@ -73,9 +74,9 @@ export default function Importar() {
         })
       }
     },
-    onError: () =>
+    onError: (error: Error) =>
       toast.error('Não foi possível ler o arquivo', {
-        description: 'Confirme que é um CSV salvo a partir da planilha modelo.'
+        description: detalheDoErro(error) ?? 'Confirme que é um CSV salvo a partir da planilha modelo.'
       })
   })
 
@@ -102,6 +103,9 @@ export default function Importar() {
       queryClient.invalidateQueries({ queryKey: ['resumo'] })
       queryClient.invalidateQueries({ queryKey: ['indicadores'] })
       queryClient.invalidateQueries({ queryKey: ['pizza'] })
+      queryClient.invalidateQueries({ queryKey: ['serie'] })
+      queryClient.invalidateQueries({ queryKey: ['comparacao'] })
+      queryClient.invalidateQueries({ queryKey: ['alertas'] })
     },
     onError: () => toast.error('Erro ao gravar os lançamentos. Nada foi importado.')
   })
@@ -239,6 +243,37 @@ export default function Importar() {
             />
           </div>
 
+          {preview.demonstracaoSubstituida > 0 && (
+            <Card variant="flat">
+              <CardContent className="flex gap-3 p-4">
+                <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <p className="text-[0.8125rem] leading-relaxed text-foreground">
+                  {preview.demonstracaoSubstituida === 1
+                    ? 'Existe 1 lançamento de demonstração'
+                    : `Existem ${preview.demonstracaoSubstituida} lançamentos de demonstração`}{' '}
+                  para os mesmos campi neste mês. Ao confirmar, o consumo real da planilha toma o lugar
+                  {preview.demonstracaoSubstituida === 1 ? ' dele' : ' deles'}.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {preview.manuaisSubstituidos > 0 && (
+            <Card variant="flat">
+              <CardContent className="flex gap-3 p-4">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
+                <p className="text-[0.8125rem] leading-relaxed text-foreground">
+                  {preview.manuaisSubstituidos === 1
+                    ? 'Existe 1 lançamento manual'
+                    : `Existem ${preview.manuaisSubstituidos} lançamentos manuais`}{' '}
+                  para os mesmos campi neste mês. Ao confirmar,{' '}
+                  {preview.manuaisSubstituidos === 1 ? 'ele será substituído' : 'eles serão substituídos'}{' '}
+                  pelos dados da planilha, que vêm da fatura.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardToolbar
               bordered
@@ -287,12 +322,13 @@ export default function Importar() {
                     Linhas que ficaram de fora
                   </span>
                 }
-                description="O endereço não corresponde a nenhum ponto cadastrado. Estes registros não entram no sistema."
+                description="Cada linha abaixo tem o motivo ao lado. Corrija na planilha e envie de novo; estes registros não entram no sistema."
               />
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-16">Linha</TableHead>
                       <TableHead>Local na planilha</TableHead>
                       <TableHead>Identificador</TableHead>
                       <TableHead>Motivo</TableHead>
@@ -301,6 +337,9 @@ export default function Importar() {
                   <TableBody>
                     {preview.unmatched.map((linha, index) => (
                       <TableRow key={`${linha.local}-${index}`}>
+                        <TableCell className="tabular-nums text-muted-foreground">
+                          {linha.linha ?? '—'}
+                        </TableCell>
                         <TableCell>{linha.local || '—'}</TableCell>
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {linha.identificador || '—'}
@@ -359,6 +398,17 @@ export default function Importar() {
                 <p className="mt-0.5 text-2xs text-muted-foreground">Registros atualizados</p>
               </div>
             </div>
+
+            {(resultado.manuaisRemovidos > 0 || resultado.demonstracaoRemovida > 0 || resultado.ignored > 0) && (
+              <p className="text-2xs leading-relaxed text-muted-foreground">
+                {resultado.manuaisRemovidos > 0 &&
+                  `${resultado.manuaisRemovidos} lançamento(s) manual(is) do mesmo mês foram substituídos. `}
+                {resultado.demonstracaoRemovida > 0 &&
+                  `${resultado.demonstracaoRemovida} lançamento(s) de demonstração deram lugar ao consumo real. `}
+                {resultado.ignored > 0 &&
+                  `${resultado.ignored} item(ns) não entraram porque o ponto de medição não existe mais.`}
+              </p>
+            )}
 
             <div className="flex w-full flex-col gap-2 sm:flex-row">
               <Button asChild className="flex-1">

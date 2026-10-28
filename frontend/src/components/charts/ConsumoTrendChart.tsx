@@ -1,4 +1,5 @@
-import { useId, useMemo } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
+import { useReducedMotion } from 'motion/react'
 import {
   Area,
   CartesianGrid,
@@ -38,15 +39,26 @@ export function ConsumoTrendChart({
   const colors = useChartColors()
   const gradientId = useId()
   const color = medidaColor(colors, tipo)
+  const reduzir = useReducedMotion()
+
+  // A linha se desenha só na primeira carga; trocar de medida ou de mês não reanima.
+  const [entrando, setEntrando] = useState(!reduzir)
+  useEffect(() => {
+    const id = window.setTimeout(() => setEntrando(false), 1300)
+    return () => window.clearTimeout(id)
+  }, [])
 
   const { serie, media } = useMemo(() => {
+    // Mês sem lançamento fica vazio (um vão na linha), nunca zero: não ter dado não é consumir zero.
+    const valorDe = (ponto: PontoHistorico) =>
+      tipo === 'agua' ? (ponto.temAgua ? ponto.agua : null) : ponto.temLuz ? ponto.luz : null
     const serie = data.map((ponto, index) => ({
       mes: ponto.mes,
       label: formatMonthShort(ponto.mes),
-      valor: tipo === 'agua' ? ponto.agua : ponto.luz,
-      anterior: index > 0 ? (tipo === 'agua' ? data[index - 1].agua : data[index - 1].luz) : null
+      valor: valorDe(ponto),
+      anterior: index > 0 ? valorDe(data[index - 1]) : null
     }))
-    const comValor = serie.filter((p) => p.valor > 0)
+    const comValor = serie.filter((p): p is typeof p & { valor: number } => p.valor !== null && p.valor > 0)
     const media = comValor.length
       ? comValor.reduce((sum, p) => sum + p.valor, 0) / comValor.length
       : 0
@@ -60,8 +72,8 @@ export function ConsumoTrendChart({
       <ComposedChart data={serie} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.28} />
-            <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+            <stop offset="0%" stopColor={color} stopOpacity={0.4} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
 
@@ -107,19 +119,19 @@ export function ConsumoTrendChart({
           content={({ active, payload }) => {
             if (!active || !payload?.length) return null
             const point = payload[0].payload as (typeof serie)[number]
-            const delta = variacao(point.valor, point.anterior)
+            const delta = point.valor === null ? null : variacao(point.valor, point.anterior)
             return (
               <TooltipCard
                 title={formatMonthLong(point.mes)}
                 rows={[
                   {
                     label: tipo === 'agua' ? 'Água' : 'Energia',
-                    value: formatMedidaInline(point.valor, tipo),
+                    value: point.valor === null ? 'sem lançamento' : formatMedidaInline(point.valor, tipo),
                     color
                   }
                 ]}
                 footer={
-                  delta === null
+                  point.valor === null || delta === null
                     ? 'Sem mês anterior para comparar'
                     : `${formatDelta(delta)} em relação ao mês anterior`
                 }
@@ -133,16 +145,35 @@ export function ConsumoTrendChart({
           dataKey="valor"
           stroke="none"
           fill={`url(#${gradientId})`}
-          isAnimationActive={false}
+          isAnimationActive={entrando}
+          animationDuration={1100}
         />
         <Line
           type="monotone"
           dataKey="valor"
           stroke={color}
-          strokeWidth={2}
-          dot={{ r: 2.5, fill: color, strokeWidth: 0 }}
-          activeDot={{ r: 4.5, strokeWidth: 2, stroke: colors.surface }}
-          isAnimationActive={false}
+          strokeWidth={2.5}
+          dot={(props: { cx?: number; cy?: number; index?: number }) => {
+            const ponto = props.index !== undefined ? serie[props.index] : undefined
+            // Mês sem lançamento: nenhum ponto (o Recharts manda cy vazio e o círculo iria para o topo).
+            if (!ponto || ponto.valor === null || props.cy == null) return <g key={props.index} />
+            const destaque = ponto.mes === highlight
+            return (
+              <circle
+                key={props.index}
+                cx={props.cx}
+                cy={props.cy}
+                r={destaque ? 6 : 2.5}
+                fill={color}
+                stroke={destaque ? colors.surface : 'none'}
+                strokeWidth={destaque ? 3 : 0}
+                style={destaque ? { filter: `drop-shadow(0 0 8px ${color})` } : undefined}
+              />
+            )
+          }}
+          activeDot={{ r: 5, strokeWidth: 2, stroke: colors.surface }}
+          isAnimationActive={entrando}
+          animationDuration={1100}
         />
       </ComposedChart>
     </ResponsiveContainer>

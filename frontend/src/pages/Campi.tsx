@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Building2, Check, Info, RotateCcw, Save, Users } from 'lucide-react'
 
 import { Explain } from '@/components/Explain'
+import { FatoresEmissaoCard } from '@/components/FatoresEmissaoCard'
 import { Page } from '@/components/layout/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,7 @@ import { useCampusList } from '@/hooks/queries'
 import { api } from '@/lib/api'
 import { formatNumber } from '@/lib/formatters'
 import { useAuth } from '@/providers/AuthProvider'
-import type { Campus } from '@/lib/types'
+import { FONTE_FICTICIA, type Campus } from '@/lib/types'
 
 interface Rascunho {
   populacao: string
@@ -187,7 +188,11 @@ export default function Campi() {
                     </span>
                   }
                 >
-                  {completo ? (
+                  {campus.demografiaFonte === FONTE_FICTICIA ? (
+                    <Badge variant="warning" size="sm">
+                      FICTÍCIO
+                    </Badge>
+                  ) : completo ? (
                     <Badge variant="success" size="sm">
                       <Check />
                       Completo
@@ -250,6 +255,11 @@ export default function Campi() {
                     <p className="text-2xs tabular-nums text-subtle">
                       Salvo: {formatNumber(campus.populacao, 0)} pessoas ·{' '}
                       {formatNumber(campus.areaConstruidaM2, 0)} m²
+                      {campus.demografiaFonte === FONTE_FICTICIA
+                        ? ' · valores de teste, não usar em relatório'
+                        : campus.demografiaFonte
+                          ? ` · fonte: ${campus.demografiaFonte}`
+                          : ''}
                     </p>
                     <Button
                       size="sm"
@@ -267,6 +277,8 @@ export default function Campi() {
           })}
         </div>
       )}
+
+      <FatoresEmissaoCard />
     </Page>
   )
 }
