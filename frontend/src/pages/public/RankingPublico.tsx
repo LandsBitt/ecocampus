@@ -1,8 +1,9 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Award, Info, LogIn, PieChart, Trophy } from 'lucide-react'
+import { Award, LogIn, PieChart, Trophy } from 'lucide-react'
 
+import { ComoANotaECalculada } from '@/components/ComoANotaECalculada'
 import { DemonstracaoAviso } from '@/components/DemonstracaoAviso'
 import { Explain } from '@/components/Explain'
 import { EcoRankingTable } from '@/components/EcoRankingTable'
@@ -15,10 +16,11 @@ import { Card, CardContent, CardToolbar } from '@/components/ui/card'
 import { ErrorState } from '@/components/ui/empty-state'
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useRanking } from '@/hooks/useRanking'
 import { api } from '@/lib/api'
 import { formatMonthLong } from '@/lib/date'
 import type { Medida } from '@/lib/formatters'
-import { classifyScore, comNota, notaMedia, ordenarRanking } from '@/lib/ecoScore'
+import { classifyScore } from '@/lib/ecoScore'
 import { usePeriod } from '@/providers/PeriodProvider'
 import type { IndicadorCampus, PizzaItem } from '@/lib/types'
 
@@ -44,11 +46,7 @@ export default function RankingPublico() {
     queryFn: () => api.get<PizzaItem[]>(`/public/pizza?mes=${mes}`)
   })
 
-  const itens = useMemo(() => ordenarRanking(ranking.data ?? []), [ranking.data])
-
-  // Média e líder só entre os campi que têm nota no mês.
-  const scoreMedio = notaMedia(itens)
-  const lider = comNota(itens)[0]
+  const { ordenado: itens, media: scoreMedio, lider } = useRanking(ranking.data)
 
   return (
     <div className="min-h-screen bg-background">
@@ -187,21 +185,7 @@ export default function RankingPublico() {
           </Tabs>
         )}
 
-        <Card variant="flat" className="mt-6">
-          <CardContent className="flex gap-3 p-5">
-            <Info className="mt-0.5 size-4 shrink-0 text-brand" />
-            <div className="space-y-1 text-[0.8125rem] leading-relaxed text-muted-foreground">
-              <p className="font-medium text-foreground">Como a nota é calculada</p>
-              <p>
-                A água de cada campus é dividida pelo número de pessoas e a energia pela área
-                construída. Cada resultado é comparado com a referência da universidade — o consumo
-                total dividido pela população total e pela área total — e vira uma nota de 0 a 100;
-                a nota final é a média das duas. Campi sem consumo registrado no mês, ou sem
-                população e área cadastradas, ficam sem nota e aparecem sinalizados na tabela.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <ComoANotaECalculada className="mt-6" />
       </main>
 
       <footer className="border-t border-border">

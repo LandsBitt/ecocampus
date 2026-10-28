@@ -60,21 +60,25 @@ def _campus_totals(db: Session, mes: str | None = None, campus_id: int | None = 
     return db.execute(stmt).all()
 
 
-def _total_geral(db: Session, mes: str | None = None):
-    stmt = select(
-        func.coalesce(
-            func.sum(case((Lancamento.tipo == LancamentoTipo.agua, Lancamento.consumo), else_=0)),
-            0,
-        ).label("agua"),
-        func.coalesce(
-            func.sum(case((Lancamento.tipo == LancamentoTipo.luz, Lancamento.consumo), else_=0)),
-            0,
-        ).label("luz"),
-        _N_DEMONSTRACAO,
-    ).where(_CONTA_NOS_INDICADORES)
-    if mes:
-        stmt = stmt.where(Lancamento.mes_referencia == mes)
-    return db.execute(stmt).one()
+def _resumo_do_campus(row) -> ResumoCampus:
+    return ResumoCampus(
+        campusId=row.id,
+        nome=row.nome,
+        agua=float(row.agua or 0),
+        luz=float(row.luz or 0),
+        demonstracao=row.n_demonstracao > 0,
+    )
+
+
+def _resumo_da_universidade(rows) -> ResumoCampus:
+    # Todo lançamento tem campus, então a soma das linhas é o total da universidade.
+    return ResumoCampus(
+        campusId=0,
+        nome="Universidade",
+        agua=float(sum(row.agua or 0 for row in rows)),
+        luz=float(sum(row.luz or 0 for row in rows)),
+        demonstracao=any(row.n_demonstracao > 0 for row in rows),
+    )
 
 
 def _pontos_sem_consumo(db: Session, mes: str | None = None, campus_id: int | None = None) -> int:
@@ -95,54 +99,26 @@ def resumo(
     db: Session = Depends(get_db),
     user: UserClaims = Depends(get_current_user),
 ):
-    total_geral = _total_geral(db, mes)
-    total_geral_out = ResumoCampus(
-        campusId=0,
-        nome="Universidade",
-        agua=float(total_geral.agua or 0),
-        luz=float(total_geral.luz or 0),
-        demonstracao=total_geral.n_demonstracao > 0,
-    )
+    rows = _campus_totals(db, mes=mes)
+    total_geral = _resumo_da_universidade(rows)
 
     if user.role == "campus":
-        rows = _campus_totals(db, mes=mes, campus_id=user.campusId)
-        if rows:
-            row = rows[0]
-            campus_out = ResumoCampus(
-                campusId=row.id,
-                nome=row.nome,
-                agua=float(row.agua or 0),
-                luz=float(row.luz or 0),
-                demonstracao=row.n_demonstracao > 0,
-            )
-        else:
-            campus_out = ResumoCampus(
-                campusId=user.campusId,
-                nome=None,
-                agua=0.0,
-                luz=0.0,
-            )
+        proprio = next((row for row in rows if row.id == user.campusId), None)
+        campus_out = (
+            _resumo_do_campus(proprio)
+            if proprio
+            else ResumoCampus(campusId=user.campusId, nome=None, agua=0.0, luz=0.0)
+        )
         return ResumoResponse(
             mes=mes,
             campus=campus_out,
-            totalGeral=total_geral_out,
+            totalGeral=total_geral,
             pontosSemConsumo=_pontos_sem_consumo(db, mes, user.campusId),
         )
 
-    rows = _campus_totals(db, mes=mes)
-    campi = [
-        ResumoCampus(
-            campusId=row.id,
-            nome=row.nome,
-            agua=float(row.agua or 0),
-            luz=float(row.luz or 0),
-            demonstracao=row.n_demonstracao > 0,
-        )
-        for row in rows
-    ]
     return ResumoResponse(
         mes=mes,
-        campi=campi,
-        totalGeral=total_geral_out,
+        campi=[_resumo_do_campus(row) for row in rows],
+        totalGeral=total_geral,
         pontosSemConsumo=_pontos_sem_consumo(db, mes),
     )

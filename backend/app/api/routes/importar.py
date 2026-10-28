@@ -9,9 +9,9 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import delete, func, select, text, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from app.core.limites import CONSUMO_MAXIMO, MES_PATTERN, VALOR_RS_MAXIMO
+from app.core.limites import CONSUMO_MAXIMO, MES_PATTERN, UPLOAD_MAXIMO_BYTES, VALOR_RS_MAXIMO
 from app.core.security import autor, require_super
 from app.db.models import Lancamento, LancamentoOrigem, LancamentoTipo, PontoMedicao
 from app.db.session import get_db
@@ -83,24 +83,34 @@ def _sniff_delimiter(raw: str) -> str:
     return ";" if header.count(";") >= header.count(",") else ","
 
 
-def _find_ponto(db: Session, tipo: str, ident: str | None, inst: int | None) -> PontoMedicao | None:
-    if ident:
-        ponto = db.scalars(
-            select(PontoMedicao).where(
-                PontoMedicao.tipo == tipo,
-                PontoMedicao.identificador == ident,
-            )
-        ).first()
-        if ponto:
-            return ponto
-    if tipo == "luz" and inst is not None:
-        return db.scalars(
-            select(PontoMedicao).where(
-                PontoMedicao.tipo == "luz",
-                PontoMedicao.codigo_instalacao == inst,
-            )
-        ).first()
-    return None
+class _PontosDoTipo:
+    """Todos os pontos do tipo numa consulta, já com o campus (SPEC 4.3).
+
+    Antes eram uma ou duas consultas por linha da planilha, mais uma por campus.
+    """
+
+    def __init__(self, db: Session, tipo: str):
+        pontos = db.scalars(
+            select(PontoMedicao)
+            .options(joinedload(PontoMedicao.campus))
+            .where(PontoMedicao.tipo == tipo)
+            .order_by(PontoMedicao.id)
+        ).all()
+        self.tipo = tipo
+        self.por_identificador: dict[str, PontoMedicao] = {}
+        self.por_instalacao: dict[int, PontoMedicao] = {}
+        for ponto in pontos:
+            if ponto.identificador:
+                self.por_identificador.setdefault(ponto.identificador, ponto)
+            if ponto.codigo_instalacao is not None:
+                self.por_instalacao.setdefault(ponto.codigo_instalacao, ponto)
+
+    def achar(self, ident: str | None, inst: int | None) -> PontoMedicao | None:
+        if ident and ident in self.por_identificador:
+            return self.por_identificador[ident]
+        if self.tipo == "luz" and inst is not None:
+            return self.por_instalacao.get(inst)
+        return None
 
 
 def _mes_da_linha(row: dict[str, str]) -> tuple[str | None, str | None]:
@@ -117,12 +127,14 @@ def _mes_da_linha(row: dict[str, str]) -> tuple[str | None, str | None]:
     return f"{ano_n:04d}-{mes_n:02d}", None
 
 
-def _no_caminho(db: Session, origem: LancamentoOrigem, mes: str, alvos: set[tuple[int, LancamentoTipo]]):
-    """Lançamentos de `origem` (manual ou demonstração) nos campus/tipo/mês que a importação vai preencher."""
-    if not alvos:
-        return select(Lancamento.id).where(text("false"))
-    return select(Lancamento.id).where(
-        Lancamento.origem == origem.value,
+# O importado vem da fatura e prevalece sobre estes no mesmo campus/tipo/mês.
+_SUBSTITUIDOS = (LancamentoOrigem.manual.value, LancamentoOrigem.demonstracao.value)
+
+
+def _no_caminho(mes: str, alvos: set[tuple[int, LancamentoTipo]]):
+    """Filtro dos manuais e de demonstração nos campus/tipo/mês que a importação vai preencher."""
+    return (
+        Lancamento.origem.in_(_SUBSTITUIDOS),
         Lancamento.mes_referencia == mes,
         tuple_(Lancamento.campus_id, Lancamento.tipo).in_(list(alvos)),
     )
@@ -136,7 +148,16 @@ def preview_csv(
     db: Session = Depends(get_db),
     _user=Depends(require_super),
 ):
-    raw = file.file.read().decode("utf-8-sig", errors="replace")
+    conteudo = file.file.read(UPLOAD_MAXIMO_BYTES + 1)
+    if len(conteudo) > UPLOAD_MAXIMO_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=(
+                f"O arquivo passa de {UPLOAD_MAXIMO_BYTES // 1_000_000} MB. "
+                "A planilha modelo tem poucos KB: confira se é o CSV certo."
+            ),
+        )
+    raw = conteudo.decode("utf-8-sig", errors="replace")
     reader = csv.DictReader(io.StringIO(raw), delimiter=_sniff_delimiter(raw))
     colunas = COLUNAS[tipo]
 
@@ -144,13 +165,14 @@ def preview_csv(
     faltando = [colunas[c] for c in ("ident", "consumo") if colunas[c] not in cabecalho]
     if faltando:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"O arquivo não parece ser a planilha de {NOME_TIPO[tipo]}: "
                 f"falta(m) a(s) coluna(s) {', '.join(faltando)}."
             ),
         )
 
+    pontos = _PontosDoTipo(db, tipo)
     candidatos: list[tuple[int, PontoMedicao, PontoPreview]] = []
     unmatched: list[LinhaIgnorada] = []
 
@@ -203,7 +225,7 @@ def preview_csv(
             inst_str = row.get("numero_instalacao", "")
             inst = int(inst_str) if inst_str.isdigit() else None
 
-        ponto = _find_ponto(db, tipo, ident, inst)
+        ponto = pontos.achar(ident, inst)
         if ponto is None:
             ignora("Ponto de medição não encontrado")
             continue
@@ -251,10 +273,15 @@ def preview_csv(
     unmatched.sort(key=lambda linha: linha.linha or 0)
 
     alvos = {(m.campus_id, LancamentoTipo(tipo)) for m in matched}
-    def quantos(origem: LancamentoOrigem) -> int:
-        return db.execute(
-            select(func.count()).select_from(_no_caminho(db, origem, mes_referencia, alvos).subquery())
-        ).scalar_one()
+    substituidos: dict[str, int] = {}
+    if alvos:
+        substituidos = dict(
+            db.execute(
+                select(Lancamento.origem, func.count())
+                .where(*_no_caminho(mes_referencia, alvos))
+                .group_by(Lancamento.origem)
+            ).all()
+        )
 
     return PreviewOut(
         mes_referencia=mes_referencia,
@@ -262,8 +289,8 @@ def preview_csv(
         matched=matched,
         unmatched=unmatched,
         total_valor=sum(m.valor_fatura or 0 for m in matched),
-        manuais_substituidos=quantos(LancamentoOrigem.manual),
-        demonstracao_substituida=quantos(LancamentoOrigem.demonstracao),
+        manuais_substituidos=substituidos.get(LancamentoOrigem.manual.value, 0),
+        demonstracao_substituida=substituidos.get(LancamentoOrigem.demonstracao.value, 0),
     )
 
 
@@ -273,59 +300,62 @@ def confirmar_importacao(
     db: Session = Depends(get_db),
     user: UserClaims = Depends(require_super),
 ):
-    inserted = 0
-    updated = 0
-    ignored = 0
-    alvos: set[tuple[int, LancamentoTipo]] = set()
+    # O mesmo ponto duas vezes no payload: vale o último, como valia gravando um por vez.
+    itens = {item.ponto_medicao_id: item for item in payload.lancamentos}
+    pontos = (
+        {p.id: p for p in db.scalars(select(PontoMedicao).where(PontoMedicao.id.in_(list(itens))))}
+        if itens
+        else {}
+    )
+    ignored = sum(1 for item in payload.lancamentos if item.ponto_medicao_id not in pontos)
+    alvos = {(p.campus_id, p.tipo) for p in pontos.values()}
 
-    for item in payload.lancamentos:
-        ponto = db.get(PontoMedicao, item.ponto_medicao_id)
-        if ponto is None:
-            ignored += 1
-            continue
-        alvos.add((ponto.campus_id, ponto.tipo))
-
-        # Upsert atômico protegido pelo índice único uq_lancamentos_ponto_mes:
-        # importar o mesmo mês duas vezes (ou duplo clique) atualiza em vez de duplicar.
-        stmt = (
-            pg_insert(Lancamento)
-            .values(
-                campus_id=ponto.campus_id,
-                tipo=ponto.tipo,
-                consumo=item.consumo_fisico,
-                valor_rs=item.valor_fatura,
-                origem=LancamentoOrigem.importado.value,
-                mes_referencia=payload.mes_referencia,
-                ponto_medicao_id=item.ponto_medicao_id,
-                criado_por=autor(user),
-            )
-            .on_conflict_do_update(
-                index_elements=[Lancamento.ponto_medicao_id, Lancamento.mes_referencia],
-                index_where=Lancamento.ponto_medicao_id.isnot(None),
-                set_={
-                    "consumo": item.consumo_fisico,
-                    "valor_rs": item.valor_fatura,
-                    # `onupdate` do modelo não vale no ON CONFLICT; quem criou continua o mesmo.
-                    "atualizado_em": func.now(),
-                },
-            )
-            # xmax = 0 indica linha recém-inserida (PostgreSQL); senão foi update.
-            .returning(text("xmax = 0"))
-        )
-        if db.execute(stmt).scalar_one():
-            inserted += 1
-        else:
-            updated += 1
+    inserted = updated = 0
+    linhas = [
+        {
+            "campus_id": ponto.campus_id,
+            "tipo": ponto.tipo,
+            "consumo": itens[ponto.id].consumo_fisico,
+            "valor_rs": itens[ponto.id].valor_fatura,
+            "origem": LancamentoOrigem.importado.value,
+            "mes_referencia": payload.mes_referencia,
+            "ponto_medicao_id": ponto.id,
+            "criado_por": autor(user),
+        }
+        for ponto in pontos.values()
+    ]
+    if linhas:
+        # Upsert de todos os pontos numa instrução (SPEC 4.3), protegido pelo índice
+        # único uq_lancamentos_ponto_mes: importar o mesmo mês de novo atualiza.
+        insercao = pg_insert(Lancamento).values(linhas)
+        stmt = insercao.on_conflict_do_update(
+            index_elements=[Lancamento.ponto_medicao_id, Lancamento.mes_referencia],
+            index_where=Lancamento.ponto_medicao_id.isnot(None),
+            set_={
+                "consumo": insercao.excluded.consumo,
+                "valor_rs": insercao.excluded.valor_rs,
+                # `onupdate` do modelo não vale no ON CONFLICT; quem criou continua o mesmo.
+                "atualizado_em": func.now(),
+            },
+        ).returning(text("xmax = 0"))  # xmax = 0: linha recém-inserida (PostgreSQL)
+        novos = db.execute(stmt).scalars().all()
+        inserted = sum(1 for novo in novos if novo)
+        updated = len(novos) - inserted
 
     # O importado vem da fatura e prevalece: o lançamento manual (ou de demonstração)
     # do mesmo campus/tipo/mês sai na mesma transação, senão o consumo contaria em dobro.
-    def remove(origem: LancamentoOrigem) -> int:
-        return db.execute(
-            delete(Lancamento).where(Lancamento.id.in_(_no_caminho(db, origem, payload.mes_referencia, alvos)))
-        ).rowcount
-
-    removidos = remove(LancamentoOrigem.manual)
-    demonstracao_removida = remove(LancamentoOrigem.demonstracao)
+    origens_removidas: list[str] = []
+    if alvos:
+        origens_removidas = list(
+            db.execute(
+                delete(Lancamento)
+                .where(*_no_caminho(payload.mes_referencia, alvos))
+                .returning(Lancamento.origem)
+                .execution_options(synchronize_session=False)
+            ).scalars()
+        )
+    removidos = origens_removidas.count(LancamentoOrigem.manual.value)
+    demonstracao_removida = origens_removidas.count(LancamentoOrigem.demonstracao.value)
 
     db.commit()
     return ConfirmarOut(

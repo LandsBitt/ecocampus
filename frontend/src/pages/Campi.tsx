@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Building2, Check, Info, RotateCcw, Save, Users } from 'lucide-react'
 
@@ -44,21 +44,20 @@ export default function Campi() {
   const queryClient = useQueryClient()
   const campi = useCampusList()
 
-  const [rascunhos, setRascunhos] = useState<Rascunhos>({})
+  const [rascunhos, setRascunhos] = useState<Rascunhos>(() => (campi.data ? paraRascunho(campi.data) : {}))
   const [salvandoId, setSalvandoId] = useState<number | null>(null)
 
   // Recarrega os campos sempre que o servidor devolve dados novos, mas
   // preserva o que o usuário já digitou e ainda não salvou.
-  useEffect(() => {
-    if (!campi.data) return
-    setRascunhos((atual) => {
-      const base = paraRascunho(campi.data)
-      return Object.fromEntries(
-        Object.entries(base).map(([id, valores]) => [id, atual[Number(id)] ?? valores])
-      )
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [campi.data])
+  // Ajustado durante a renderização, não num efeito que redesenha depois.
+  const [dadosAntes, setDadosAntes] = useState(campi.data)
+  if (campi.data && campi.data !== dadosAntes) {
+    setDadosAntes(campi.data)
+    const base = paraRascunho(campi.data)
+    setRascunhos((atual) =>
+      Object.fromEntries(Object.entries(base).map(([id, valores]) => [id, atual[Number(id)] ?? valores]))
+    )
+  }
 
   const salvar = useMutation({
     mutationFn: async ({
@@ -81,7 +80,7 @@ export default function Campi() {
     onSettled: () => setSalvandoId(null)
   })
 
-  const lista = campi.data ?? []
+  const lista = useMemo(() => campi.data ?? [], [campi.data])
   const completos = lista.filter((c) => c.populacao > 0 && c.areaConstruidaM2 > 0).length
   const progresso = lista.length ? (completos / lista.length) * 100 : 0
 

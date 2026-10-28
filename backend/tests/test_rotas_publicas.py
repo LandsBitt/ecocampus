@@ -18,5 +18,5 @@ def test_ranking_publico_continua_funcionando(client, cadastrar, lancar):
 
 
 def test_nenhuma_rota_publica_expoe_pontos_de_medicao(client):
-    caminhos = [rota.path for rota in client.app.routes if getattr(rota, "path", "").startswith("/public")]
+    caminhos = [caminho for caminho in client.app.openapi()["paths"] if caminho.startswith("/public")]
     assert sorted(caminhos) == ["/public/pizza", "/public/ranking"]

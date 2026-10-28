@@ -115,3 +115,24 @@ def test_comparacao_marca_demonstracao_por_medida_em_qualquer_dos_tres_meses(com
     corpo = como("super").get("/comparacao?mes=2026-01").json()
     assert corpo["escopo"]["agua"]["demonstracao"] is True
     assert corpo["escopo"]["luz"]["demonstracao"] is False  # água simulada não marca a energia
+
+
+@pytest.mark.parametrize(("papel", "campus_id", "bloco"), [("super", None, "totalGeral"), ("campus", 2, "campus")])
+def test_mes_anterior_da_comparacao_e_o_mesmo_total_do_resumo(como, lancar, papel, campus_id, bloco):
+    """O Painel tirou a chamada ao /resumo do mês anterior e usa a comparação (SPEC 4.4)."""
+    lancar(1, "agua", 300.0, "2025-12")
+    lancar(2, "agua", 120.0, "2025-12")
+    lancar(2, "luz", 900.0, "2025-12")
+    lancar(2, "agua", 130.0, "2026-01")
+    cliente = como(papel, campus_id)
+    resumo = cliente.get("/resumo?mes=2025-12").json()[bloco]
+    escopo = cliente.get("/comparacao?mes=2026-01").json()["escopo"]
+    assert escopo["agua"]["mesAnterior"] == resumo["agua"]
+    assert escopo["luz"]["mesAnterior"] == resumo["luz"]
+
+
+def test_mes_anterior_sem_lancamento_vem_nulo_onde_o_resumo_dava_zero(como, lancar):
+    lancar(1, "agua", 300.0, "2026-01")
+    cliente = como("super")
+    assert cliente.get("/resumo?mes=2025-12").json()["totalGeral"]["luz"] == 0
+    assert cliente.get("/comparacao?mes=2026-01").json()["escopo"]["luz"]["mesAnterior"] is None

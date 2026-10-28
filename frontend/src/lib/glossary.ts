@@ -105,7 +105,7 @@ export const glossary = {
     label: 'Ponto de medição',
     short: 'Cada relógio/hidrômetro que a concessionária cobra separadamente.',
     detail:
-      'Um campus costuma ter vários pontos. A importação usa o endereço da fatura para descobrir a qual campus cada ponto pertence.'
+      'Um campus costuma ter vários pontos. A importação descobre a qual campus cada ponto pertence pelo código dele na conta: o PDE/RGI na água, o número da UC ou o código de instalação na energia.'
   },
   mesReferencia: {
     label: 'Mês de referência',

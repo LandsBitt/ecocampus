@@ -9,7 +9,6 @@ from __future__ import annotations
 import re
 
 import pytest
-from fastapi.routing import APIRoute
 
 from app.main import app
 
@@ -53,12 +52,9 @@ PARAMETROS = {"{campus_id}": "1", "{lancamento_id}": "1", "{uid}": "alguem", "{a
 
 
 def _rotas() -> set[tuple[str, str]]:
-    return {
-        (metodo, rota.path)
-        for rota in app.routes
-        if isinstance(rota, APIRoute)
-        for metodo in rota.methods
-    }
+    # Pelo esquema OpenAPI: o FastAPI 0.13x não lista mais em app.routes as rotas
+    # dos routers incluídos.
+    return {(metodo.upper(), caminho) for caminho, metodos in app.openapi()["paths"].items() for metodo in metodos}
 
 
 def _url(caminho: str) -> str:

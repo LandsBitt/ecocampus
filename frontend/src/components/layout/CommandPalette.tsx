@@ -152,12 +152,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     )
   }, [commands, query])
 
-  // Reinicia a seleção sempre que a lista muda para não apontar para o vazio.
-  useEffect(() => setActiveIndex(0), [query, open])
-
-  useEffect(() => {
+  // Abrir ou fechar recomeça do topo (e fechar limpa a busca). Ajustado durante a
+  // renderização, como recomenda a documentação do React, não num efeito.
+  const [abertoAntes, setAbertoAntes] = useState(open)
+  if (open !== abertoAntes) {
+    setAbertoAntes(open)
+    setActiveIndex(0)
     if (!open) setQuery('')
-  }, [open])
+  }
 
   useEffect(() => {
     listRef.current
@@ -206,7 +208,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             <input
               autoFocus
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                // A lista muda com a busca: a seleção volta ao topo para não apontar para o vazio.
+                setActiveIndex(0)
+              }}
               placeholder="Buscar página ou ação…"
               className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-subtle"
             />

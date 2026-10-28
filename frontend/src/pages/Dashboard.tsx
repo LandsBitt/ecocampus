@@ -25,8 +25,9 @@ import {
   useResumo,
   useSerie
 } from '@/hooks/queries'
+import { useRanking } from '@/hooks/useRanking'
 import { formatMonthLabel, formatMonthLong, previousMonth } from '@/lib/date'
-import { classificacaoStyles, comNota, consumoTrend, motivoSemNota, notaMedia, styleForScore, toneFill } from '@/lib/ecoScore'
+import { classificacaoStyles, consumoTrend, motivoSemNota, styleForScore, toneFill } from '@/lib/ecoScore'
 import { fraseComoTexto, fraseDoMes, nomeDoMes } from '@/lib/frases'
 import {
   formatDelta,
@@ -43,6 +44,9 @@ import { useAuth } from '@/providers/AuthProvider'
 import { usePeriod } from '@/providers/PeriodProvider'
 import type { IndicadorCampus, Lancamento } from '@/lib/types'
 
+/** Quantos lançamentos o card "Últimos lançamentos" mostra; a API manda só esses. */
+const ULTIMOS_LANCAMENTOS = 4
+
 export default function Dashboard() {
   const { claims } = useAuth()
   const { mes } = usePeriod()
@@ -53,12 +57,11 @@ export default function Dashboard() {
 
   const mesAnterior = useMemo(() => previousMonth(mes), [mes])
   const resumo = useResumo(mes)
-  const resumoAnterior = useResumo(mesAnterior)
   const indicadores = useIndicadores(mes)
   const historico = useSerie(mes, 12)
   const comparacao = useComparacao(mes)
   const alertas = useAlertasPico(mes)
-  const lancamentos = useLancamentos({ mes })
+  const lancamentos = useLancamentos({ mes, limite: ULTIMOS_LANCAMENTOS })
   const campi = useCampusList()
 
   // O bloco relevante do /resumo muda conforme o papel: a reitoria vê o
@@ -69,16 +72,17 @@ export default function Dashboard() {
     return bloco ? { agua: bloco.agua, luz: bloco.luz } : null
   }, [resumo.data, isSuper])
 
+  // O mês anterior vem da comparação (o mesmo escopo do papel), sem outra ida ao
+  // /resumo; mês sem lançamento vem nulo e conta como zero, como no resumo.
   const anterior = useMemo(() => {
-    if (!resumoAnterior.data) return null
-    const bloco = isSuper ? resumoAnterior.data.totalGeral : resumoAnterior.data.campus
-    return bloco ? { agua: bloco.agua, luz: bloco.luz } : null
-  }, [resumoAnterior.data, isSuper])
+    const escopo = comparacao.data?.escopo
+    if (!escopo) return null
+    return { agua: escopo.agua.mesAnterior ?? 0, luz: escopo.luz.mesAnterior ?? 0 }
+  }, [comparacao.data])
 
   const meuCampus = useMemo(() => (isSuper ? null : indicadores.data?.[0] ?? null), [indicadores.data, isSuper])
 
-  // Média só de quem tem nota: campus sem dado ou sem cadastro não entra.
-  const scoreMedio = useMemo(() => notaMedia(indicadores.data ?? []), [indicadores.data])
+  const { avaliados, media: scoreMedio } = useRanking(indicadores.data)
   const score = isSuper ? scoreMedio : meuCampus?.ecoScore ?? null
 
   // Só os avisos (picos, campus sem cadastro, contas sem consumo) sobem para a tela:
@@ -178,7 +182,7 @@ export default function Dashboard() {
   const luz = medidaNumerica(atual?.luz, 'luz')
   const comRegistro = (indicadores.data ?? []).filter((i) => i.temDados).length
   const totalCampi = indicadores.data?.length ?? 0
-  const comNotaQtd = comNota(indicadores.data ?? []).length
+  const comNotaQtd = avaliados.length
 
   return (
     <Page {...cabecalho}>
@@ -371,7 +375,7 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : (
-              <RankingCompacto itens={comNota(indicadores.data ?? [])} />
+              <RankingCompacto itens={avaliados} />
             )}
           </BentoCard>
         ) : (
@@ -417,7 +421,7 @@ export default function Dashboard() {
               }
             />
           ) : (
-            <ListaLancamentos itens={(lancamentos.data ?? []).slice(0, 4)} campi={campi.data} />
+            <ListaLancamentos itens={lancamentos.data ?? []} campi={campi.data} />
           )}
         </BentoCard>
       </section>
@@ -519,7 +523,8 @@ function RankingCompacto({ itens }: { itens: IndicadorCampus[] }) {
     <ol className="space-y-3">
       {linhas.map(({ item, pos }) => {
         const nota = item.ecoScore ?? 0
-        const style = styleForScore(nota)
+        // Faixa de cada campus vem da API; o front só classifica a média, que ele mesmo calcula.
+        const style = item.classificacao ? classificacaoStyles[item.classificacao] : styleForScore(nota)
         return (
           <li key={item.campusId} className="grid grid-cols-[1.75rem_minmax(0,1fr)_3rem_3rem] items-center gap-2.5 sm:grid-cols-[2rem_minmax(0,1fr)_minmax(4rem,9rem)_3.5rem] sm:gap-3">
             <span className="num text-lg font-semibold text-subtle">{pos}º</span>

@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { CommandPalette } from './CommandPalette'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { useCampusList } from '@/hooks/queries'
 import { useAuth } from '@/providers/AuthProvider'
 
@@ -22,7 +22,11 @@ export function AppShell() {
   const reduzir = useReducedMotion()
   const campusQuery = useCampusList()
 
-  const [mobileOpen, setMobileOpen] = useState(false)
+  // O menu móvel lembra em que rota foi aberto: trocar de rota fecha sozinho,
+  // sem efeito que corrige o estado depois de desenhar.
+  const [menuAbertoEm, setMenuAbertoEm] = useState<string | null>(null)
+  const mobileOpen = menuAbertoEm === location.pathname
+  const setMobileOpen = (aberto: boolean) => setMenuAbertoEm(aberto ? location.pathname : null)
   const [commandOpen, setCommandOpen] = useState(false)
 
   // Atalho global da paleta de comandos.
@@ -37,9 +41,6 @@ export function AppShell() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  // Trocar de rota fecha o menu móvel.
-  useEffect(() => setMobileOpen(false), [location.pathname])
-
   const campusNome =
     claims?.role === 'campus'
       ? campusQuery.data?.find((campus) => campus.id === claims.campusId)?.nome
@@ -53,6 +54,9 @@ export function AppShell() {
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" hideClose className="p-0">
+          {/* Só para leitor de tela: a gaveta precisa de nome e descrição (Radix). */}
+          <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
+          <SheetDescription className="sr-only">Telas do EcoCampus</SheetDescription>
           <Sidebar
             role={claims?.role}
             campusNome={campusNome}

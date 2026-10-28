@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from 'react'
-import { BarChart3, CalendarRange, Download, Info, PieChart, Trophy } from 'lucide-react'
+import { BarChart3, CalendarRange, Download, PieChart, Trophy } from 'lucide-react'
 
+import { ComoANotaECalculada } from '@/components/ComoANotaECalculada'
 import { Explain } from '@/components/Explain'
 import { EcoRankingTable } from '@/components/EcoRankingTable'
 import { CampusDistribution, SeletorMedida } from '@/components/charts/CampusDistribution'
@@ -21,8 +22,9 @@ import { Skeleton, SkeletonTable } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/sonner'
 import { useAlertasPico, useComparacao, useIndicadorUniversidade, useIndicadores, usePizza } from '@/hooks/queries'
+import { useRanking } from '@/hooks/useRanking'
 import { formatMonthLabel, formatMonthLong } from '@/lib/date'
-import { classifyScore, comNota, motivoSemNota, notaMedia, ordenarRanking } from '@/lib/ecoScore'
+import { classifyScore, motivoSemNota } from '@/lib/ecoScore'
 import { downloadCsv } from '@/lib/export'
 import { descreverFator, formatDelta, formatEmissao, formatNumber, UNIDADES, type Medida } from '@/lib/formatters'
 import { usePeriod } from '@/providers/PeriodProvider'
@@ -45,16 +47,13 @@ export default function Reports() {
   const alertas = useAlertasPico(mes)
   const pizza = usePizza(mes)
 
-  const ranking = useMemo(() => ordenarRanking(indicadores.data ?? []), [indicadores.data])
-  const comNotaQtd = useMemo(() => comNota(ranking).length, [ranking])
+  const { ordenado: ranking, avaliados, media: scoreMedio } = useRanking(indicadores.data)
+  const comNotaQtd = avaliados.length
 
   const filtrado = useMemo(() => {
     if (campusSelecionado === 'all') return ranking
     return ranking.filter((item) => item.campusId === Number(campusSelecionado))
   }, [ranking, campusSelecionado])
-
-  // Média só de quem tem nota; nula quando ninguém tem.
-  const scoreMedio = notaMedia(ranking)
 
   const distribuicaoClasses = useMemo(() => {
     const contagem = { Ecológico: 0, 'Na média': 0, Crítico: 0 }
@@ -385,23 +384,7 @@ export default function Reports() {
             </TabsContent>
           </Tabs>
 
-          <Card variant="flat">
-            <CardContent className="flex gap-3 p-5">
-              <Info className="mt-0.5 size-4 shrink-0 text-brand" />
-              <div className="space-y-1 text-[0.8125rem] leading-relaxed text-muted-foreground">
-                <p className="font-medium text-foreground">Como a nota é calculada</p>
-                <p>
-                  Para cada campus, o consumo de água é dividido pela população e o de energia pela
-                  área construída. Cada resultado é comparado com a referência da universidade —
-                  consumo total dividido pela população total (água) e pela área total (energia) — e
-                  vira uma nota de 0 a 100: metade da referência ou menos vale 100, a referência vale
-                  50, e 50% acima ou mais vale 0. A nota final é a média das duas. Campus sem
-                  lançamento no mês, ou sem população e área cadastradas, fica sem nota e fora da
-                  referência.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <ComoANotaECalculada />
         </>
       )}
     </Page>

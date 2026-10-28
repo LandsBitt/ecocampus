@@ -14,14 +14,13 @@ from app.schemas.lancamento import LancamentoCreate, LancamentoOut, LancamentoUp
 
 router = APIRouter()
 
-ALLOWED_TIPOS = {LancamentoTipo.agua, LancamentoTipo.luz}
 NOME_TIPO = {LancamentoTipo.agua: "água", LancamentoTipo.luz: "energia"}
 
 
 def _validate_campus_id(db: Session, value: int | None) -> None:
     if value is None or db.get(Campus, value) is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="campusId inexistente",
         )
 
@@ -118,6 +117,8 @@ def list_lancamentos(
     campus_id: int | None = Query(default=None, alias="campusId"),
     mes: str | None = None,
     tipo: LancamentoTipo | None = None,
+    # Só os mais recentes: o Painel mostra quatro e baixava o mês inteiro (achado F3).
+    limite: int | None = Query(default=None, ge=1, le=500),
     db: Session = Depends(get_db),
     user: UserClaims = Depends(get_current_user),
 ):
@@ -130,6 +131,8 @@ def list_lancamentos(
         stmt = stmt.where(Lancamento.mes_referencia == mes)
     if tipo:
         stmt = stmt.where(Lancamento.tipo == tipo)
+    if limite:
+        stmt = stmt.limit(limite)
 
     items = db.scalars(stmt).all()
     return [_to_lancamento_out(item) for item in items]
@@ -141,9 +144,6 @@ def create_lancamento(
     db: Session = Depends(get_db),
     user: UserClaims = Depends(get_current_user),
 ):
-    if payload.tipo not in ALLOWED_TIPOS:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Tipo inválido")
-
     campus_id = payload.campus_id
     if user.role == "campus":
         campus_id = user.campusId
@@ -180,7 +180,7 @@ def update_lancamento(
     _exige_permissao(user, item)
     if item.origem == LancamentoOrigem.demonstracao.value:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Lançamento de demonstração não se edita. Registre o consumo real: ele substitui a demonstração do mês.",
         )
 
@@ -197,11 +197,9 @@ def update_lancamento(
     # desencontraria do ponto (achado B4). Corrige-se pela importação.
     if item.ponto_medicao_id is not None and (campus_id != item.campus_id or tipo != item.tipo):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Lançamento importado segue o ponto de medição: campus e tipo não podem ser trocados.",
         )
-    if tipo not in ALLOWED_TIPOS:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Tipo inválido")
     if campus_id != item.campus_id:
         _validate_campus_id(db, campus_id)
     if (campus_id, tipo, mes) != (item.campus_id, item.tipo, item.mes_referencia):

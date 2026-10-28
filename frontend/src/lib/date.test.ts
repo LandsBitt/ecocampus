@@ -5,9 +5,7 @@ import {
   formatMonthLong,
   formatMonthShort,
   isValidMonth,
-  monthRange,
   previousMonth,
-  sameMonthLastYear,
   shiftMonth
 } from './date'
 
@@ -26,12 +24,6 @@ describe('meses AAAA-MM', () => {
     expect(shiftMonth('2025-12', 1)).toBe('2026-01')
     expect(shiftMonth('2026-03', -14)).toBe('2025-01')
     expect(previousMonth('2026-01')).toBe('2025-12')
-    expect(sameMonthLastYear('2026-01')).toBe('2025-01')
-  })
-
-  it('monthRange vem do mais antigo ao mais recente e termina no mês pedido', () => {
-    expect(monthRange('2026-02', 4)).toEqual(['2025-11', '2025-12', '2026-01', '2026-02'])
-    expect(monthRange('2026-02', 1)).toEqual(['2026-02'])
   })
 
   it('rótulos em português', () => {

@@ -1,5 +1,3 @@
-import type { TooltipProps } from 'recharts'
-
 import { cn } from '@/lib/utils'
 
 export interface TooltipRow {
@@ -49,14 +47,4 @@ export function TooltipCard({
       {footer && <div className="mt-1.5 border-t border-border pt-1.5 text-2xs text-subtle">{footer}</div>}
     </div>
   )
-}
-
-/** Adaptador para o Recharts: recebe o payload e delega ao TooltipCard. */
-export function makeTooltip(
-  render: (payload: NonNullable<TooltipProps<number, string>['payload']>, label: string) => React.ReactNode
-) {
-  return function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) {
-    if (!active || !payload || payload.length === 0) return null
-    return <>{render(payload, String(label ?? ''))}</>
-  }
 }

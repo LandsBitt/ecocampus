@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { FatoresEmissaoCard, errosDoFator } from './FatoresEmissaoCard'
+import { FatoresEmissaoCard } from './FatoresEmissaoCard'
+import { errosDoFator } from '@/lib/fatores'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import type { FatorEmissao } from '@/lib/types'
 

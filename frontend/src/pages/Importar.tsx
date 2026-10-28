@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { invalidarConsumo } from '@/hooks/queries'
 import { api, detalheDoErro } from '@/lib/api'
 import { formatMonthLong, getCurrentMonth } from '@/lib/date'
 import { formatCurrency, formatNumber } from '@/lib/formatters'
@@ -99,13 +100,7 @@ export default function Importar() {
     onSuccess: (data) => {
       setResultado(data)
       setEtapa(2)
-      queryClient.invalidateQueries({ queryKey: ['lancamentos'] })
-      queryClient.invalidateQueries({ queryKey: ['resumo'] })
-      queryClient.invalidateQueries({ queryKey: ['indicadores'] })
-      queryClient.invalidateQueries({ queryKey: ['pizza'] })
-      queryClient.invalidateQueries({ queryKey: ['serie'] })
-      queryClient.invalidateQueries({ queryKey: ['comparacao'] })
-      queryClient.invalidateQueries({ queryKey: ['alertas'] })
+      invalidarConsumo(queryClient)
     },
     onError: () => toast.error('Erro ao gravar os lançamentos. Nada foi importado.')
   })
@@ -128,7 +123,7 @@ export default function Importar() {
   return (
     <Page
       title="Importar planilha"
-      description="Carregue de uma vez as contas de água ou energia do mês. O sistema identifica o campus de cada ponto de medição pelo endereço da fatura."
+      description="Carregue de uma vez as contas de água ou energia do mês. O sistema identifica o campus de cada ponto de medição pelo código dele na conta (PDE/RGI na água, UC ou instalação na energia)."
       actions={
         etapa > 0 && (
           <Button variant="secondary" onClick={recomecar}>

@@ -128,7 +128,7 @@ describe('Relatórios', () => {
 
     const rodape = screen.getByText('Universidade').closest('tfoot')?.textContent ?? ''
     expect(rodape).toContain('sem fator de emissão cadastrado')
-    expect(rodape).not.toMatch(/0 kg CO₂/)
+    expect(rodape).not.toMatch(/\b0 kg CO₂/)
   })
 
   it('a aba Comparação mostra as variações e diz "sem base" quando falta o ano anterior (R.3)', () => {

@@ -70,12 +70,6 @@ class IndicadorUniversidade(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
-class IndicadoresOut(BaseModel):
-    campi: list[IndicadorCampus]
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
 class PizzaItem(BaseModel):
     """Participação de um campus no consumo do mês, uma medida por campo."""
 
@@ -84,11 +78,5 @@ class PizzaItem(BaseModel):
     # Água em m³ e energia em kWh. Cada pizza usa uma medida só.
     agua: float
     luz: float
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class PizzaOut(BaseModel):
-    campi: list[PizzaItem]
 
     model_config = ConfigDict(populate_by_name=True)

@@ -1,9 +1,5 @@
 const numberFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 })
 const integerFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 })
-const compactFormatter = new Intl.NumberFormat('pt-BR', {
-  notation: 'compact',
-  maximumFractionDigits: 1
-})
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL'
@@ -29,11 +25,6 @@ export function formatNumber(value: number | null | undefined, digits?: number):
 export function formatInteger(value: number | null | undefined): string {
   if (isBlank(value)) return EMPTY
   return integerFormatter.format(Number(value))
-}
-
-export function formatCompact(value: number | null | undefined): string {
-  if (isBlank(value)) return EMPTY
-  return compactFormatter.format(Number(value))
 }
 
 export function formatCurrency(value: number | null | undefined): string {
@@ -123,8 +114,3 @@ export function variacao(atual: number, anterior: number | null | undefined): nu
   return ((atual - anterior) / anterior) * 100
 }
 
-export function formatMonth(value: string | null | undefined): string {
-  if (!value) return EMPTY
-  const [year, month] = value.split('-')
-  return `${month}/${year}`
-}

@@ -25,7 +25,3 @@ class ResumoResponse(BaseModel):
     pontos_sem_consumo: int = Field(0, alias="pontosSemConsumo")
 
     model_config = ConfigDict(populate_by_name=True)
-
-
-class ResumoOut(ResumoResponse):
-    pass

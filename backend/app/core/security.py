@@ -1,6 +1,8 @@
 ﻿from __future__ import annotations
 
 import json
+import threading
+import time
 from typing import Optional
 
 import firebase_admin
@@ -25,6 +27,47 @@ def init_firebase() -> None:
     else:
         # Uses GOOGLE_APPLICATION_CREDENTIALS or default app credentials.
         firebase_admin.initialize_app(options={"projectId": settings.FIREBASE_PROJECT_ID})
+
+
+# Conferir se o token foi revogado é uma ida ao Firebase (~280 ms medidos em
+# 2026-10-28) em TODA requisição, e o Painel faz várias de uma vez (achado B3).
+# O token conferido vale por este tempo, nunca além do vencimento dele. A tela
+# Usuários esquece o usuário na hora em que revoga; noutro processo do servidor,
+# a revogação vale em até este tempo.
+REVOGACAO_TTL_SEGUNDOS = 300
+_MAX_TOKENS_EM_CACHE = 1000
+
+_tokens_conferidos: dict[str, tuple[float, dict]] = {}
+_trava = threading.Lock()
+
+
+def _decodificar(token: str) -> dict:
+    agora = time.monotonic()
+    with _trava:
+        guardado = _tokens_conferidos.get(token)
+        if guardado and guardado[0] > agora:
+            return guardado[1]
+
+    decoded = auth.verify_id_token(token, check_revoked=True)
+
+    restante_do_token = max(0.0, float(decoded.get("exp", 0)) - time.time())
+    valido_ate = agora + min(REVOGACAO_TTL_SEGUNDOS, restante_do_token)
+    with _trava:
+        if len(_tokens_conferidos) >= _MAX_TOKENS_EM_CACHE:
+            vencidos = [t for t, (ate, _) in _tokens_conferidos.items() if ate <= agora]
+            for t in vencidos:
+                del _tokens_conferidos[t]
+            if len(_tokens_conferidos) >= _MAX_TOKENS_EM_CACHE:
+                _tokens_conferidos.clear()
+        _tokens_conferidos[token] = (valido_ate, decoded)
+    return decoded
+
+
+def esquecer_usuario(uid: str) -> None:
+    """Depois de revogar: a próxima requisição dele volta a conferir no Firebase."""
+    with _trava:
+        for t in [t for t, (_, d) in _tokens_conferidos.items() if d.get("uid") == uid]:
+            del _tokens_conferidos[t]
 
 
 def _extract_claims(decoded: dict) -> UserClaims:
@@ -63,7 +106,7 @@ def get_current_user(
     # do Firebase (os testes trocam esta dependência por um usuário fixo).
     init_firebase()
     try:
-        decoded = auth.verify_id_token(token, check_revoked=True)
+        decoded = _decodificar(token)
     except Exception as exc:  # pragma: no cover - firebase errors vary
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

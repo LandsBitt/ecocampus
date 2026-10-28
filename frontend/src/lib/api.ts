@@ -10,7 +10,12 @@ interface RequestOptions {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+    /** Explicação legível que o servidor mandou (`detail` em texto), quando há. */
+    public detalhe: string | null = null
+  ) {
     super(message)
     this.name = 'ApiError'
   }
@@ -18,13 +23,20 @@ export class ApiError extends Error {
 
 /** Mensagem que o servidor mandou junto com o erro, quando é uma explicação legível. */
 export function detalheDoErro(error: unknown): string | null {
-  if (!(error instanceof ApiError)) return null
+  return error instanceof ApiError ? error.detalhe : null
+}
+
+/** Lê o corpo de uma resposta de erro uma vez só; validação do FastAPI (detail em lista) fica sem detalhe. */
+async function erroDaResposta(response: Response): Promise<ApiError> {
+  const texto = await response.text().catch(() => '')
+  let detalhe: string | null = null
   try {
-    const corpo = JSON.parse(error.message) as { detail?: unknown }
-    return typeof corpo.detail === 'string' ? corpo.detail : null
+    const corpo = JSON.parse(texto) as { detail?: unknown }
+    if (typeof corpo.detail === 'string') detalhe = corpo.detail
   } catch {
-    return null
+    // Corpo não é JSON (proxy, timeout): fica só a mensagem.
   }
+  return new ApiError(response.status, detalhe ?? (texto || response.statusText || 'Erro na API'), detalhe)
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -39,10 +51,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     signal
   })
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    throw new ApiError(response.status, text || response.statusText || 'Erro na API')
-  }
+  if (!response.ok) throw await erroDaResposta(response)
 
   if (response.status === 204) return null as T
   return (await response.json()) as T
@@ -58,10 +67,7 @@ async function uploadForm<T>(path: string, formData: FormData, token?: string | 
     body: formData,
   })
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    throw new ApiError(response.status, text || response.statusText || 'Erro na API')
-  }
+  if (!response.ok) throw await erroDaResposta(response)
 
   return (await response.json()) as T
 }
