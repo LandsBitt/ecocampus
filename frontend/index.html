@@ -8,26 +8,43 @@
       name="description"
       content="Painel de gestão de consumo de água e energia dos campi da Universidade de Taubaté."
     />
-    <meta name="theme-color" content="#0b4c7d" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0c121b" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" type="image/png" href="/image/unitau-logo.png" />
-    <link rel="apple-touch-icon" href="/image/unitau-logo.png" />
+    <meta name="theme-color" content="#0a100e" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/image/unitau-logo-48.png" />
+    <link rel="apple-touch-icon" href="/image/unitau-logo-180.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fontes direto no HTML e sem bloquear a primeira pintura: o texto aparece
+         na fonte do sistema e troca quando a fonte chega (display=swap). -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      />
+    </noscript>
     <script>
-      // Aplica o tema antes da primeira pintura. Sem isto, quem usa o tema
-      // escuro vê um flash branco a cada carregamento.
+      // Aplica o tema antes da primeira pintura, com a mesma regra do
+      // ThemeProvider: sem escolha salva, o padrão é o tema noturno.
       ;(function () {
+        var stored = null
         try {
-          var stored = localStorage.getItem('ecocampus:theme')
-          var dark =
-            stored === 'dark' ||
-            ((!stored || stored === 'system') &&
-              window.matchMedia('(prefers-color-scheme: dark)').matches)
-          if (dark) document.documentElement.classList.add('dark')
-          document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+          stored = localStorage.getItem('ecocampus:theme')
         } catch (e) {
-          /* localStorage bloqueado: segue no tema claro */
+          /* localStorage bloqueado: fica no padrão */
+        }
+        var dark =
+          stored === 'system'
+            ? window.matchMedia('(prefers-color-scheme: dark)').matches
+            : stored !== 'light'
+        if (dark) document.documentElement.classList.add('dark')
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+        if (!dark) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f2ece1')
         }
       })()
     </script>

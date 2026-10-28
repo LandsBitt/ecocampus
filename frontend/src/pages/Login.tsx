@@ -61,7 +61,7 @@ export default function Login() {
       footer={
         <p className="text-center text-[0.8125rem] leading-relaxed text-subtle">
           Acesso restrito a servidores autorizados da UNITAU. O ranking dos campi também está{' '}
-          <Link to="/ranking" className="text-brand underline-offset-4 hover:underline">
+          <Link to="/ranking" className="text-brand underline underline-offset-4">
             disponível publicamente
           </Link>
           .

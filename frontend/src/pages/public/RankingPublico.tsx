@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Award, Info, LogIn, PieChart, Trophy } from 'lucide-react'
@@ -6,7 +6,6 @@ import { Award, Info, LogIn, PieChart, Trophy } from 'lucide-react'
 import { DemonstracaoAviso } from '@/components/DemonstracaoAviso'
 import { Explain } from '@/components/Explain'
 import { EcoRankingTable } from '@/components/EcoRankingTable'
-import { CampusDistribution, SeletorMedida } from '@/components/charts/CampusDistribution'
 import { EcoScoreGauge } from '@/components/charts/EcoScoreGauge'
 import { Brand } from '@/components/layout/Brand'
 import { MonthPicker } from '@/components/layout/MonthPicker'
@@ -22,6 +21,14 @@ import type { Medida } from '@/lib/formatters'
 import { classifyScore, comNota, notaMedia, ordenarRanking } from '@/lib/ecoScore'
 import { usePeriod } from '@/providers/PeriodProvider'
 import type { IndicadorCampus, PizzaItem } from '@/lib/types'
+
+// A pizza traz o Recharts inteiro; só baixa quando alguém abre a aba "Divisão do consumo".
+const CampusDistribution = lazy(() =>
+  import('@/components/charts/CampusDistribution').then((m) => ({ default: m.CampusDistribution }))
+)
+const SeletorMedida = lazy(() =>
+  import('@/components/charts/CampusDistribution').then((m) => ({ default: m.SeletorMedida }))
+)
 
 export default function RankingPublico() {
   const { mes } = usePeriod()
@@ -54,7 +61,7 @@ export default function RankingPublico() {
             <Button asChild variant="secondary" size="sm">
               <Link to="/login">
                 <LogIn />
-                <span className="hidden sm:inline">Entrar</span>
+                <span className="sr-only sm:not-sr-only">Entrar</span>
               </Link>
             </Button>
           </div>
@@ -63,7 +70,12 @@ export default function RankingPublico() {
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
         {/* Página aberta a qualquer pessoa: número simulado precisa do aviso antes de tudo (R.0). */}
-        {itens.some((item) => item.demonstracao) && <DemonstracaoAviso className="mb-6" />}
+        {/* Enquanto carrega, o aviso ocupa o lugar invisível para a página não pular depois. */}
+        {ranking.isLoading ? (
+          <DemonstracaoAviso className="invisible mb-6" />
+        ) : (
+          itens.some((item) => item.demonstracao) && <DemonstracaoAviso className="mb-6" />
+        )}
         <section className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl">
             <p className="eyebrow">Universidade de Taubaté · {formatMonthLong(mes)}</p>
@@ -80,6 +92,7 @@ export default function RankingPublico() {
             </div>
           </div>
 
+          {ranking.isLoading && <Skeleton className="h-[146px] shrink-0 rounded-xl lg:w-72" />}
           {!ranking.isLoading && scoreMedio !== null && (
             <Card className="shrink-0 lg:w-72">
               <CardContent className="flex items-center gap-5 p-5">
@@ -156,14 +169,18 @@ export default function RankingPublico() {
                   title={`Participação de cada campus no consumo de ${medidaPizza === 'agua' ? 'água (m³)' : 'energia (kWh)'}`}
                   description="Aqui vale o volume absoluto, sem ajuste de tamanho — por isso campi maiores aparecem com fatias maiores."
                 >
-                  <SeletorMedida value={medidaPizza} onChange={setMedidaPizza} />
+                  <Suspense fallback={null}>
+                    <SeletorMedida value={medidaPizza} onChange={setMedidaPizza} />
+                  </Suspense>
                 </CardToolbar>
                 <CardContent className="pt-5">
-                  {pizza.isLoading ? (
-                    <Skeleton className="h-64 w-full" />
-                  ) : (
-                    <CampusDistribution data={pizza.data ?? []} medida={medidaPizza} />
-                  )}
+                  <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+                    {pizza.isLoading ? (
+                      <Skeleton className="h-64 w-full" />
+                    ) : (
+                      <CampusDistribution data={pizza.data ?? []} medida={medidaPizza} />
+                    )}
+                  </Suspense>
                 </CardContent>
               </Card>
             </TabsContent>

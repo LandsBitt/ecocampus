@@ -20,7 +20,9 @@ export function Brand({
         )}
       >
         <img
-          src="/image/unitau-logo.png"
+          src="/image/unitau-logo-96.png"
+          width={96}
+          height={96}
           alt={compact ? 'EcoCampus · UNITAU' : ''}
           className={compact ? 'size-11 object-contain' : 'size-10 object-contain'}
           aria-hidden={compact ? undefined : true}
